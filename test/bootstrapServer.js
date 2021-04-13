@@ -18,8 +18,6 @@ const kBucket = new KBucket({
 const contact = {
     id: Buffer.from(SERVER_NAME),
     workerNodes: {
-        'SODAS#1': { host: '127.0.0.1', port: 55555 },
-        'SODAS#2': { host: '127.0.0.1', port: 55556 }
     }
 };
 
