@@ -7,6 +7,7 @@ Peer-To-Peer 탐색 프로토콜인 Kademlia 를 활용하여 노트 탐색 기�
 - 본 코드는 seed node 를 관리하는 Bootstrap Server 를 포함한 kademlia 의 주요 기능을 구현하고 검증을 목표로 함
 
 ## 테스트 환경 및 Dependency Library
+Node.js 는 일단 최신 버전을 깔았습니다.
 ```
 Node.js Version - v13.11.0
 
