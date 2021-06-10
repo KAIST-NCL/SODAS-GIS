@@ -1,9 +1,13 @@
 
-const node_utils = require('../api/node_utils');
+const dh = require('../api/dhnode');
 const bootstrap = require('../proto/bootstrap');
 
 const bootstrapServerIP = '127.0.0.1:50051';
-const seedNode = node_utils.nodeInfoInit(8080);
+const desc = {
+    port: 8080
+};
+var dhNode = new dh.DHNode(desc);
+const seedNode = dhNode.init_nodeInfo(desc.port);
 
 async function bootstrap_process() {
 
