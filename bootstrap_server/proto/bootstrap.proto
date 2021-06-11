@@ -8,7 +8,7 @@ service bootstrap_broker{
   rpc set_seed_node(Node) returns (Reply) {}
 
   // return seed node list
-  rpc get_seed_node_list(Null) returns (SeedNodeList) {}
+  rpc get_seed_node_list(Node) returns (SeedNodeList) {}
 
 }
 

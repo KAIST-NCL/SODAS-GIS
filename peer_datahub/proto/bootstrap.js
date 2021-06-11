@@ -36,9 +36,9 @@ module.exports = {
 
     },
 
-    get_seed_node_list: function(){
+    get_seed_node_list: function(seedNode){
 
-        bootstrap_client.get_seed_node_list({}, (error, response) => {
+        bootstrap_client.get_seed_node_list(seedNode, (error, response) => {
             if (!error) {
                 console.log('Receive seed node from bootstrap server');
                 console.log(response.nodes);
