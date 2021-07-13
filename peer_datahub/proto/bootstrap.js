@@ -37,16 +37,23 @@ module.exports = {
     },
 
     get_seed_node_list: function(seedNode){
+        var test = [];
+        async function getSeedNodeList() {
 
-        bootstrap_client.get_seed_node_list(seedNode, (error, response) => {
-            if (!error) {
-                console.log('Receive seed node from bootstrap server');
-                console.log(response.nodes);
-            } else {
-                console.error(error);
-            }
-        });
+            let get = await bootstrap_client.get_seed_node_list(seedNode, (error, response) => {
+                if (!error) {
+                    console.log('Receive seed node from bootstrap server');
+                    test = JSON.parse(JSON.stringify( response.nodes ));
+                } else {
+                    console.error(error);
+                }
+            });
+            await new Promise((resolve, reject) => setTimeout(resolve, 2000));
 
+            return test
+        }
+
+        return getSeedNodeList().then((value) => value)
     },
 
     close: function (){
