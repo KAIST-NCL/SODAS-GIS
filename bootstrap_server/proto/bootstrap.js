@@ -35,9 +35,9 @@ module.exports = {
                 console.log("get_seed_node_list")
                 seedNode = call.request
                 console.log(seedNode)
+                callback(null, seedNodeList)
                 seedNodeList.unshift(seedNode)
                 console.log(seedNodeList)
-                callback(null, seedNodeList)
             }
         })
 
