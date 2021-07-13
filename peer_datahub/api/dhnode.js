@@ -1,11 +1,18 @@
 const crypto = require('crypto');
 const { networkInterfaces } = require('os');
 
+var util = require('../kademlia/utils');
+var bucket = require('../kademlia/bucket');
+var knode = require('../kademlia/knode');
+var constants = require('../kademlia/constants');
+
 exports.DHNode = function(desc) {
+    this._address = this.getIpAddress()
     this._port = desc.port;
 };
 
-exports.DHNode.prototype.init_nodeInfo = function(port){
+exports.getIpAddress = function() {
+
     const nets = networkInterfaces();
     const results = Object.create(null);
 
@@ -27,15 +34,20 @@ exports.DHNode.prototype.init_nodeInfo = function(port){
         }
     }
 
+    return results["en0"][1];
+
+}
+
+exports.seedNodeInfo = function(desc){
+
     let seedNode = {
-        nodeId: null,
-        address: null,
-        port: port
+        nodeID: null,
+        address: desc.address,
+        port: desc.port
     };
 
-    seedNode.address = results["en0"][0];
-    seedNode.nodeId = crypto.createHash('sha1').update(seedNode.address, seedNode.port).digest('hex');
-    console.log(seedNode);
+    seedNode.nodeID = crypto.createHash('sha1').update(seedNode.address + ':' + seedNode.port).digest('hex');
 
     return seedNode;
+
 };
