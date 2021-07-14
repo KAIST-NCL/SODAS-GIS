@@ -24,7 +24,7 @@ var assert = require('assert');
 var node_constants = require('constants');
 var async = require('async');
 var constants = require('./constants');
-var util = require('./util');
+var util = require('./utils');
 var rpc = require('./rpc');
 var Bucket = require('./bucket').Bucket;
 var _ = require('underscore');
@@ -52,17 +52,20 @@ exports.KNode.prototype._MSG = function(type, params) {
 }
 
 exports.KNode.prototype._onMessage = function(message) {
+    console.log("<-------------------------- [Start _onMessage function] -------------------------->")
     if (!message.type || typeof message.type !== 'string')
         return;
 
-    var methodName = '_on' + _.str.titleize(_.str.camelize(message.type.toLowerCase()));
+    var methodName = '_on' + _.str.camelize(_.str.titleize(message.type.toLowerCase()));
     var action = this[methodName];
+    console.log("action: " + methodName)
     if (action) {
         this._updateContact(MC(message));
         _.bind(action, this)(message);
     }
     else
         console.warn("Unknown message", message);
+    console.log("<--------------------------- [End _onMessage function] --------------------------->")
 }
 
 exports.KNode.prototype._onPing = function(message) {
@@ -73,6 +76,7 @@ exports.KNode.prototype._onPing = function(message) {
 }
 
 exports.KNode.prototype._updateContact = function(contact, cb) {
+    console.log("<-------------------------- [Call updateContact function] -------------------------->")
     if (!contact)
         return;
     var callback = cb || function() {};
@@ -109,6 +113,17 @@ exports.KNode.prototype._updateContact = function(contact, cb) {
             }, this)
         );
     }
+    console.log("[connect->updateContact function] bucket / node info:")
+    console.log(bucket)
+    console.log(this)
+    console.log("[detail bucket info]")
+    for (var key in this._buckets) {
+        console.log("<<<< bucket index: " + key + " >>>>");
+        for (const element of this._buckets[key]._contacts) {
+            console.log(element);
+        }
+    }
+    console.log("<-------------------------- [End updateContact function] -------------------------->")
 }
 
 // TODO: handle large values which
@@ -237,12 +252,15 @@ exports.KNode.prototype._onFindNode = function(message) {
 // where type == 'VALUE' -> result is the value
 //       type == 'NODE'  -> result is [list of contacts]
 exports.KNode.prototype._iterativeFind = function(key, mode, cb) {
+    console.log("<-------------------------- [Call iterativeFind function] -------------------------->")
     assert.ok(_.include(['NODE', 'VALUE'], mode));
     var externalCallback = cb || function() {};
 
     var closestNode = null, previousClosestNode = null;
     var closestNodeDistance = -1;
     var shortlist = this._findClosestNodes(key, constants.ALPHA, this.self.nodeID);
+    console.log("[connect->iterativeFindNode->iterativeFind function] shortlist:")
+    console.log(shortlist)
     var contacted = {};
     var foundValue = false;
     var value = null;
@@ -254,10 +272,14 @@ exports.KNode.prototype._iterativeFind = function(key, mode, cb) {
         return;
     }
     closestNodeDistance = util.distance(key, closestNode.nodeID);
+    console.log("[connect->iterativeFindNode->iterativeFind function] closestNodeDistance:")
+    console.log(closestNodeDistance)
 
     function xyz(alphaContacts) {
         // clone because we're going to be modifying inside
         async.forEach(alphaContacts, _.bind(function(contact, callback) {
+            console.log("[connect->iterativeFindNode->iterativeFind->xyz function] key:")
+            console.log(key)
             this._rpc.send(contact, this._MSG('FIND_'+mode, {
                 key: key
             }), _.bind(function(err, message) {
@@ -336,10 +358,16 @@ exports.KNode.prototype._iterativeFind = function(key, mode, cb) {
         }, this));
     }
     _.bind(xyz, this)(shortlist);
+    console.log("<-------------------------- [End iterativeFind function] -------------------------->")
 }
 
 exports.KNode.prototype._iterativeFindNode = function(nodeID, cb) {
+    console.log("<-------------------------- [Call iterativeFindNode function] -------------------------->")
+    console.log("[connect->iterativeFindNode function] Mode: NODE / nodeID:")
+    console.log(nodeID)
     this._iterativeFind(nodeID, 'NODE', cb);
+    console.log("<-------------------------- [End iterativeFindNode function] --------------------------->")
+
 }
 
 // cb -> function(err, value)
@@ -375,11 +403,15 @@ exports.KNode.prototype.debug = function() {
 
 /***** Public API *****/
 exports.KNode.prototype.connect = function(address, port, cb) {
+    console.log("<-------------------------- [Call connect function] -------------------------->")
     var callback = cb || function() {};
     assert.ok(this.self.nodeID);
     var contact = util.make_contact(address, port);
+    console.log("[connect function] contact:")
+    console.log(contact)
 
     var refreshBucketsFartherThanClosestKnown = function(type, contacts, asyncCallback) {
+        console.log("<-------------------------- [Call refreshBucketsFartherThanClosestKnown function] -------------------------->")
         // FIXME: Do we update buckets or does iterativeFindNode do it?
         var leastBucket = _.min(_.keys(this._buckets));
         var bucketsToRefresh = _.filter(_.keys(this._buckets),
@@ -392,8 +424,8 @@ exports.KNode.prototype.connect = function(address, port, cb) {
             queue.push(bucketId);
         });
         asyncCallback(); // success
+        console.log("<-------------------------- [End refreshBucketsFartherThanClosestKnown function] -------------------------->")
     }
-
     async.waterfall([
         _.bind(this._updateContact, this, contact), // callback is invoked with no arguments
         _.bind(this._iterativeFindNode, this, this.self.nodeID), // callback is invoked with
@@ -402,14 +434,18 @@ exports.KNode.prototype.connect = function(address, port, cb) {
                                                                  // refreshBucketsFartherThanClosestKnown
         _.bind(refreshBucketsFartherThanClosestKnown, this) // callback is invoked with no arguments
     ], callback);
+    console.log(this)
+    console.log("<-------------------------- [End connect function] -------------------------->")
 }
 
 exports.KNode.prototype.get = function(key, cb) {
+    console.log("<-------------------------- [Call get function] -------------------------->")
     var callback = cb || function() {};
     this._iterativeFindValue(util.id(key), callback);
 }
 
 exports.KNode.prototype.set = function(key, value, cb) {
+    console.log("<-------------------------- [Call set function] -------------------------->")
     var callback = cb || function() {};
     var message = this._MSG('STORE', {
         'key': util.id(key),

@@ -8,12 +8,12 @@ service bootstrap_broker{
   rpc set_seed_node(Node) returns (Reply) {}
 
   // return seed node list
-  rpc get_seed_node_list(Null) returns (SeedNodeList) {}
+  rpc get_seed_node_list(Node) returns (SeedNodeList) {}
 
 }
 
 message Node {
-  string nodeId = 1;
+  string nodeID = 1;
   string address = 2;
   int32 port = 3;
 }

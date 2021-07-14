@@ -23,8 +23,13 @@
   "homepage": "https://github.com/EunjuYang/KAIST_SODAS#readme",
   "dependencies": {
     "@grpc/proto-loader": "^0.6.2",
+    "async": "^3.2.0",
     "express": "^4.17.1",
     "google-protobuf": "^3.17.2",
-    "grpc": "^1.24.10"
+    "grpc": "^1.24.10",
+    "hat": "0.0.3",
+    "kademlia": "^0.2.0",
+    "underscore": "^1.13.1",
+    "underscore.string": "^3.3.5"
   }
 }

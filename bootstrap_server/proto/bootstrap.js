@@ -14,6 +14,7 @@ const bootstrapProto = grpc.load('./proto/bootstrap.proto')
 
 const server = new grpc.Server()
 const seedNodeList = []
+let seedNode;
 
 module.exports = {
 
@@ -24,16 +25,19 @@ module.exports = {
         server.addService(bootstrapProto.bootstrap.bootstrap_broker.service, {
             set_seed_node: (call, callback) => {
                 console.log("set_seed_node")
-                let seedNode = call.request
+                seedNode = call.request
                 console.log(seedNode)
                 seedNodeList.unshift(seedNode)
                 console.log(seedNodeList)
-                callback(null, {  status: true, message: "Success enroll node info"})
+                callback(null, { status: true, message: "Success enroll node info" })
             },
-            get_seed_node_list: (_, callback) => {
+            get_seed_node_list: (call, callback) => {
                 console.log("get_seed_node_list")
-                console.log(seedNodeList)
+                seedNode = call.request
+                console.log(seedNode)
                 callback(null, seedNodeList)
+                seedNodeList.unshift(seedNode)
+                console.log(seedNodeList)
             }
         })
 
