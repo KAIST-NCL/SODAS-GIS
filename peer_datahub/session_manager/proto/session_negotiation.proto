@@ -1,0 +1,38 @@
+syntax="proto3";
+package session_negotiation;
+
+// session_negotiation broker
+service session_negotiation_broker{
+
+  // request session negotiation to other data hub's session listener
+  rpc request_session_negotiation(NegotiationInfo) returns (Reply) {}
+
+  // check negotiation info & send result to other data hub's session listener
+  rpc check_negotiation(Result) returns (Null) {}
+
+}
+
+message SyncNegotiation {
+  repeated string category = 1;
+  repeated string transfer_interface = 2;
+  int32 sync_cycle = 3;
+}
+
+message NegotiationInfo {
+  string ip = 1;
+  int32 port = 2;
+  string key = 3;
+  SyncNegotiation negotiation = 4;
+}
+
+message Reply {
+  bool status = 1;
+  NegotiationInfo negotiation_info = 2;
+}
+
+message Result {
+  bool status = 1;
+}
+
+message Null {
+}
