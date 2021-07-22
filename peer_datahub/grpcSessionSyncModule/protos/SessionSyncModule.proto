@@ -1,0 +1,77 @@
+syntax = 'proto3';
+
+package SessionSyncModule;
+
+service SessionSync {
+  // (a) 처음 SessionSetup이 성공적으로 완료되어Session 통신채널을 initialize하는 메시지를 받음
+  rpc SessionSetupRequest (SessionConfigRequest) returns (Void);
+  // (b) 세션을 개시하며 자신이 Publish하는 데이터맵을 전송하는 과정  //추후 stream 형태로 구현
+  rpc SessionInit (PublishDatamap) returns (ACKMessage);
+  // (c) 타 노드에서 Publish된 데이터맵, or Subscribe중인 데이터맵 전송을 완료받은 경우 ACK Message를 Return함.
+  rpc ReturnACK (ACKMessage) returns (Void);
+
+  // (d) 데이터맵 변화 Event가 발생하여 Event모듈로 메시지를 받음 //추후 stream 형태로 구현
+  rpc DatamapChangeEvent (DataChangeMessage) returns (Void);
+  // (e) 데이터맵 변화를 감지하여 데이터맵을 재전송 (또는 변화된 부분만 전송-추후 ETRI 협의 후 맞게 구현)
+  rpc ChangeSession (PublishDatamap) returns (ACKMessage);
+//  // (f) 데이터맵 변화 부분을 Receive한 이후 ACK Message를 Return함.
+//  rpc ReturnACK (ACKMessage) returns (Void);
+
+  // (g) 일정 시간마다 Health Check 메시지 보내는 부분
+  rpc SendHealthCheck(HealthCheckRequestMessage) returns (HealthCheckReplyMessage);
+  // (h) 일정 시간마다 Health Check 메시지 보내는 부분
+  rpc ReceiveHealthCheck(HealthCheckRequestMessage) returns (HealthCheckReplyMessage);
+
+  // (i) Session Bye 메시지
+  rpc DisconnectSession (farewell) returns (bye);
+}
+
+message Void {} // Response or Reply Message 내용이 필요 없을 때를 위한 메시지 타입 정의
+
+message SessionConfigRequest {
+  // 해당 부분은 지환이형 구현 부분: 세션 수립요청 부분과 조율해서 일치시켜야 함.
+  string id = 1; // Request id 값 (안)
+  string key = 2;
+  string my_ip = 3; // 자신 Node의 ip 값 (안) // 그냥 EntryPoint = "143.248.152.90:40001"처럼 하나의 데이터타입으로 통합할지 고민. >> Port 번호 변경 등 이슈를 위해 분리하는 게 나을 듯
+  string my_port = 4; // 자신 Node의 세션을 위해 열 Port 값 (안)
+  string dest_ip = 5; // 상대 Node의 IP 값 (안)
+  string dest_port = 6; // 상대 Node 세션의 Port 값 (안)
+  string publishDatamapList = 7; // Session Negotiation을 통해 결정된, 현재 내 Node가 Publish하고 있는 데이터셋 중 해당 세션을 통해 Push해야 하는 데이터맵의 리스트 (안)
+  string subscribeDatamapList = 8; // Session Negotiation을 통해 결정된, 상대 Node가 Publish하고 있는 데이터셋 중 해당 세션을 통해 Pulling해야 하는 데이터맵의 리스트
+}
+
+
+message PublishDatamap { // key header 인증 절차 필요함
+  string transID = 1; // 트랜잭션 번호
+  bytes publishDatamap = 2; // 실제 데이터맵 파일 (Rdf 파일) 전송
+}
+
+message ACKMessage {
+  string transID = 1; // 트랜잭션 번호(PublishDatamap의 트랜잭션 번호와 동일하게 하거나 홀-짝 등 Pattern-Matching 할 것)
+  string result = 2; // 0은 Success, 1은 Failed ... 다양한 오류 값 검출 가능하게 해 보기
+}
+
+message DataChangeMessage {
+  string changeID = 1; // 데이터맵 변화 트랜잭션 번호
+  bytes changeDatamap = 2; // 데이터맵 변화한 내역 전송
+}
+
+
+message HealthCheckRequestMessage {
+  string sessionID = 1; // 해당 Session ID 값
+  string timeStamp = 2; // 현재 시간 전달
+}
+
+message HealthCheckReplyMessage {
+  string sessionID = 1; // 해당 Session ID 값
+  string timeStamp = 2; // 현재 시간 전달
+}
+
+message farewell {
+  string sessionID = 1; // 해당 Session ID 값
+}
+
+message bye {
+  string sessionID = 1; // 해당 Session ID 값
+  string result = 2; // 0은 Success, 1은 Failed ... 다양한 오류 값 검출 가능하게 해 보기
+}
