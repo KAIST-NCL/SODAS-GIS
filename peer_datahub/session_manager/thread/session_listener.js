@@ -1,21 +1,60 @@
 
-const {parentPort} = require('worker_threads')
+const {parentPort} = require('worker_threads');
+const policy = require('../policy/sync_policy');
 
-const grpc = require('grpc')
-const sessionNegotiationProto = grpc.load('./proto/session_negotiation.proto')
-
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const packageDefinition = protoLoader.loadSync(
+    './proto/session_negotiation.proto',{
+        keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true
+});
+const sessionNegotiationProto = grpc.loadPackageDefinition(packageDefinition);
 const server = new grpc.Server()
+let sessionNegotiationOptions;
 
-server.addService(sessionNegotiationProto.session_negotiation.session_negotiation_broker.service, {
-    request_session_negotiation: (call, callback) => {
-        console.log("request_session_negotiation")
-        var negotiationInfo = call.request
-        console.log(negotiationInfo)
-        sync_negotiation(negotiationInfo)
-        callback(null, { status: true, negotiation_info: "" })
+const workerName = 'S-Listener';
+
+var test = {
+    status: true,
+    end_point: {
+        ip: '345.345.345.555',
+        port: 30303
     },
-    check_negotiation: (call, callback) => {
-        console.log("check_negotiation")
+    negotiation_info: {
+        session_desc: {
+            session_creator: 'session_listener',
+            session_id: 'session_listener_id'
+        },
+        datamap_desc: {
+            datamap_list: ['rewrew', 'rewrew3'],
+            data_catalog_vocab: 'DCATv2',
+            datamap_sync_depth: 'Asset'
+        },
+        sync_desc: {
+            sync_time_cycle: [33, 43],
+            sync_count_cycle: [66, 200],
+            is_active_sync: true,
+            transfer_interface: ['gRPC']
+        }
+    }
+}
+
+server.addService(sessionNegotiationProto.session_negotiation.SessionNegotiationBroker.service, {
+    RequestSessionNegotiation: (call, callback) => {
+        console.log("[gRPC Call] RequestSessionNegotiation")
+        var result = call.request
+        console.log(result)
+        test.negotiation_info.session_desc.session_creator = result.session_desc.session_creator
+        test.negotiation_info.session_desc.session_id = result.session_desc.session_id
+        console.log(test)
+        callback(null, test)
+    },
+    CheckNegotiation: (call, callback) => {
+        console.log("[gRPC Call] CheckNegotiation")
         var result = call.request
         console.log(result)
         if (result.status) {
@@ -24,10 +63,30 @@ server.addService(sessionNegotiationProto.session_negotiation.session_negotiatio
     }
 })
 
+// [SM -> S-Listener]
 parentPort.on('message', message => {
-    server.bind(message, grpc.ServerCredentials.createInsecure())
-    console.log('Session Request Server running at ' + message)
-    server.start()
+    switch (message.event) {
+        // S-Listener 초기화 event, gRPC 서버 start
+        case 'INIT':
+            console.log('<--------------- [ ' + workerName + ' get message * INIT * ] --------------->')
+            server.bindAsync(message.data, grpc.ServerCredentials.createInsecure(), () => {
+                console.log('Session Listener gRPC Server running at ' + message.data)
+                server.start();
+            });
+            break;
+
+        // 타 데이터 허브 S-Requester 와의 세션 협상이 체결된 후, 전송해야 하는 S-Worker 정보를 받는 event
+        case 'GET_NEW_SESSION_WORKER_INFO':
+            console.log('<--------------- [ ' + workerName + ' get message * GET_NEW_SESSION_WORKER_INFO * ] --------------->')
+            console.log(message.data)
+            break;
+
+        // 데이터 허브 또는 사용자에 의해 협상 옵션이 바뀔 경우, 해당 정보를 보내는 event
+        case 'CHANGE_NEGOTIATION_OPTION':
+            console.log('<--------------- [ ' + workerName + ' get message * CHANGE_NEGOTIATION_OPTION * ] --------------->')
+            console.log(message.data)
+            break;
+    }
 })
 
 function sync_negotiation(negotiationInfo) {
