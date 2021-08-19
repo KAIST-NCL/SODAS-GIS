@@ -1,73 +1,58 @@
-
 const {parentPort} = require('worker_threads');
 let workerName;
 let port;
 
-// var PROTO_PATH = __dirname + '/../protos/SessionSyncModule.proto';
-//
-// var grpc = require('@grpc/grpc-js');
-// var protoLoader = require('@grpc/proto-loader');
-// const policy = require("../policy/sync_policy");
-// var packageDefinition = protoLoader.loadSync(
-//     PROTO_PATH,
-//     {keepCase: true,
-//         longs: String,
-//         enums: String,
-//         defaults: true,
-//         oneofs: true
-//     });
-// var sessionSyncModule = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
-//
-// /**
-//  * Implements the SayHello RPC method.
-//  */
-// function SessionSetupRequest(call, callback) {
-//     // SetupRequest 메시지가 세션 매니저로부터 들어오면, 상대 노드로 Init Message를 서로 보냄.
-//     var target = call.request.dest_ip + ':' + call.request.dest_port
-//     var session = new sessionSyncModule.SessionSync(target, grpc.credentials.createInsecure());
-//     session.SessionInit(
-//         {transID : 'a1',
-//             PublishDatamap: 'publisheddatamapsample_FILE READ HERE'}, function(err, response){
-//             console.log("SessionSetupRequest SENT to " + target)
-//         }
-//     )
-//     // callback(null, {message: 'Hello ' + call.request.name});
-// }
-//
-// function SessionInit(call, callback) {
-//     console.log("RECEIVED SessionConfigRequest of " + call.request.transID)
-//     console.log("HERE FOR SAVING " + call.request.publishDatamap)
-//     callback(null ,{transID: call.request.transID,
-//         result: 0})
-// }
-//
-// function ReturnACK(call, callback) {
-//     console.log("RECEIVED ACKMessage of " + call.request.transID + call.request.result)
-// }
-//
-// function DatamapChangeEvent (call, callback) {
-//     // SetupRequest 메시지가 세션 매니저로부터 들어오면, 상대 노드로 Init Message를 서로 보냄.
-//     var target = call.request.dest_ip + ':' + call.request.dest_port
-//     var session = new sessionSyncModule.SessionSync(target, grpc.credentials.createInsecure());
-//     session.SessionInit(
-//         {transID : 'a1',
-//             PublishDatamap: 'publisheddatamapsample_FILE READ HERE'}, function(err, response){
-//             console.log("SessionSetupRequest SENT to " + target)
-//         }
-//     )
-// }
-//
-// function ChangeSession (call, callback) {
-// }
-//
-// function SendHealthCheck (call, callback) {
-//     console.log("RECEIVED SessionConfigRequest of " + call.request.transID)
-//     console.log("HERE FOR SAVING " + call.request.publishDatamap)
-//     callback(null ,{transID: call.request.transID,
-//         result: 0})
-//
-// }
-//
+const CHUNK_SIZE = 4*1024*1024 - 10
+const PROTO_PATH = __dirname + '/../proto/SessionSyncModule.proto';
+
+const fs = require('fs')
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const packageDefinition = protoLoader.loadSync(
+    PROTO_PATH,
+    {keepCase: true,
+        longs: String,
+        enums: String,
+        defaults: true,
+        oneofs: true
+    });
+var session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
+
+
+function SessionInit(call, callback) {
+    var subfileDir = '../SubMaps'
+    console.log("Server Side Received:" , call.request.transID)
+    fs.writeFile(subfileDir + call.request.filedir , call.request.publishDatamap, 'binary', function(err){
+        if (err) throw err
+        console.log('write end') });
+    callback(null, {transID: call.request.transID + 'OK', result: "Success"});
+}
+
+async function SessionInitStart( target ) {
+    var client = new session_sync.SessionSync(target, grpc.credentials.createInsecure());
+    let timestamp = new Date()
+    let pubfileDir = '../PubMaps'
+    let filelist = []
+
+    // fs.readdir(pubfileDir, function (err, files){
+    //     console.log("PubMaps filelist: ", files, files.length)
+    // })
+
+    // for( let i = 0 ; i < filelist.length; i++){
+    //     console.log("FLL:" , filelist[i])
+    // }
+
+    fs.readFile( pubfileDir + '/sample.pdf' , (err, data) => {
+        if (err) throw err
+        client.SessionInit({transID: timestamp + '/sample.pdf + "SEND',
+                                 filedir: '/sampleRCV.pdf',
+                                 publishDatamap: data},
+            function (err, response) {
+            console.log('Received Message:', response.transID, " // ", response.result);
+        })
+    })
+}
+
 // function ReceiveHealthCheck (call, callback) {
 //     console.log("RECEIVED SessionConfigRequest of " + call.request.transID)
 //     console.log("HERE FOR SAVING " + call.request.publishDatamap)
@@ -78,28 +63,28 @@ let port;
 // function DisconnectSession (call, callback) {
 //
 // }
-//
-//
-// /**
-//  * Starts an RPC server that receives requests for the Greeter service at the
-//  * sample server port
-//  */
-// function main() {
-//     var server = new grpc.Server();
-//     server.addService(hello_proto.Greeter.service, {
-//             SessionSetupRequest: SessionSetupRequest,
-//             SessionInit: SessionInit,
-//             DatamapChangeEvent:DatamapChangeEvent
-//         },
-//         ReturnACK, ReturnACK);
-//     server.bindAsync('0.0.0.0:50051', grpc.ServerCredentials.createInsecure(), () => {
-//         server.start();
-//     });
-// }
-//
-// main();
+
+
+/**
+ * Starts an RPC server that receives requests for the Greeter service at the
+ * sample server port
+ */
+function main() {
+    var server = new grpc.Server();
+    server.addService(session_sync.SessionSync.service, {
+            SessionInit: SessionInit
+        }
+        );
+    server.bindAsync('0.0.0.0:5005', grpc.ServerCredentials.createInsecure(), () => {
+        server.start();
+    });
+    SessionInitStart('0.0.0.0:5005')
+}
+
+main();
 
 // [SM -> S-Worker]
+
 parentPort.on('message', message => {
     switch (message.event) {
         // S-Worker 초기화 event
