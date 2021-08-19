@@ -51,7 +51,10 @@ server.addService(sessionNegotiationProto.session_negotiation.SessionNegotiation
         test.negotiation_info.session_desc.session_creator = result.session_desc.session_creator
         test.negotiation_info.session_desc.session_id = result.session_desc.session_id
         console.log(test)
-        callback(null, test)
+        if (policy.check_negotiation_options(test, result)) {
+            parentPort.postMessage({event: "CREATE_NEW_SESSION_WORKER", data: result.session_desc.session_id})
+            callback(null, test)
+        }
     },
     CheckNegotiation: (call, callback) => {
         console.log("[gRPC Call] CheckNegotiation")

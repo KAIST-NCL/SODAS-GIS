@@ -3,7 +3,6 @@ const {Worker, parentPort} = require('worker_threads');
 const crypto = require('crypto');
 
 const sm = require('./session_manager');
-const bootstrap = require("../proto/bootstrap");
 
 const workerName = 'SM';
 
@@ -40,7 +39,7 @@ exports.SessionManager = function() {
         }
     }
     this.tempSessionWorker = {
-        Requester: {
+        requester: {
             session_id : null,
             port : null,
             worker: null,
@@ -62,6 +61,15 @@ exports.SessionManager.prototype.init_session_requester = function () {
     // [SM -> S-Requester] [INIT]
     sessionRequesterWorker.postMessage({ event: "INIT", data: null });
 
+    // todo: S-Worker -> SM 보내는 이벤트 세부 정의 필요!
+    sessionRequesterWorker.on('message', message => {
+        switch (message.event) {
+            //
+            case 'CLOSE':
+                break;
+        }
+    })
+
     return sessionRequesterWorker
 }
 
@@ -71,11 +79,12 @@ exports.SessionManager.prototype.update_negotiation_options = function () {
 }
 
 
-exports.SessionManager.prototype.start_session_connection = function (sessionRequesterWorker, listenerEndPoint) {
-    this.create_session_worker(9090);
+exports.SessionManager.prototype.start_session_connection = function (listenerEndPoint) {
+    let session_id = crypto.randomBytes(20).toString('hex');
+    this.create_requester_session_worker(session_id, 9090);
 
     // [SM -> S-Requester] [START_SESSION_CONNECTION]
-    sessionRequesterWorker.postMessage({ event: "START_SESSION_CONNECTION", data: listenerEndPoint });
+    session_manager.sessionRequester.worker.postMessage({ event: "START_SESSION_CONNECTION", data: listenerEndPoint });
 }
 
 
@@ -92,19 +101,18 @@ exports.SessionManager.prototype.init_session_listener = function (port) {
 
 //// ------- sessionWorker ------- ////
 // todo: session worker 를 계속 생성할 때, end-point(port number) 부여 방법
-exports.SessionManager.prototype.create_session_worker = function (port) {
-    const session_id = crypto.randomBytes(20).toString('hex');
+exports.SessionManager.prototype.create_requester_session_worker = function (session_id, port) {
     const sessionWorker = new Worker('./thread/session.js');
 
     // [SM -> S-Worker] [INIT]
     sessionWorker.postMessage({ event: "INIT", data: { session_id: session_id, port: port } });
 
-    session_manager.tempSessionWorker.Requester.session_id = session_id;
-    session_manager.tempSessionWorker.Requester.port = port;
-    session_manager.tempSessionWorker.Requester.worker = sessionWorker;
+    session_manager.tempSessionWorker.requester.session_id = session_id;
+    session_manager.tempSessionWorker.requester.port = port;
+    session_manager.tempSessionWorker.requester.worker = sessionWorker;
 
     // [SM -> S-Requester] [GET_NEW_SESSION_WORKER_INFO]
-    session_manager.sessionRequester.worker.postMessage({ event: "GET_NEW_SESSION_WORKER_INFO", data: { session_creator: session_manager.datahubInfo.datahubID, session_id: session_manager.tempSessionWorker.Requester.session_id } });
+    session_manager.sessionRequester.worker.postMessage({ event: "GET_NEW_SESSION_WORKER_INFO", data: { session_creator: session_manager.datahubInfo.datahubID, session_id: session_manager.tempSessionWorker.requester.session_id } });
 
     console.log(session_manager);
 }
@@ -113,6 +121,7 @@ exports.SessionManager.prototype.create_session_worker = function (port) {
 const session_manager = new sm.SessionManager()
 console.log(session_manager)
 
+
 // 탐색 모듈과 연동해서, 주기적으로 c-bucket 참조 -> 세션 연동 후보 노드 순차적으로 세션 연동 Request 보내는 로직
 
 async function test() {
@@ -120,7 +129,7 @@ async function test() {
     let bootstrap_client = await session_manager.update_negotiation_options();
     await new Promise((resolve, reject) => setTimeout(resolve, 2000));
 
-    let get = await session_manager.start_session_connection(session_manager.sessionRequester.worker, '127.0.0.1:50051')
+    let get = await session_manager.start_session_connection('127.0.0.1:50051')
     await new Promise((resolve, reject) => setTimeout(resolve, 2000));
 
     return null;
@@ -137,14 +146,12 @@ session_manager.sessionRequester.worker.on('message', message => {
             console.log('<--------------- [ ' + workerName + ' get message * TRANSMIT_LISTENER_SESSION_WORKER_ENDPOINT * ] --------------->')
             console.log(message.data)
 
-            console.log(session_manager.tempSessionWorker.Requester.session_id)
+            console.log(session_manager.tempSessionWorker.requester.session_id)
             console.log(message.data.session_id)
             // [SM -> S-Worker] [GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT]
-            if (session_manager.tempSessionWorker.Requester.session_id === message.data.session_id) {
-                session_manager.tempSessionWorker.Requester.worker.postMessage({ event: "GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT", data: message.data.endpoint })
+            if (session_manager.tempSessionWorker.requester.session_id === message.data.session_id) {
+                session_manager.tempSessionWorker.requester.worker.postMessage({ event: "GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT", data: message.data.endpoint })
             }
-
-
             break;
     }
 })
