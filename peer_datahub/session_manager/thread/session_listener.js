@@ -21,8 +21,8 @@ const workerName = 'S-Listener';
 var test = {
     status: true,
     end_point: {
-        ip: '345.345.345.555',
-        port: 30303
+        ip: '0.0.0.0',
+        port: 9091
     },
     negotiation_info: {
         session_desc: {

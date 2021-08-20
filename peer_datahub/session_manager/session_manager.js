@@ -81,7 +81,7 @@ exports.SessionManager.prototype.update_negotiation_options = function () {
 
 exports.SessionManager.prototype.start_session_connection = function (listenerEndPoint) {
     let session_id = crypto.randomBytes(20).toString('hex');
-    this.create_requester_session_worker(session_id, 9090);
+    this.create_requester_session_worker(session_id, 9091);
 
     // [SM -> S-Requester] [START_SESSION_CONNECTION]
     session_manager.sessionRequester.worker.postMessage({ event: "START_SESSION_CONNECTION", data: listenerEndPoint });
@@ -150,6 +150,7 @@ session_manager.sessionRequester.worker.on('message', message => {
             console.log(message.data.session_id)
             // [SM -> S-Worker] [GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT]
             if (session_manager.tempSessionWorker.requester.session_id === message.data.session_id) {
+                session_manager.tempSessionWorker.requester.worker.postMessage({ event: "START_GRPC_SERVER", data: null })
                 session_manager.tempSessionWorker.requester.worker.postMessage({ event: "GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT", data: message.data.endpoint })
             }
             break;
