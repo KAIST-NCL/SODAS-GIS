@@ -10,7 +10,7 @@ var fs = require('fs');
 var execSync = require('child_process').execSync;
 
 // git init function
-exports.init = async function(gitDIR_) {
+exports.create = async function(gitDIR_) {
     // 우선 Local Git DB 폴더가 생성되었는 지 확인 후 생성
     !fs.existsSync(gitDIR_) && fs.mkdirSync(gitDIR_);
     // simpleGit init 시작
@@ -20,7 +20,7 @@ exports.init = async function(gitDIR_) {
 }
 
 // git commit function
-exports.git_commit = async function(git, message) {
+exports.commit = async function(git, message) {
     // git add
     await git.add(["."]);
     // git commit
@@ -31,13 +31,15 @@ exports.git_commit = async function(git, message) {
 }
 
 // git diff with comID
-exports.diff = async function(comID) {
-    const stdout = execSync('cd ./gitDB && git diff '+comID);
+exports.diff = async function(gitDIR_, comID, filename) {
+    const stdout = execSync('cd ' + gitDIR_ + ' && git diff '+comID+' '+filename);
     return stdout.toString();
 }
 
 // file delete/edit function
-exports.file_manager = async function(options, files, contents) {
+exports.file_manager = async function(options, gitDIR_, hierarchy, id, contents) {
+    // hierarchy로부터 파일 이름 생성하기
+    var files = gitDIR_ + '/' + hierarchy.domain + '/' + hierarchy.taxonomy + '/' + hierarchy.category + '/asset/' + id + '.rdf'
     // 만약 options가 delete면 Local Git DB에서 파일 삭제
     if (options == "DELETE") {
         // 파일 위치 확인 후 삭제
@@ -56,6 +58,8 @@ exports.file_manager = async function(options, files, contents) {
     }
 }
 
+exports.EDIT = "EDIT";
+exports.DEL = "DELETE";
 
 // Example functions for Test
 async function main_commit() {

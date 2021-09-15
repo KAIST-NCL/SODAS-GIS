@@ -15,11 +15,19 @@ var options = {groupId: "ncl_test", commitOffsetsOnFirstJoin: false, autoCommit:
 var consumer = new Consumer(client, topics, options);
 var offset = new Offset(client);
 
+
+// version control part
+var vc = require('../../version_control/vc');
+// initialize
+const gitDIR = './gitDB'
+const git = vc.create(gitDIR)
+
 function ckpt(){
     console.log('check')
 }
+
 // to switch
-function apiSwitcher(topic, msg){
+async function apiSwitcher(topic, msg){
     if(topic ==topic1) {
         console.log('topic:',topic);
         if (msg.operation == 'start' && msg.type == 'reference-model') {
@@ -49,9 +57,21 @@ function apiSwitcher(topic, msg){
             } else if(msg.operation=='stop' && msg.type=='datahub'){
                 //pass
             } else if(msg.operation=='create' && msg.type=='asset'){
-                //pass
+                // first create the asset in the proper folder
+                vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id)
+                // then commit
+                var comm_commit = 0;
+                await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
+                // return the commit number to 
+
             } else if(msg.operation=='update' && msg.type=='asset'){
-                //pass
+                // first create the asset in the proper folder
+                vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id)
+                // then commit
+                var comm_commit = 0;
+                await vc.commit(git, "update asset " + msg.id).then((comm) => comm_commit = comm.slice());
+                // return the commit number to 
+
             } else if(msg.operation=='update' && msg.type=='domain-asset'){
                 //pass
             } else if(msg.operation=='update' && msg.type=='taxonomy-asset'){
