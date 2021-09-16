@@ -57,14 +57,18 @@ async function apiSwitcher(topic, msg){
             } else if(msg.operation=='stop' && msg.type=='datahub'){
                 //pass
             } else if(msg.operation=='create' && msg.type=='asset'){
+                // Call RestAPI to get the original file
+                
                 // first create the asset in the proper folder
                 vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id)
                 // then commit
                 var comm_commit = 0;
                 await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
                 // return the commit number to 
-
+                
             } else if(msg.operation=='update' && msg.type=='asset'){
+                // Call RestAPI to get the original file
+
                 // first create the asset in the proper folder
                 vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id)
                 // then commit
