@@ -3,7 +3,7 @@ Description=Daemon service Mockup
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/forever /opt/Sodas_Kaist/Daemon_process/Sodas_Kaist.js
+ExecStart=/usr/bin/forever /opt/Sodas_Kaist/Daemon_process/DHDaemon.js
 WorkingDirectory=/opt/Sodas_Kaist/Daemon_process/
 Restart=always
 #StandardOutput=syslog
