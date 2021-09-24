@@ -35,7 +35,7 @@ var MC = util.message_contact;
 var MID = util.message_rpcID;
 
 exports.KNode = function(desc) {
-    // TODO: probably want to persist nodeID
+    // TODO: probably want to persist node_id
     this.self = _.defaults({ nodeID: util.nodeID(desc.address, desc.port) }, desc);
     Object.freeze(this.self);
 
@@ -204,7 +204,7 @@ exports.KNode.prototype._findClosestNodes = function(key, howMany, exclude) {
     // first check the same bucket
     // what bucket would key go into, that is the closest
     // bucket we start from, hence bucketIndex
-    // is with reference to self.nodeID
+    // is with reference to self.node_id
     var bucketIndex = util.bucketIndex(this.self.nodeID, key);
     if (this._buckets.hasOwnProperty(bucketIndex))
         addClosestFromBucket(this._buckets[bucketIndex]);
@@ -363,7 +363,7 @@ exports.KNode.prototype._iterativeFind = function(key, mode, cb) {
 
 exports.KNode.prototype._iterativeFindNode = function(nodeID, cb) {
     console.log("<-------------------------- [Call iterativeFindNode function] -------------------------->")
-    console.log("[connect->iterativeFindNode function] Mode: NODE / nodeID:")
+    console.log("[connect->iterativeFindNode function] Mode: NODE / node_id:")
     console.log(nodeID)
     this._iterativeFind(nodeID, 'NODE', cb);
     console.log("<-------------------------- [End iterativeFindNode function] --------------------------->")

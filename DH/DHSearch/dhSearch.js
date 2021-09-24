@@ -1,7 +1,7 @@
 
-const dh = require('../api/dhnode');
-const bootstrap = require('../proto/bootstrap');
-const knode = require('../kademlia/knode');
+const dh = require('./api/dhnode');
+const bootstrap = require('./proto/bootstrap');
+const knode = require('./kademlia/knode');
 
 const bootstrapServerIP = '127.0.0.1:50051';
 const desc = {
@@ -17,13 +17,13 @@ var seedNodeList;
 
 async function bootstrap_process() {
 
-    let init = await bootstrap.init(bootstrapServerIP);
+    let init = await bootstrap.Init(bootstrapServerIP);
     await new Promise((resolve, reject) => setTimeout(resolve, 2000));
 
-    seedNodeList = await bootstrap.get_seed_node_list(seedNode);
+    seedNodeList = await bootstrap.GetSeedNodeList(seedNode);
     await new Promise((resolve, reject) => setTimeout(resolve, 2000));
 
-    let close = await bootstrap.close()
+    let close = await bootstrap.Close()
 
     let DP = discover_process(seedNodeList)
 

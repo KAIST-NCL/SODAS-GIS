@@ -5,7 +5,7 @@ let workerName;
 let port;
 
 const CHUNK_SIZE = 4*1024*1024 - 10
-const PROTO_PATH = __dirname + '/../proto/SessionSyncModule.proto';
+const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
 
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');

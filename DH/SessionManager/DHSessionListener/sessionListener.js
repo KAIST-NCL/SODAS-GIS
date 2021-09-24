@@ -1,11 +1,11 @@
 
 const {parentPort} = require('worker_threads');
-const policy = require('../policy/sync_policy');
+const policy = require('../api/sync_policy');
 
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const packageDefinition = protoLoader.loadSync(
-    './proto/session_negotiation.proto',{
+    './proto/sessionNegotiation.proto',{
         keepCase: true,
         longs: String,
         enums: String,
@@ -43,7 +43,7 @@ var test = {
     }
 }
 
-server.addService(sessionNegotiationProto.session_negotiation.SessionNegotiationBroker.service, {
+server.addService(sessionNegotiationProto.sessionNegotiation.SessionNegotiationBroker.service, {
     RequestSessionNegotiation: (call, callback) => {
         console.log("[gRPC Call] RequestSessionNegotiation")
         var result = call.request
@@ -91,7 +91,3 @@ parentPort.on('message', message => {
             break;
     }
 })
-
-function sync_negotiation(negotiationInfo) {
-
-}
