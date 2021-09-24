@@ -12,22 +12,15 @@ var topics = [{ topic: topic1, partitions: 0 },
               { topic: topic2, partitions: 1 }];
 
 var options = {groupId: "ncl_test", commitOffsetsOnFirstJoin: false, autoCommit: false, fetchMaxWaitMs: 1000, fetchMaxBytes: 1024 * 1024 };
-var consumer = new Consumer(client, topics, options);
+exports.consumer = new Consumer(client, topics, options);
 var offset = new Offset(client);
-
-
-// version control part
-var vc = require('../../version_control/vc');
-// initialize
-const gitDIR = './gitDB'
-const git = vc.create(gitDIR)
 
 function ckpt(){
     console.log('check')
 }
 
 // to switch
-async function apiSwitcher(topic, msg){
+exports.apiSwitcher = async function(topic, msg, gitDIR, git){
     if(topic ==topic1) {
         console.log('topic:',topic);
         if (msg.operation == 'start' && msg.type == 'reference-model') {
@@ -46,7 +39,6 @@ async function apiSwitcher(topic, msg){
             console.log('undefined operation and type combination.');
         }
     }
-
     else if(topic == topic2) {
             console.log('topic:',topic);
 
@@ -57,20 +49,16 @@ async function apiSwitcher(topic, msg){
             } else if(msg.operation=='stop' && msg.type=='datahub'){
                 //pass
             } else if(msg.operation=='create' && msg.type=='asset'){
-                // Call RestAPI to get the original file
-                
                 // first create the asset in the proper folder
-                vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id)
+                vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id, msg.contents)
                 // then commit
                 var comm_commit = 0;
                 await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
                 // return the commit number to 
                 
             } else if(msg.operation=='update' && msg.type=='asset'){
-                // Call RestAPI to get the original file
-
                 // first create the asset in the proper folder
-                vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id)
+                vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id, msg.contents)
                 // then commit
                 var comm_commit = 0;
                 await vc.commit(git, "update asset " + msg.id).then((comm) => comm_commit = comm.slice());
@@ -85,7 +73,13 @@ async function apiSwitcher(topic, msg){
             } else if(msg.operation=='update' && msg.type=='catalog-asset'){
                 //pass
             } else if(msg.operation=='delete' && msg.type=='asset'){
-                //pass
+                // first create the asset in the proper folder
+                vc.file_manager(vc.DEL, gitDIR, msg.hierarchy, msg.id, msg.contents)
+                // then commit
+                var comm_commit = 0;
+                await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
+                // return the commit number to 
+                
             } else if(msg.operation=='create' && msg.type=='catalog'){
                 //pass
             } else if(msg.operation=='update' && msg.type=='catalog'){

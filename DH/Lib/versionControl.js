@@ -4,14 +4,14 @@ const simpleGit = require('simple-git');
 
 // Options
 const DEL = "DELETE";
-const EDT = "EDIT";
+const EDIT = "EDIT";
 
 var fs = require('fs');
 var execSync = require('child_process').execSync;
 
 // Export Variables
-exports.EDIT = "EDIT";
-exports.DEL = "DELETE";
+exports.EDIT = EDIT;
+exports.DEL = DEL;
 
 // git init function
 exports.create = async function(gitDIR_) {
@@ -59,7 +59,7 @@ exports.file_manager = async function(options, gitDIR_, hierarchy, id, contents)
     files = files + '/' + id + '.rdf';
 
     // 만약 options가 delete면 Local Git DB에서 파일 삭제
-    if (options == "DELETE") {
+    if (options == DEL) {
         // 파일 위치 확인 후 삭제
         fs.existsSync(files) && fs.unlink(files, function (err) {
             if (err) {
@@ -69,7 +69,7 @@ exports.file_manager = async function(options, gitDIR_, hierarchy, id, contents)
     }
     
     // 아니면 Local Git DB에 파일 추가/변경
-    else if (options == "EDIT") {
+    else if (options == EDIT) {
         // 파일 위치 확인 후 변경
         fs.writeFile(files, contents, 'utf8', function (error) {
             if (error) console.log("Error: ", err);
@@ -102,7 +102,7 @@ async function main_delete() {
 }
 
 async function main_edit() {
-    file_manager(EDT, './gitDB/temp', 'hello');
+    file_manager(EDIT, './gitDB/temp', 'hello');
 }
 
 exports.main_directory = async function() {
