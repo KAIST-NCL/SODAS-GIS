@@ -9,6 +9,10 @@ const EDT = "EDIT";
 var fs = require('fs');
 var execSync = require('child_process').execSync;
 
+// Export Variables
+exports.EDIT = "EDIT";
+exports.DEL = "DELETE";
+
 // git init function
 exports.create = async function(gitDIR_) {
     // 우선 Local Git DB 폴더가 생성되었는 지 확인 후 생성
@@ -72,9 +76,6 @@ exports.file_manager = async function(options, gitDIR_, hierarchy, id, contents)
         });
     }
 }
-
-exports.EDIT = "EDIT";
-exports.DEL = "DELETE";
 
 // Example functions for Test
 async function main_commit() {
