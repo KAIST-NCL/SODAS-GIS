@@ -19,78 +19,51 @@ function ckpt(){
     console.log('check')
 }
 
+var vc = require('../../versionControl');
+var hd = require('../../msgHandler');
+
 // to switch
 exports.apiSwitcher = async function(topic, msg, gitDIR, git){
-    if(topic ==topic1) {
+    if(topic == topic1) {
         console.log('topic:',topic);
-        if (msg.operation == 'start' && msg.type == 'reference-model') {
-            //pass
-        } else if (msg.operation == 'stop' && msg.type == 'reference-model') {
-            //pass
-        } else if (msg.operation == 'create' && msg.type == 'domain') {
-            //pass
-        } else if (msg.operation == 'update' && msg.type == 'domain') {
-            //pass
-        } else if (msg.operation == 'create' && msg.type == 'domain-version') {
-            //pass
-        } else if (msg.operation == 'update' && msg.type == 'domain-version') {
-            //pass
-        } else {
+        if (msg.type == 'reference-model') {
+            hd.refmodelhandler(msg.operation);
+        } 
+        else if (msg.type == 'domain') {
+            hd.domainhandler(msg.operation);
+        } 
+        else if (msg.type == 'domain-version') {
+            hd.domverhandler(msg.operation);
+        } 
+        else {
             console.log('undefined operation and type combination.');
         }
     }
     else if(topic == topic2) {
             console.log('topic:',topic);
 
-            if(msg.operation=='start' && msg.type=='datahub'){
-                //pass
-            } else if(msg.operation=='update' && msg.type=='datahub'){
-                //pass
-            } else if(msg.operation=='stop' && msg.type=='datahub'){
-                //pass
-            } else if(msg.operation=='create' && msg.type=='asset'){
-                // first create the asset in the proper folder
-                vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id, msg.contents)
-                // then commit
-                var comm_commit = 0;
-                await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
-                // return the commit number to 
-                
-            } else if(msg.operation=='update' && msg.type=='asset'){
-                // first create the asset in the proper folder
-                vc.file_manager(vc.EDIT, gitDIR, msg.hierarchy, msg.id, msg.contents)
-                // then commit
-                var comm_commit = 0;
-                await vc.commit(git, "update asset " + msg.id).then((comm) => comm_commit = comm.slice());
-                // return the commit number to 
-
-            } else if(msg.operation=='update' && msg.type=='domain-asset'){
-                //pass
-            } else if(msg.operation=='update' && msg.type=='taxonomy-asset'){
-                //pass
-            } else if(msg.operation=='update' && msg.type=='category-asset'){
-                //pass
-            } else if(msg.operation=='update' && msg.type=='catalog-asset'){
-                //pass
-            } else if(msg.operation=='delete' && msg.type=='asset'){
-                // first create the asset in the proper folder
-                vc.file_manager(vc.DEL, gitDIR, msg.hierarchy, msg.id, msg.contents)
-                // then commit
-                var comm_commit = 0;
-                await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
-                // return the commit number to 
-                
-            } else if(msg.operation=='create' && msg.type=='catalog'){
-                //pass
-            } else if(msg.operation=='update' && msg.type=='catalog'){
-                //pass
-            } else if(msg.operation=='delete' && msg.type=='catalog'){
-                //pass
-            } else if(msg.operation=='sync_on' && msg.type=='datahub'){
-                //pass
-            } else if(msg.operation=='sync_off' && msg.type=='datahub'){
-                //pass
-            } else {
+            if(msg.type=='datahub'){
+                hd.datahubhandler(msg.operation);
+            } 
+            else if(msg.operation=='create' && msg.type=='asset'){
+                hd.assethandler(msg.operation, msg.hierarchy, msg.id, msg.contents, gitDIR, git);
+            }
+            else if(msg.operation=='update' && msg.type=='domain-asset'){
+                hd.domassethandler(msg.operation);
+            } 
+            else if(msg.operation=='update' && msg.type=='taxonomy-asset'){
+                hd.taxassethandler(msg.operation);
+            } 
+            else if(msg.operation=='update' && msg.type=='category-asset'){
+                hd.categassethandler(msg.operation);
+            } 
+            else if(msg.operation=='update' && msg.type=='catalog-asset'){
+                hd.catalassethandler(msg.operation);
+            } 
+            else if(msg.operation=='create' && msg.type=='catalog'){
+                hd.cataloghandler(msg.operation);
+            } 
+            else {
             console.log('undefined operation and type combination.');
         }
     }
@@ -98,7 +71,7 @@ exports.apiSwitcher = async function(topic, msg, gitDIR, git){
         console.log('no topic defined');
     }
 }
-
+/*
 consumer.on('message', function (message) {
     console.log(message);
     // const topic_msg = message.topic;
@@ -111,3 +84,4 @@ consumer.removeTopics([topic2 ], function(err,removed){});
 consumer.on('error', function (err) {
   console.log('error', err);
 });
+*/

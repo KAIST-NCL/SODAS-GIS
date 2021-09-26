@@ -67,7 +67,7 @@ exports.file_manager = async function(options, gitDIR_, hierarchy, id, contents)
             }
         });
     }
-    
+
     // 아니면 Local Git DB에 파일 추가/변경
     else if (options == EDIT) {
         // 파일 위치 확인 후 변경
