@@ -66,50 +66,6 @@ exports.datahubhandler = function(operation) {
     }
 }
 
-// msg type domain-asset
-exports.domassethandler = function(operation) {
-    if (operation == 'update') {
-
-    }
-    else {
-        // error case
-        errorhandler();
-    }
-}
-
-// msg type taxonomy-asset
-exports.taxassethandler = function(operation) {
-    if (operation == 'update') {
-
-    }
-    else {
-        // error case
-        errorhandler();
-    }
-}
-
-// msg type category-asset
-exports.categassethandler = function(operation) {
-    if (operation == 'update') {
-
-    }
-    else {
-        // error case
-        errorhandler();
-    }
-}
-
-// msg type catalog-asset
-exports.catalassethandler = function(operation) {
-    if (operation == 'update') {
-
-    }
-    else {
-        // error case
-        errorhandler();
-    }
-}
-
 // msg type catalog
 exports.cataloghandler = function(operation) {
     if (operation == 'create') {
@@ -126,7 +82,6 @@ exports.cataloghandler = function(operation) {
         errorhandler();
     }
 }
-
 
 // msg type for Asset
 exports.assethandler = function(operation, hierarchy, id, contents, gitDIR, git) {
