@@ -1,11 +1,11 @@
 
-const KBucket = require('k-bucket')
+const KBucket = require('k-bucket');
 const JSONSocket = require('udp-json');
 const dgram = require('dgram');
 const enc = new TextDecoder("utf-8");
-const func = require('./kBucketFunc.js')
+const func = require('./kBucketFunc.js');
 
-const SERVER_NAME = 'BOOTSTRAP#1'
+const SERVER_NAME = 'BOOTSTRAP#1';
 const SERVER_PORT = 56554;
 const SERVER_HOST = '127.0.0.1';
 

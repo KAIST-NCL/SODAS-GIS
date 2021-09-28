@@ -1,0 +1,28 @@
+syntax = "proto3";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.daemonserver";
+option java_outer_classname = "DaemonServerProto";
+option objc_class_prefix = "DS";
+
+package daemonserver;
+
+service daemonServer{
+    rpc GetDHList(NULL) returns (DataHubList){}
+    rpc SetInterest(Topic) returns (NULL){}
+}
+
+message Topic{
+
+}
+
+message NULL{
+
+}
+message DataHub{
+    required string ip = 1;
+    required string portnum = 2;
+}
+
+message DataHubList{
+    repeated DataHub dhlist = 1;
+}
