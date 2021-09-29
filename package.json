@@ -26,7 +26,8 @@
     "sip": "0.0.6",
     "sip.js": "^0.17.1",
     "udp-json": "^1.2.1",
-    "yargs": "^16.2.0"
+    "yargs": "^16.2.0",
+    "simple-git": "^2.45.1"
   },
   "description": "sodas_prototype",
   "devDependencies": {
