@@ -1,14 +1,17 @@
-const dh = require('./api/dhnode');
+const dh = require(__dirname+'/api/dhnode');
 const bootstrap = require(__dirname+'/proto/bootstrap');
-const knode = require('./kademlia/knode');
+const knode = require(__dirname+'/kademlia/knode');
+const { parentPort, MessagePort, getEnvironmentData } = require('worker_threads');
 
-const bootstrapServerIP = '127.0.0.1:50051';
+const bootstrap_server = getEnvironmentData('rh_bs');
+const bootstrapServerIP = typeof(bootstrap_server) == 'undefined'? "127.0.0.1:50051": bootstrap_server;
+const port = getEnvironmentData('ds_port');
 const desc = {
     address: null,
     port: null
 };
 desc.address = dh.getIpAddress();
-desc.port = parseInt(process.argv[2]);
+desc.port =  typeof (port) == 'undefined'? parseInt(process.argv[2]): parseInt(port);
 const seedNode = dh.seedNodeInfo(desc);
 
 var node = new knode.KNode(desc);

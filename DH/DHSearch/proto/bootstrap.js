@@ -9,8 +9,11 @@
 // });
 // const bootstrapProto = grpc.loadPackageDefinition(packageDefinition).bootstrap.BootstrapBroker;
 
-const grpc = require('grpc');
-const bootstrapProto = grpc.load(__dirname+'/bootstrap.proto').bootstrap.BootstrapBroker;
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const PROTO_PATH = __dirname+'/bootstrap.proto';
+const pacakgeDefinition = protoLoader.loadSync(PROTO_PATH);
+const bootstrapProto = grpc.loadPackageDefinition(pacakgeDefinition).bootstrap.BootstrapBroker;
 
 let bootstrap_client;
 
