@@ -28,9 +28,22 @@ exports.DHDaemon.prototype.run = function(){
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js');
     this.dhSearch = new Worker('../DHSearch/dhSearch.js');
-    this.sessionManager = new Worker('../SessionManager/sessionManager.js');
+    // this.sessionManager = new Worker('../SessionManager/sessionManager.js');
 
     // port setting
+    // msg-channel: daemonServer <-> dhSearch two-way channel
+    this.daemonServer.once('message', value => {
+        console.log('Get port from daemonServer');
+        this.dhSearch.postMessage({
+            port: value.port
+        }, [value.port]);
+    });
+    this.dhSearch.once('message', value => {
+        console.log('Get port from dhSearch');
+        this.daemonServer.postMessage({
+            port: value.port
+        }, [value.port]);
+    });
 };
 
 exports.DHDaemon.prototype.dhsearch_handler = function (ev){
