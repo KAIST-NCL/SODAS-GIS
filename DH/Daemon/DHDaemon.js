@@ -1,28 +1,36 @@
-// !/usr/bin/forever
+const ConfigParser = require('configparser');
+const { Worker, setEnvironmentData, } = require("worker_threads");
+const dm = require('./DHDaemon');
 
-// const ChildProcess = require('child_process')
-const Logger = require("./Logger")
+exports.DHDaemon = function(){
+    this.conf = new ConfigParser();
+    this.conf.read('../setting.cfg');
+    this.dm_ip = this.conf.get('Daemon', 'ip');
+    this.dm_port = this.conf.get('Daemon', 'port');
+    console.log('[SETTING] DataHub daemon is running with %s:%s', this.dm_ip, this.dm_port);
+};
 
-// const ArgumentParser = require('argparse')
-// const parser = new ArgumentParser()
+exports.DHDaemon.prototype.run = function(){
 
-// Parser 부분 여기다가 구현할 것
-// parser.add_argument("--pid", help="pid filename", required=True)
-// parser.add_argument("--log", help="log filename", required=False)
-// console.log( process.argv[2] )
+    setEnvironmentData('dm_ip', this.dm_ip);
+    setEnvironmentData('dm_port', this.dm_port);
+    const daemonServer = new Worker('./daemonServer.js');
+    const sessionManager = new Worker('../SessionManager/sessionManager.js');
+    const dhSearch = new Worker('../DHSearch/dhSearch.js')
 
-// Double fork - first fork 구현하기
-// pid = ChildProcess.spawn()
+};
 
-logger = new Logger(["JY1","JY2","JY3"], 1000)
-logger.main();
+const daemon = new dm.DHDaemon();
+daemon.run();
 
 process.on('SIGINT', () => {
-    logger.stop('SIGINT')
-    process.exit()
-})
+    daemon.stop();
+    process.exit();
+});
+
 process.on('SIGTERM', () => {
-    logger.stop('SIGTERM')
-    process.exit()
-})
+    daemon.stop();
+    process.exit();
+});
+
 

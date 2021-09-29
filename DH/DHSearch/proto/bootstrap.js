@@ -7,24 +7,24 @@
 //     defaults: true,
 //     oneofs: true
 // });
-// const bootstrapProto = grpc.loadPackageDefinition(packageDefinition).bootstrap.bootstrap_broker;
+// const bootstrapProto = grpc.loadPackageDefinition(packageDefinition).bootstrap.BootstrapBroker;
 
 const grpc = require('grpc');
-const bootstrapProto = grpc.load('../proto/bootstrap.proto').bootstrap.bootstrap_broker;
+const bootstrapProto = grpc.load('./proto/bootstrap.proto').bootstrap.BootstrapBroker;
 
 let bootstrap_client;
 
 module.exports = {
 
-    init: function(ip){
+    Init: function(ip){
 
         bootstrap_client = new bootstrapProto(ip, grpc.credentials.createInsecure());
 
     },
 
-    set_seed_node: function(seedNode){
+    SetSeedNode: function(seedNode){
 
-        bootstrap_client.set_seed_node(seedNode, (error, response) => {
+        bootstrap_client.SetSeedNode(seedNode, (error, response) => {
             if (!error) {
                 console.log('Send node info to bootstrap server');
                 console.log(seedNode);
@@ -36,11 +36,11 @@ module.exports = {
 
     },
 
-    get_seed_node_list: function(seedNode){
+    GetSeedNodeList: function(seedNode){
         var list = [];
         async function getSeedNodeList() {
 
-            let get = await bootstrap_client.get_seed_node_list(seedNode, (error, response) => {
+            let get = await bootstrap_client.GetSeedNodeList(seedNode, (error, response) => {
                 if (!error) {
                     console.log('Receive seed node from bootstrap server');
                     list = JSON.parse(JSON.stringify( response.nodes ));
@@ -56,7 +56,7 @@ module.exports = {
         return getSeedNodeList().then((value) => value)
     },
 
-    close: function (){
+    Close: function (){
 
         grpc.closeClient(bootstrap_client);
         console.log('gRPC session closed with bootstrap server');

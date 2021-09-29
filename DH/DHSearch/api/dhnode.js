@@ -41,12 +41,12 @@ exports.getIpAddress = function() {
 exports.seedNodeInfo = function(desc){
 
     let seedNode = {
-        nodeID: null,
+        node_id: null,
         address: desc.address,
         port: desc.port
     };
 
-    seedNode.nodeID = crypto.createHash('sha1').update(seedNode.address + ':' + seedNode.port).digest('hex');
+    seedNode.node_id = crypto.createHash('sha1').update(seedNode.address + ':' + seedNode.port).digest('hex');
 
     return seedNode;
 

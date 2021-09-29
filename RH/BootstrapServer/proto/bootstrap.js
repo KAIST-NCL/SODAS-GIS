@@ -22,17 +22,17 @@ module.exports = {
 
     bootstrapProtoServerInit: function (ip) {
 
-        server.addService(bootstrapProto.bootstrap.bootstrap_broker.service, {
-            set_seed_node: (call, callback) => {
-                console.log("set_seed_node")
+        server.addService(bootstrapProto.bootstrap.BootstrapBroker.service, {
+            SetSeedNode: (call, callback) => {
+                console.log("SetSeedNode")
                 seedNode = call.request
                 console.log(seedNode)
                 seedNodeList.unshift(seedNode)
                 console.log(seedNodeList)
                 callback(null, { status: true, message: "Success enroll node info" })
             },
-            get_seed_node_list: (call, callback) => {
-                console.log("get_seed_node_list")
+            GetSeedNodeList: (call, callback) => {
+                console.log("GetSeedNodeList")
                 seedNode = call.request
                 console.log(seedNode)
                 callback(null, seedNodeList)
