@@ -15,6 +15,7 @@
     "discover": "^0.4.3",
     "ejs": "~2.5.5",
     "express": "^4.17.1",
+    "fs": "^0.0.1-security",
     "google-protobuf": "^3.15.7",
     "grpc": "^1.24.6",
     "k-bucket": "^5.1.0",
@@ -25,7 +26,8 @@
     "sip": "0.0.6",
     "sip.js": "^0.17.1",
     "udp-json": "^1.2.1",
-    "yargs": "^16.2.0"
+    "yargs": "^16.2.0",
+    "simple-git": "^2.45.1"
   },
   "description": "sodas_prototype",
   "devDependencies": {

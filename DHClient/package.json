@@ -1,0 +1,23 @@
+{
+  "name": "kaist_soads_dhclient",
+  "version": "1.0.0",
+  "description": "DHClient",
+  "main": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EunjuYang/KAIST_SODAS.git"
+  },
+  "keywords": [
+  ],
+  "author": "KAIST_NCL",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/EunjuYang/KAIST_SODAS/issues"
+  },
+  "homepage": "https://github.com/EunjuYang/KAIST_SODAS#readme",
+  "dependencies": {
+  }
+}

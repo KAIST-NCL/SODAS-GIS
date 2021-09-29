@@ -1,0 +1,31 @@
+syntax="proto3";
+package bootstrap;
+
+// bootstrap broker
+service BootstrapBroker{
+
+  // enroll node info.
+  rpc SetSeedNode(Node) returns (Reply) {}
+
+  // return seed node list
+  rpc GetSeedNodeList(Node) returns (SeedNodeList) {}
+
+}
+
+message Node {
+  string node_id = 1;
+  string address = 2;
+  int32 port = 3;
+}
+
+message SeedNodeList {
+  repeated Node nodes = 1;
+}
+
+message Reply {
+  bool status = 1;
+  string message = 2;
+}
+
+message Null {
+}

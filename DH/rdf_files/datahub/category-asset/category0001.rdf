@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+	xmlns:dct="http://purl.org/dc/terms/"
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:dcat="http://www.w3.org/ns/dcat#"
+	xmlns:prov="http://www.w3.org/ns/prov#"
+	xmlns:sodas="http://purl.org/etri/sodas#"
+>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/asset/dataset002">
+	<rdf:type rdf:resource="http://www.w3.org/ns/dcat#Dataset"/>
+	<sodas:title>dataset002</sodas:title>
+	<dct:issued>2021-06-07T14:19:09.288Z</dct:issued>
+	<dct:modified>2021-06-07T15:19:09.100Z</dct:modified>
+	<dct:description xml:lang="en">dataset 002 about spatial data</dct:description>
+	<dcat:spatialResolutionInMeters>30</dcat:spatialResolutionInMeters>
+	<dct:spatial>
+		<prov:Location>
+			<wgs84_pos:lat>52.37509</wgs84_pos:lat>
+			<wgs84_pos:long>4.88412</wgs84_pos:long>
+		</prov:Location>
+	</dct:spatial>
+	<dcat:theme rdf:resource="https://sodas.etri.re.kr/category/category0001"/>
+	<dcat:distribution rdf:resource="https://sodas.etri.re.kr/asset/distribution0021"/>
+</rdf:Description>
+<rdf:Description rdf:about="https://sodas.etri.re.kr/asset/distribution0021">
+	<rdf:type rdf:resource="http://www.w3.org/ns/dcat#Distribution"/>
+	<dct:title xml:lang="en">dataset002-csv</dct:title>
+	<dcat:byteSize rdf:datatype="xsd:decimal">684</dcat:byteSize>
+	<dcat:mediaType rdf:resource="https://www.iana.org/assignments/media-types/text/csv"/>
+	<dct:issued>2021-06-07T14:19:09.288Z</dct:issued>
+  <dct:modified>2021-06-07T15:19:09.100Z</dct:modified>
+</rdf:Description>
+
+</rdf:RDF>
