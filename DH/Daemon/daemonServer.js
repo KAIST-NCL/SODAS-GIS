@@ -1,10 +1,7 @@
-var PROTO_PATH = __dirname + '/protos/dhdaemon.proto';
-var grpc = require('@grpc/grpc-js');
-var protoLoader = require('@grpc/proto-loader');
-var DS = require('./daemonServer');
-
-// this code is expected to be called as worker thread
-// The message port is used to deliver the message to operation thread
+const PROTO_PATH = __dirname + '/protos/dhdaemon.proto';
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
+const DS = require('./daemonServer');
 const { parentPort, MessagePort, getEnvironmentData } = require('worker_threads');
 
 // daemonServer
@@ -47,7 +44,7 @@ const dServer = new DS.dServer();
 const daemonServer = dServer.getDaemonServer();
 daemonServer.bindAsync('0.0.0.0:'+ dServer.port,
     grpc.ServerCredentials.createInsecure(), () => {
-        console.log('[RUNNING] DataHub daemon is running with %s:%s', dServer.dm_ip, dServer.dm_port);
+        console.log('[RUNNING] DataHub daemon is running with '+ dServer.ip +':'+ dServer.port);
         daemonServer.start();
 });
 
