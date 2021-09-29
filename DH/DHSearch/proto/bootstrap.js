@@ -10,7 +10,7 @@
 // const bootstrapProto = grpc.loadPackageDefinition(packageDefinition).bootstrap.BootstrapBroker;
 
 const grpc = require('grpc');
-const bootstrapProto = grpc.load('./proto/bootstrap.proto').bootstrap.BootstrapBroker;
+const bootstrapProto = grpc.load(__dirname+'/bootstrap.proto').bootstrap.BootstrapBroker;
 
 let bootstrap_client;
 

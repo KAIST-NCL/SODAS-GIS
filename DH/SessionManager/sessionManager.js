@@ -2,7 +2,7 @@
 const {Worker, parentPort} = require('worker_threads');
 const crypto = require('crypto');
 
-const sm = require('./sessionManager');
+const sm = require(__dirname+'/sessionManager');
 
 const workerName = 'SM';
 
@@ -56,7 +56,7 @@ exports.SessionManager = function() {
 
 //// ------- sessionRequesterWorker ------- ////
 exports.SessionManager.prototype.init_session_requester = function () {
-    const sessionRequesterWorker = new Worker('./DHSessionRequester/sessionRequester.js')
+    const sessionRequesterWorker = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js')
 
     // [SM -> S-Requester] [INIT]
     sessionRequesterWorker.postMessage({ event: "INIT", data: null });
@@ -90,7 +90,7 @@ exports.SessionManager.prototype.start_session_connection = function (listenerEn
 
 //// ------- sessionListenerWorker ------- ////
 exports.SessionManager.prototype.init_session_listener = function (port) {
-    const sessionListenerWorker = new Worker('./DHSessionListener/sessionListener.js')
+    const sessionListenerWorker = new Worker(__dirname+'/DHSessionListener/sessionListener.js')
 
     // [SM -> S-Listener] [INIT]
     sessionListenerWorker.postMessage({ event: "INIT", data: port });
@@ -102,7 +102,7 @@ exports.SessionManager.prototype.init_session_listener = function (port) {
 //// ------- sessionWorker ------- ////
 // todo: session worker 를 계속 생성할 때, end-point(port number) 부여 방법
 exports.SessionManager.prototype.create_requester_session_worker = function (session_id, port) {
-    const sessionWorker = new Worker('./DHSession/session.js');
+    const sessionWorker = new Worker(__dirname+'/DHSession/session.js');
 
     // [SM -> S-Worker] [INIT]
     sessionWorker.postMessage({ event: "INIT", data: { session_id: session_id, port: port } });

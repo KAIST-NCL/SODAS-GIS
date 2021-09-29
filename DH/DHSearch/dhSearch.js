@@ -1,6 +1,5 @@
-
 const dh = require('./api/dhnode');
-const bootstrap = require('./proto/bootstrap');
+const bootstrap = require(__dirname+'/proto/bootstrap');
 const knode = require('./kademlia/knode');
 
 const bootstrapServerIP = '127.0.0.1:50051';
