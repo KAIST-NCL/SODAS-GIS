@@ -1,11 +1,11 @@
 
 const {parentPort} = require('worker_threads');
-const policy = require('../api/sync_policy');
+const policy = require(__dirname+'/../api/sync_policy');
 
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const packageDefinition = protoLoader.loadSync(
-    './proto/sessionNegotiation.proto',{
+    __dirname+'/../proto/sessionNegotiation.proto',{
         keepCase: true,
         longs: String,
         enums: String,
