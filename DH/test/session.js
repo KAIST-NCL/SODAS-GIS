@@ -1,6 +1,6 @@
 const {Git} = require('../Lib/versionControl');
 // const gitDIR = "../VersionControl/";
-const gitDIR = "/Users/yang-eunju/DEV/gitDBTest";
+const gitDIR = "./gitDB";
 let git = new Git(gitDIR);
 const fs = require('fs');
 const timeOut = 100;
