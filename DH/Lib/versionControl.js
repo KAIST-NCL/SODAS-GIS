@@ -36,7 +36,7 @@ class Git {
 
     getInitCommit(){
         const stdout  = execSync('cd ' + this.gitDIR_ + ' && git rev-list --max-parents=0 HEAD');
-        let initCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");;
+        let initCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");
         return initCommitID;
     }
 

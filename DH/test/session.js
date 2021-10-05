@@ -12,7 +12,7 @@ console.log(initialCommit);
 function run(pastCommitID){
 
     const curCommitID = git.getCurCommit();
-    const diff_dir = gitDIR;
+    const diff_dir = './';
     if(curCommitID === pastCommitID){
         setTimeout(run, timeOut, curCommitID);
         return;
