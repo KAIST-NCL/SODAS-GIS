@@ -1,13 +1,13 @@
 const {Git} = require('../Lib/versionControl');
 // const gitDIR = "../VersionControl/";
-const gitDIR = "/Users/yang-eunju/DEV/gitDBTest";
+const gitDIR = "./gitDB";
 let git = new Git(gitDIR);
 const fs = require('fs');
 const timeOut = 100;
-const currentCommitID = '79565908db44093524543266965c586a63d11136';
 
 // initialize git
 git.init();
+const currentCommitID = git.curCommit();
 
 function run(pastCommitID){
 

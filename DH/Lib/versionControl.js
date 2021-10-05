@@ -7,7 +7,7 @@ const EDIT = "EDIT";
 
 var fs = require('fs');
 var execSync = require('child_process').execSync;
-var vc = require('./versionControl')
+var vc = require('./versionControl');
 
 // Export Variables
 exports.EDIT = EDIT;
@@ -96,38 +96,10 @@ exports.file_manager = async function(options, gitDIR_, folder, id, contents) {
             if (error) console.log("Error: ", err);
         });
     }
-}
-
-// Example functions for Test
-async function main_commit() {
-    const git = simpleGit(gitDIR, { binary: 'git' });
-    var comm_commit = 0;
-    await vc.commit(git, "testtest").then((value) => comm_commit = value.slice());
-    console.log(comm_commit);
-}
-
-async function main_diff() {
-    const git = simpleGit(gitDIR, { binary: 'git' });
-    var comm_commit = 0;
-    await diff(git).then((value) => comm_commit = value.slice());
-    console.log(comm_commit);
-}
-
-async function main_diff_commitID() {
-    diff = await diff('8fbb50cc9d772610a0991f76f740fcd645e908b2');
-    console.log(diff)
-}
-
-async function main_delete() {
-    file_manager(DEL, './gitDB/temp');
-}
-
-async function main_edit() {
-    file_manager(EDIT, './gitDB/temp', 'hello');
-}
+};
 
 exports.main_directory = async function() {
     const stdout = execSync('pwd');
     console.log(stdout.toString());
+};
 
-}
