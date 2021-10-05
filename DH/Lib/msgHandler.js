@@ -7,7 +7,7 @@ exports.refmodelhandler = function(operation) {
 
     }
     else if (operation == 'stop') {
-        
+
     }
     else {
         // error case
@@ -84,13 +84,19 @@ exports.cataloghandler = function(operation) {
 };
 
 // msg type for Asset
-exports.assethandler = async function(operation, hierarchy, id, contents, gitDIR, git) {
+exports.assethandler = async function(operation, related, id, contents, gitDIR, git) {
+    // make the folder directory string from the related. </Domain/Taxonomy/Category/>
+    var folder = '/' + related.domain + '/' + related.taxonomy + '/';
+    related.category.forEach(function(item, index) {
+        folder = folder + item + '/';
+    });
+
     // first create/delete the asset in the proper folder
-    if (operation == 'update' || operation == 'create') {
-        vc.file_manager(vc.EDIT, gitDIR, hierarchy, id, contents)
+    if (operation == 'UPDATE' || operation == 'CREATE') {
+        vc.file_manager(vc.EDIT, gitDIR, folder, id, contents)
     }
-    else if (operation == 'delete') {
-        vc.file_manager(vc.DEL, gitDIR, hierarchy, id, contents)
+    else if (operation == 'DELETE') {
+        vc.file_manager(vc.DEL, gitDIR, folder, id, contents)
     }
     else {
         // this is error case
@@ -100,7 +106,7 @@ exports.assethandler = async function(operation, hierarchy, id, contents, gitDIR
     // then commit
     var comm_commit = 0;
     await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
-    // return the commit number to 
+    // return the commit number to
 
 };
 

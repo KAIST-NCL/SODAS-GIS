@@ -75,7 +75,7 @@ exports.vcListener.prototype.apiSwitcher = async function(topic, msg, gitDIR, gi
                 hd.datahubhandler(msg.operation);
             } 
             else if(msg.operation=='create' && msg.type=='asset'){
-                hd.assethandler(msg.operation, msg.hierarchy, msg.id, msg.contents, gitDIR, git);
+                hd.assethandler(msg.operation, msg.related, msg.id, msg.contents, gitDIR, git);
             }
             else if(msg.operation=='update' && msg.type=='domain-asset'){
                 hd.domassethandler(msg.operation);

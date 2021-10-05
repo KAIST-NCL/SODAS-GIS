@@ -1,3 +1,4 @@
+var fs = require('fs');
 // Import Library
 var consumer = require('../Lib/EventHandler/consumer/consumer');
 var vc = require('../Lib/versionControl');
@@ -7,6 +8,11 @@ const gitDIR = './gitDB';
 const git = vc.create(gitDIR);
 
 // Create file-tree
+!fs.existsSync('./DO1') && fs.mkdirSync('./DO1');
+!fs.existsSync('./DO1/TX1') && fs.mkdirSync('./DO1/TX1');
+!fs.existsSync('./DO1/TX1/CA1') && fs.mkdirSync('./DO1/TX1/CA1');
+
+
 
 // Receive message and handle it
 consumer.consumer.on('message', function (message) {
