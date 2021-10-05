@@ -17,6 +17,7 @@ producer.on('error', function(err) {})
 producer.on('ready', function () {
     for (var i = 0; i < eventCount; i++) {
         eventMessage.id = crypto.randomBytes(20).toString('hex');
+        console.log(eventMessage)
 
         var payloads = [
             {
