@@ -1,5 +1,4 @@
 const {Git} = require('../Lib/versionControl');
-// const gitDIR = "../VersionControl/";
 const gitDIR = "./gitDB";
 let git = new Git(gitDIR);
 const fs = require('fs');
@@ -7,11 +6,12 @@ const timeOut = 100;
 
 // initialize git
 git.init();
-const currentCommitID = git.curCommit();
+const initialCommit = git.getInitCommit();
+console.log(initialCommit);
 
 function run(pastCommitID){
 
-    const curCommitID = git.curCommit();
+    const curCommitID = git.getCurCommit();
     const diff_dir = gitDIR;
     if(curCommitID === pastCommitID){
         setTimeout(run, timeOut, curCommitID);
@@ -25,5 +25,5 @@ function run(pastCommitID){
     });
     setTimeout(run, timeOut, curCommitID);
 }
-setTimeout(run, timeOut, currentCommitID);
+setTimeout(run, timeOut, initialCommit);
 

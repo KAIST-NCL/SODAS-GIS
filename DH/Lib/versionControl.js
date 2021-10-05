@@ -34,7 +34,13 @@ class Git {
         return stdout.toString();
     }
 
-    curCommit(){
+    getInitCommit(){
+        const stdout  = execSync('cd ' + this.gitDIR_ + ' && git rev-list --max-parents=0 HEAD');
+        let initCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");;
+        return initCommitID;
+    }
+
+    getCurCommit(){
         const stdout = execSync('cd ' + this.gitDIR_ + ' && git log -1 | grep ^commit | cut -d " " -f 2');
         this.currentCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");;
         return this.currentCommitID;
@@ -49,7 +55,7 @@ exports.create = async function(gitDIR_) {
     // 우선 Local Git DB 폴더가 생성되었는 지 확인 후 생성
     !fs.existsSync(gitDIR_) && fs.mkdirSync(gitDIR_);
     // simpleGit init 시작
-    const git = simpleGit(gitDIR, { binary: 'git' });
+    const git = await simpleGit(gitDIR_, { binary: 'git' });
     await git.init();
     return git;
 };
