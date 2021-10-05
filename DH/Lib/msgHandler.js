@@ -84,13 +84,19 @@ exports.cataloghandler = function(operation) {
 };
 
 // msg type for Asset
-exports.assethandler = async function(operation, hierarchy, id, contents, gitDIR, git) {
+exports.assethandler = async function(operation, related, id, contents, gitDIR, git) {
+    // make the folder directory string from the related. </Domain/Taxonomy/Category/>
+    folder = '/' + related.domain + '/' + related.taxonomy + '/';
+    related.category.forEach(function(item, index) {
+        folder = folder + item + '/';
+    });
+
     // first create/delete the asset in the proper folder
     if (operation == 'update' || operation == 'create') {
-        vc.file_manager(vc.EDIT, gitDIR, hierarchy, id, contents)
+        vc.file_manager(vc.EDIT, gitDIR, folder, id, contents)
     }
     else if (operation == 'delete') {
-        vc.file_manager(vc.DEL, gitDIR, hierarchy, id, contents)
+        vc.file_manager(vc.DEL, gitDIR, folder, id, contents)
     }
     else {
         // this is error case
