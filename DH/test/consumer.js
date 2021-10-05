@@ -1,12 +1,33 @@
 var kafka = require('kafka-node');
+var fs = require('fs');
 var vc = require('../Lib/versionControl');
+const simpleGit = require('simple-git');
+var execSync = require('child_process').execSync;
+
 
 var Consumer = kafka.Consumer;
 var Offset = kafka.Offset;
 var Client = kafka.KafkaClient;
 var topic = 'asset';
-var gitDIR = __dirname + '/gitDB'
-const git = vc.create(gitDIR);
+
+var gitDIR = './gitDB';
+var git;
+
+async function create() {
+    git = await vc.create(gitDIR);
+}
+
+async function commit() {
+    await vc.commit(git, "test").then((comm) => console.log(comm));
+}
+
+create();
+
+console.log(git)
+
+!fs.existsSync('./gitDB/DO1') && fs.mkdirSync('./gitDB/DO1');
+!fs.existsSync('./gitDB/DO1/TX1') && fs.mkdirSync('./gitDB/DO1/TX1');
+!fs.existsSync('./gitDB/DO1/TX1/CA1') && fs.mkdirSync('./gitDB/DO1/TX1/CA1');
 
 var client = new Client({ kafkaHost: '0.0.0.0:9092' });
 var topics = [{ topic: topic, partition: 0 }];
@@ -31,7 +52,7 @@ consumer.on('message', function (message) {
         vc.file_manager(vc.DEL, gitDIR, folder, event.id, event.contents)
     }
 
-    vc.commit(git, "test")
+    commit()
 });
 
 consumer.on('error', function (err) {
