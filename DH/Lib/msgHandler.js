@@ -86,7 +86,7 @@ exports.cataloghandler = function(operation) {
 // msg type for Asset
 exports.assethandler = async function(operation, related, id, contents, gitDIR, git) {
     // make the folder directory string from the related. </Domain/Taxonomy/Category/>
-    folder = '/' + related.domain + '/' + related.taxonomy + '/';
+    var folder = '/' + related.domain + '/' + related.taxonomy + '/';
     related.category.forEach(function(item, index) {
         folder = folder + item + '/';
     });
