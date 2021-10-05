@@ -13,7 +13,7 @@ exports.refmodelhandler = function(operation) {
         // error case
         errorhandler();
     }
-}
+};
 
 // msg type domain
 exports.domainhandler = function(operation) {
@@ -41,7 +41,7 @@ exports.domverhandler = function(operation) {
         // error case
         errorhandler();
     }
-}
+};
 
 // msg type datahub
 exports.datahubhandler = function(operation) {
@@ -64,7 +64,7 @@ exports.datahubhandler = function(operation) {
         // error case
         errorhandler();
     }
-}
+};
 
 // msg type catalog
 exports.cataloghandler = function(operation) {
@@ -81,10 +81,10 @@ exports.cataloghandler = function(operation) {
         // error case
         errorhandler();
     }
-}
+};
 
 // msg type for Asset
-exports.assethandler = function(operation, hierarchy, id, contents, gitDIR, git) {
+exports.assethandler = async function(operation, hierarchy, id, contents, gitDIR, git) {
     // first create/delete the asset in the proper folder
     if (operation == 'update' || operation == 'create') {
         vc.file_manager(vc.EDIT, gitDIR, hierarchy, id, contents)
@@ -102,7 +102,7 @@ exports.assethandler = function(operation, hierarchy, id, contents, gitDIR, git)
     await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
     // return the commit number to 
 
-}
+};
 
 function errorhandler() {
     console.log('undefined operation and type combination.')
