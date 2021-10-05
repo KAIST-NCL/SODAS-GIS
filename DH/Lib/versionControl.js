@@ -80,8 +80,6 @@ exports.file_manager = async function(options, gitDIR_, folder, id, contents) {
     var files = gitDIR_ + '/' + hierarchy.domain;
     !fs.existsSync(files) && fs.mkdirSync(files);
 
-    // Content가 Byte형태로 날라오기 때문에 이를 다시 역변환 해줘야 한다.
-
     // 만약 options가 delete면 Local Git DB에서 파일 삭제
     if (options == DEL) {
         // 파일 위치 확인 후 삭제
