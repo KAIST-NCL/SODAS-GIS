@@ -1,5 +1,4 @@
 // Local Git DB Location
-const gitDIR = './gitDB';
 const simpleGit = require('simple-git');
 
 // Options
@@ -14,7 +13,38 @@ var vc = require('./versionControl')
 exports.EDIT = EDIT;
 exports.DEL = DEL;
 
-// git init function
+class Git {
+    constructor(gitDIR_){
+        this.gitDIR_ = gitDIR_;
+    }
+    async init(){
+        !fs.existsSync(this.gitDIR_) && fs.mkdirSync(this.gitDIR_);
+        this.git = await simpleGit(this.gitDIR_, { binary: 'git' });
+        await this.git.init();
+    }
+
+    async commit(message){
+        await this.git.add(["."]);
+        const comm = await this.git.commit(message);
+        return comm.commit;
+    }
+
+    diff(comID1, comID2, diff_dir){
+        const stdout = execSync('cd ' + this.gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir);
+        return stdout.toString();
+    }
+
+    curCommit(){
+        const stdout = execSync('cd ' + this.gitDIR_ + ' && git log -1 | grep ^commit | cut -d " " -f 2');
+        this.currentCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");;
+        return this.currentCommitID;
+    }
+}
+
+
+exports.Git = Git;
+
+/*************************** 정원 코드 *************************/
 exports.create = async function(gitDIR_) {
     // 우선 Local Git DB 폴더가 생성되었는 지 확인 후 생성
     !fs.existsSync(gitDIR_) && fs.mkdirSync(gitDIR_);
@@ -22,7 +52,7 @@ exports.create = async function(gitDIR_) {
     const git = simpleGit(gitDIR, { binary: 'git' });
     await git.init();
     return git;
-}
+};
 
 // git commit function
 exports.commit = async function(git, message) {
@@ -33,19 +63,22 @@ exports.commit = async function(git, message) {
     // git commit 결과 파싱
     // git commit 해쉬 반환
     return comm.commit;
-}
+};
 
 // git diff with comID
-exports.diff = async function(gitDIR_, comID, filename) {
-    const stdout = execSync('cd ' + gitDIR_ + ' && git diff '+comID+' '+filename);
+exports.diff = async function(gitDIR_, comID1, comID2, diff_dir) {
+    if(comID1)
+    stdout = await execSync('cd ' + gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' '+ diff_dir);
     return stdout.toString();
-}
+};
+
 
 // file delete/edit function
 exports.file_manager = async function(options, gitDIR_, folder, id, contents) {
     // hierarchy로부터 파일 이름 생성하기
     // 폴더 존재 여부 확인 하면서 하나 씩 생성
-    var files = gitDIR_ + folder + id + '.rdf';
+    var files = gitDIR_ + '/' + hierarchy.domain;
+    !fs.existsSync(files) && fs.mkdirSync(files);
 
     // Content가 Byte형태로 날라오기 때문에 이를 다시 역변환 해줘야 한다.
 
