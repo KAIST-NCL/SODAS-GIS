@@ -8,7 +8,7 @@ const git = vc.create(gitDIR);
 
 // Create file-tree
 
-// Recieve message and handle it
+// Receive message and handle it
 consumer.consumer.on('message', function (message) {
     const topic_msg = message.topic;
     const rcv_msg = JSON.parse(message.value);

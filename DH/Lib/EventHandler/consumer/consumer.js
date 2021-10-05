@@ -1,8 +1,8 @@
 var kafka = require('kafka-node');
 var Consumer = kafka.Consumer;
 var Offset = kafka.Offset;
-
 var Client = kafka.KafkaClient;
+var hd = require('../../msgHandler');
 
 // Master_Reference_Model
 var topic1 = 'Master_Reference_Model';
@@ -15,15 +15,44 @@ var options = {groupId: "ncl_test", commitOffsetsOnFirstJoin: false, autoCommit:
 exports.consumer = new Consumer(client, topics, options);
 var offset = new Offset(client);
 
-function ckpt(){
-    console.log('check')
-}
+exports.consumer = function consumer(kafkaHost, topics, options){
 
-var vc = require('../../versionControl');
-var hd = require('../../msgHandler');
+    this.client = new Client({kafkaHost: kafkaHost});
+    this.topics = topics;
+    this.options = options;
+    this.consumer = new Consumer(this.client, topics, options);
+
+};
+
+exports.consumer.prototype.on_message = function(){
+    this.consumer.consumer.on('message', function (message) {
+    });
+};
+
+exports.consumer.prototype.on_error = function(cb){
+    this.consumer.consumer.on('error', function(message){
+    });
+};
+
+exports.vcListener = function(kafkaHost, topics, options){
+    consumer.call(this, kafkaHost, topics, options);
+};
+
+exports.vcListener.prototype.on_message = function(){
+    this.consumer.consumer.on('message', function (message) {
+        const topic_msg = message.topic;
+        const rcv_msg = JSON.parse(message.value);
+        this.prototype.apiSwitcher(topic_msg, rcv_msg, gitDIR, git);
+    });
+};
+
+exports.vcListener.prototype.on_error = function(){
+    this.consumer.consumer.on('error', function(message){
+    });
+};
 
 // to switch
-exports.apiSwitcher = async function(topic, msg, gitDIR, git){
+exports.vcListener.prototype.apiSwitcher = async function(topic, msg, gitDIR, git){
     if(topic == topic1) {
         console.log('topic:',topic);
         if (msg.type == 'reference-model') {
@@ -70,18 +99,4 @@ exports.apiSwitcher = async function(topic, msg, gitDIR, git){
     else{
         console.log('no topic defined');
     }
-}
-/*
-consumer.on('message', function (message) {
-    console.log(message);
-    // const topic_msg = message.topic;
-    // const rcv_msg = JSON.parse(message.value);
-    // apiSwitcher(topic_msg, rcv_msg);
-    // console.log(rcv_msg.operation);
-});
-consumer.removeTopics([topic2 ], function(err,removed){});
-
-consumer.on('error', function (err) {
-  console.log('error', err);
-});
-*/
+};
