@@ -8,6 +8,7 @@ const EDIT = "EDIT";
 
 var fs = require('fs');
 var execSync = require('child_process').execSync;
+var vc = require('./versionControl')
 
 // Export Variables
 exports.EDIT = EDIT;
@@ -71,7 +72,7 @@ exports.file_manager = async function(options, gitDIR_, folder, id, contents) {
 async function main_commit() {
     const git = simpleGit(gitDIR, { binary: 'git' });
     var comm_commit = 0;
-    await commit(git, "testtest").then((value) => comm_commit = value.slice());
+    await vc.commit(git, "testtest").then((value) => comm_commit = value.slice());
     console.log(comm_commit);
 }
 
@@ -99,3 +100,5 @@ exports.main_directory = async function() {
     const stdout = execSync('pwd');
     console.log(stdout.toString());
 }
+
+main_commit();

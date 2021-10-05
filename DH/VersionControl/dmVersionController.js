@@ -5,7 +5,13 @@ var vc = require('../Lib/versionControl');
 
 // Git variables
 const gitDIR = './gitDB';
-const git = vc.create(gitDIR);
+const git;
+
+async function create() {
+    git = await vc.create(gitDIR);
+}
+
+create();
 
 // Create file-tree
 !fs.existsSync('./DO1') && fs.mkdirSync('./DO1');
