@@ -7,7 +7,7 @@ exports.refmodelhandler = function(operation) {
 
     }
     else if (operation == 'stop') {
-        
+
     }
     else {
         // error case
@@ -92,10 +92,10 @@ exports.assethandler = async function(operation, related, id, contents, gitDIR, 
     });
 
     // first create/delete the asset in the proper folder
-    if (operation == 'update' || operation == 'create') {
+    if (operation == 'UPDATE' || operation == 'CREATE') {
         vc.file_manager(vc.EDIT, gitDIR, folder, id, contents)
     }
-    else if (operation == 'delete') {
+    else if (operation == 'DELETE') {
         vc.file_manager(vc.DEL, gitDIR, folder, id, contents)
     }
     else {
@@ -106,7 +106,7 @@ exports.assethandler = async function(operation, related, id, contents, gitDIR, 
     // then commit
     var comm_commit = 0;
     await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
-    // return the commit number to 
+    // return the commit number to
 
 };
 
