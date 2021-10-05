@@ -46,6 +46,11 @@ exports.DHDaemon.prototype.run = function(){
     });
 };
 
+exports.DHDaemon.prototype.stop = function(){
+    this.daemonServer.terminate();
+    this.dhSearch.terminate();
+};
+
 exports.DHDaemon.prototype.dhsearch_handler = function (ev){
     console.log(ev.data);
 };
