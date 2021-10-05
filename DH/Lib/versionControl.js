@@ -41,22 +41,10 @@ exports.diff = async function(gitDIR_, comID, filename) {
 }
 
 // file delete/edit function
-exports.file_manager = async function(options, gitDIR_, hierarchy, id, contents) {
+exports.file_manager = async function(options, gitDIR_, folder, id, contents) {
     // hierarchy로부터 파일 이름 생성하기
     // 폴더 존재 여부 확인 하면서 하나 씩 생성
-    var files = gitDIR_ + '/' + hierarchy.domain
-    !fs.existsSync(files) && fs.mkdirSync(files);
-
-    files = files + '/' + hierarchy.taxonomy;
-    !fs.existsSync(files) && fs.mkdirSync(files);
-
-    files = files + '/' + hierarchy.category;
-    !fs.existsSync(files) && fs.mkdirSync(files);
-
-    files = files + '/asset';
-    !fs.existsSync(files) && fs.mkdirSync(files);
-
-    files = files + '/' + id + '.rdf';
+    var files = gitDIR_ + '/' + folder + '/' + id + '.rdf';
 
     // 만약 options가 delete면 Local Git DB에서 파일 삭제
     if (options == DEL) {
