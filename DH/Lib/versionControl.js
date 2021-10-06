@@ -101,6 +101,7 @@ exports.file_manager = async function(options, gitDIR_, folder, id, contents) {
             if (error) console.log("Error: ", err);
         });
     }
+    return files
 };
 
 exports.main_directory = async function() {
