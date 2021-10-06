@@ -1,33 +1,45 @@
-const {Git} = require('../Lib/versionControl');
-const gitDIR = "./gitDB";
-let git = new Git(gitDIR);
+const session  = require('./session');
+const path = require('path');
 const fs = require('fs');
-const timeOut = 100;
+const { Git } = require('../Lib/versionControl');
+const gitDIR = "./gitDB";
+const timeOut = 10;
+const PROTO_PATH = __dirname + '/proto/sessionSync.proto';
+const gRPCClient = require('./gRPC/fileTransfer');
 
-// initialize git
-git.init();
-const initialCommit = git.getCurCommit();
-console.log(initialCommit);
-
-function run(pastCommitID){
-
-    const curCommitID = git.getCurCommit();
+/* Session */
+exports.Session = function(gitDIR, target){
+    this.git = new Git(gitDIR);
+    this.target = target;
+};
+exports.Session.prototype.init = async function(){
+    await this.git.init();
+};
+exports.Session.prototype._run = function(pastCommitID){
+    const curCommitID = this.git.getCurCommit();
     const diff_dir = './';
     if(curCommitID === pastCommitID){
-        setTimeout(run, timeOut, curCommitID);
+        setTimeout(this._run.bind(this), timeOut, curCommitID);
         return;
     }
-    console.time('diff_process ' + curCommitID);
-    git.diff(pastCommitID, curCommitID, diff_dir);
-    /*
-    fs.writeFile('./'+curCommitID + '.diff', diff_file, function(){
-        console.log('complete to write');
-        console.timeEnd('diff_process ' + curCommitID);
-    });
-     */
-    console.log('complete to write');
-    console.timeEnd('diff_process ' + curCommitID);
-    setTimeout(run, timeOut, curCommitID);
-}
-setTimeout(run, timeOut, initialCommit);
+    // extract diff patch file
+    this.git.diff(pastCommitID, curCommitID, diff_dir);
+    // diff file transfer with commit number
+    console.log('complete to extract diff patch');
+    gRPCClient.fileTrasnfer(this.target, './'+ curCommitID + '.patch');
 
+    setTimeout(this._run.bind(this), timeOut, curCommitID);
+};
+exports.Session.prototype.run = function(){
+    let initialCommit = this.git.getInitCommit();
+    console.log('Start to run from ' + initialCommit);
+    setTimeout(this._run.bind(this), timeOut, initialCommit);
+};
+
+/* Main Run */
+// if __name__ == __main__:
+if (require.main === module){
+    let sess  = new session.Session(gitDIR, '0.0.0.0:50000');
+    sess.init();
+    sess.run();
+}

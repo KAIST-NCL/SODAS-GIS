@@ -30,7 +30,11 @@ class Git {
     }
 
     diff(comID1, comID2, diff_dir){
-        execSync('cd ' + this.gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir + ' >>  ../' + comID2 + '.diff', { stdio: 'ignore'});
+        execSync('cd ' + this.gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir + ' >>  ../' + comID2 + '.patch', { stdio: 'ignore'});
+    }
+
+    apply(){
+
     }
 
     getInitCommit(){
@@ -41,7 +45,7 @@ class Git {
 
     getCurCommit(){
         const stdout = execSync('cd ' + this.gitDIR_ + ' && git log -1 | grep ^commit | cut -d " " -f 2');
-        this.currentCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");;
+        this.currentCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");
         return this.currentCommitID;
     }
 }
