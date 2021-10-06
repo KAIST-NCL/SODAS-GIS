@@ -40,6 +40,5 @@ exports.Session.prototype.run = function(){
 // if __name__ == __main__:
 if (require.main === module){
     let sess  = new session.Session(gitDIR, '0.0.0.0:50000');
-    sess.init();
-    sess.run();
+    sess.init().then(() => {sess.run()});
 }

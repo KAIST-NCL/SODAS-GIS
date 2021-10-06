@@ -21,6 +21,13 @@ class Git {
         !fs.existsSync(this.gitDIR_) && fs.mkdirSync(this.gitDIR_);
         this.git = await simpleGit(this.gitDIR_, { binary: 'git' });
         await this.git.init();
+        const stdout = execSync('cd ' + this.gitDIR_ + '&& git rev-list --all --count');
+        if(parseInt(stdout.toString()) === 0) await this._first_commit().then(()=> {console.log('Git repository is initialized & first commit is added')});
+    }
+
+    async _first_commit(){
+        execSync('cd '+ this.gitDIR_ + '&& touch init.txt');
+        await this.commit(['.'], 'initial commit').then();
     }
 
     async commit(filepath, message){
