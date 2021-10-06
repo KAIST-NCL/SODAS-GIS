@@ -16,21 +16,21 @@ const packageDefinition = protoLoader.loadSync(
     });
 const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
 const server = new grpc.Server();
-const port = 50000;
+const address = '0.0.0.0:50000';
 
 // todo: 타 데이터 허브의 데이터맵을 전송받아서 저장(git -> etri)하는 로직 정의 필요
 server.addService(session_sync.SessionSync.service, {
-    SessionInit: (call, callback) => {
-        var subfileDir = './SubMaps'
-        console.log("Server Side Received:" , call.request.transID)
-        fs.writeFile(subfileDir + call.request.filedir , call.request.publishDatamap, 'binary', function(err){
+    FileTransfer: (call, callback) => {
+        var subfileDir = './data'
+        console.log("Server Side Received:" , call.request.file_name)
+        fs.writeFile(subfileDir + call.request.file_name , call.request.file, 'binary', function(err){
             if (err) throw err
             console.log('write end') });
-        callback(null, {transID: call.request.transID + 'OK', result: "Success"});
+        callback(null, null);
     }
 })
 
-server.bindAsync(port, grpc.ServerCredentials.createInsecure(), () => {
-    console.log('gRPC server is now working on ' + port + '!!!')
+server.bindAsync(address, grpc.ServerCredentials.createInsecure(), () => {
+    console.log('gRPC server is now working on ' + address + '!!!')
     server.start();
 });
