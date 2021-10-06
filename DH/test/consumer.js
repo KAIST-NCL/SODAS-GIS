@@ -43,19 +43,6 @@ var options = { autoCommit: false, fetchMaxWaitMs: 1000, fetchMaxBytes: 1024 * 1
 var consumer = new Consumer(client, topics, options);
 var offset = new Offset(client);
 
-async function test (event, folder) {
-    var filepath;
-    if (event.operation == 'UPDATE' || event.operation == 'CREATE') {
-        await vc.file_manager(vc.EDIT, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
-    }
-    else if (event.operation == 'DELETE') {
-        await vc.file_manager(vc.DEL, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
-    }
-    console.log(filepath)
-
-    gRPC_client.fileTrasnfer('0.0.0.0:50000', filepath)
-}
-
 consumer.on('message', function (message) {
     console.log(message);
     var event = JSON.parse(message.value);
@@ -65,26 +52,22 @@ consumer.on('message', function (message) {
         folder = folder + item + '/';
     });
 
-    test(event, folder);
-    // if (event.operation == 'UPDATE' || event.operation == 'CREATE') {
-    //     vc.file_manager(vc.EDIT, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
-    // }
-    // else if (event.operation == 'DELETE') {
-    //     vc.file_manager(vc.DEL, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
-    // }
-    // console.log(filepath)
-    //
-    // gRPC_client.fileTrasnfer('0.0.0.0:50000', filepath)
-    // // commit(filepath)
+    if (event.operation == 'UPDATE' || event.operation == 'CREATE') {
+        vc.file_manager(vc.EDIT, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
+    }
+    else if (event.operation == 'DELETE') {
+        vc.file_manager(vc.DEL, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
+    }
+
 });
 
 consumer.on('error', function (err) {
     console.log('error', err);
 });
-//
-// function run(){
-//
-//     commit();
-//     setTimeout(run, timeOut);
-// }
-// setTimeout(run, timeOut);
+
+function run(){
+
+    commit();
+    setTimeout(run, timeOut);
+}
+setTimeout(run, timeOut);

@@ -31,7 +31,7 @@ exports.Session.prototype._run = function(pastCommitID){
     setTimeout(this._run.bind(this), timeOut, curCommitID);
 };
 exports.Session.prototype.run = function(){
-    let initialCommit = this.git.getInitCommit();
+    let initialCommit = this.git.getCurCommit();
     console.log('Start to run from ' + initialCommit);
     setTimeout(this._run.bind(this), timeOut, initialCommit);
 };
