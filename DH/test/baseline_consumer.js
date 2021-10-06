@@ -43,21 +43,34 @@ var options = { autoCommit: false, fetchMaxWaitMs: 1000, fetchMaxBytes: 1024 * 1
 var consumer = new Consumer(client, topics, options);
 var offset = new Offset(client);
 
+var flag = true
+var start, hrstart;
+
 async function test (event, folder) {
     var filepath;
     if (event.operation == 'UPDATE' || event.operation == 'CREATE') {
         await vc.file_manager(vc.EDIT, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
+        if (flag) {
+            start = new Date();
+            hrstart = process.hrtime();
+            console.log(new Date().getTime())
+            flag = false;
+        }
     }
     else if (event.operation == 'DELETE') {
         await vc.file_manager(vc.DEL, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
+        if (flag) {
+            start = new Date();
+            hrstart = process.hrtime();
+            flag = false;
+        }
     }
-    console.log(filepath);
 
-    gRPC_client.fileTrasnfer('0.0.0.0:50000', filepath)
+    await gRPC_client.fileTrasnfer('0.0.0.0:50000', filepath)
 }
 
 consumer.on('message', function (message) {
-    console.log(message);
+    
     var event = JSON.parse(message.value);
 
     var folder = '/' + event.related.domain + '/' + event.related.taxonomy + '/';
