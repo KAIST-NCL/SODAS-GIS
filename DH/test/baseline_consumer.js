@@ -5,7 +5,7 @@ var gRPC_client = require('./gRPC/fileTransfer');
 
 const simpleGit = require('simple-git');
 var execSync = require('child_process').execSync;
-const timeOut = 200;
+const timeOut = 10;
 
 
 var Consumer = kafka.Consumer;
@@ -15,6 +15,7 @@ var topic = 'asset';
 
 var gitDIR = './gitDB';
 var git;
+var fileList = [];
 
 async function create() {
     git = await vc.create(gitDIR);
@@ -44,33 +45,27 @@ var consumer = new Consumer(client, topics, options);
 var offset = new Offset(client);
 
 var flag = true
-var start, hrstart;
 
 async function test (event, folder) {
     var filepath;
     if (event.operation == 'UPDATE' || event.operation == 'CREATE') {
-        await vc.file_manager(vc.EDIT, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
+        await vc.file_manager(vc.EDIT, gitDIR, folder, event.id, event.contents).then((value) => fileList.push(value.slice()))
         if (flag) {
-            start = new Date();
-            hrstart = process.hrtime();
             console.log(new Date().getTime())
             flag = false;
         }
     }
     else if (event.operation == 'DELETE') {
-        await vc.file_manager(vc.DEL, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
+        await vc.file_manager(vc.DEL, gitDIR, folder, event.id, event.contents).then((value) => fileList.push(value.slice()))
         if (flag) {
-            start = new Date();
-            hrstart = process.hrtime();
+            console.log(new Date().getTime())
             flag = false;
         }
     }
-
-    await gRPC_client.fileTrasnfer('0.0.0.0:50000', filepath)
 }
 
 consumer.on('message', function (message) {
-    
+
     var event = JSON.parse(message.value);
 
     var folder = '/' + event.related.domain + '/' + event.related.taxonomy + '/';
@@ -84,4 +79,12 @@ consumer.on('message', function (message) {
 consumer.on('error', function (err) {
     console.log('error', err);
 });
+
+function run(){
+    while (typeof fileList[0] !== 'undefined') {
+        gRPC_client.fileTrasnfer('0.0.0.0:50000', fileList.shift())
+    }
+    setTimeout(run, timeOut);
+}
+setTimeout(run, timeOut);
 

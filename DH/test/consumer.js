@@ -43,8 +43,10 @@ var options = { autoCommit: false, fetchMaxWaitMs: 1000, fetchMaxBytes: 1024 * 1
 var consumer = new Consumer(client, topics, options);
 var offset = new Offset(client);
 
+var flag = true
+
 consumer.on('message', function (message) {
-    console.log(message);
+    // console.log(message);
     var event = JSON.parse(message.value);
 
     var folder = '/' + event.related.domain + '/' + event.related.taxonomy + '/';
@@ -54,9 +56,17 @@ consumer.on('message', function (message) {
 
     if (event.operation == 'UPDATE' || event.operation == 'CREATE') {
         vc.file_manager(vc.EDIT, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
+        if (flag) {
+            console.log(new Date().getTime())
+            flag = false;
+        }
     }
     else if (event.operation == 'DELETE') {
         vc.file_manager(vc.DEL, gitDIR, folder, event.id, event.contents).then((value) => filepath = value.slice())
+        if (flag) {
+            console.log(new Date().getTime())
+            flag = false;
+        }
     }
 
 });

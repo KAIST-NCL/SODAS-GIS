@@ -31,8 +31,9 @@ server.addService(session_sync.SessionSync.service, {
         console.log("Server Side Received:" , call.request.file_name);
         fs.writeFile(subfileDir + call.request.file_name , call.request.file, 'binary', function(err){
             if (err) throw err;
-            console.log('write end - ' + count++);
+            // console.log('write end - ' + count++);
             git.apply(call.request.file_name);
+            console.log(new Date().getTime())
         });
         callback(null, null);
     }

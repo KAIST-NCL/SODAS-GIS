@@ -28,7 +28,9 @@ server.addService(session_sync.SessionSync.service, {
         fs.writeFile(subfileDir + call.request.file_name , call.request.file, 'binary', function(err){
             if (err) throw err
 
-            console.log('write end - ' + count++)});
+            // console.log('write end - ' + count++)
+            console.log(new Date().getTime())
+        });
         callback(null, null);
     }
 })
