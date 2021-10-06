@@ -6,7 +6,7 @@ const timeOut = 100;
 
 // initialize git
 git.init();
-const initialCommit = git.getInitCommit();
+const initialCommit = git.getCurCommit();
 console.log(initialCommit);
 
 function run(pastCommitID){
@@ -18,11 +18,15 @@ function run(pastCommitID){
         return;
     }
     console.time('diff_process ' + curCommitID);
-    const diff_file = git.diff(pastCommitID, curCommitID, diff_dir);
+    git.diff(pastCommitID, curCommitID, diff_dir);
+    /*
     fs.writeFile('./'+curCommitID + '.diff', diff_file, function(){
         console.log('complete to write');
         console.timeEnd('diff_process ' + curCommitID);
     });
+     */
+    console.log('complete to write');
+    console.timeEnd('diff_process ' + curCommitID);
     setTimeout(run, timeOut, curCommitID);
 }
 setTimeout(run, timeOut, initialCommit);

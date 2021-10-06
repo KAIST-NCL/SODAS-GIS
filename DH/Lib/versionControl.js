@@ -23,15 +23,14 @@ class Git {
         await this.git.init();
     }
 
-    async commit(message){
-        await this.git.add(["."]);
+    async commit(filepath, message){
+        await this.git.add([filepath]);
         const comm = await this.git.commit(message);
         return comm.commit;
     }
 
     diff(comID1, comID2, diff_dir){
-        const stdout = execSync('cd ' + this.gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir);
-        return stdout.toString();
+        execSync('cd ' + this.gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir + ' >>  ../' + comID2 + '.diff', { stdio: 'ignore'});
     }
 
     getInitCommit(){
@@ -63,7 +62,7 @@ exports.create = async function(gitDIR_) {
 // git commit function
 exports.commit = async function(git, message) {
     // git add
-    await git.add(["."]);
+    await git.add(['.']);
     // git commit
     const comm = await git.commit(message);
     // git commit 결과 파싱
@@ -88,7 +87,7 @@ exports.file_manager = async function(options, gitDIR_, folder, id, contents) {
     // 만약 options가 delete면 Local Git DB에서 파일 삭제
     if (options == DEL) {
         // 파일 위치 확인 후 삭제
-        fs.existsSync(files) && fs.unlink(files, function (err) {
+        await fs.existsSync(files) && fs.unlink(files, function (err) {
             if (err) {
                 console.log("Error: ", err);
             }
@@ -98,7 +97,7 @@ exports.file_manager = async function(options, gitDIR_, folder, id, contents) {
     // 아니면 Local Git DB에 파일 추가/변경
     else if (options == EDIT) {
         // 파일 위치 확인 후 변경
-        fs.writeFile(files, contents, 'utf8', function (error) {
+        await fs.writeFile(files, contents, 'utf8', function (error) {
             if (error) console.log("Error: ", err);
         });
     }

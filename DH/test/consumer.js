@@ -3,6 +3,7 @@ var fs = require('fs');
 var vc = require('../Lib/versionControl');
 const simpleGit = require('simple-git');
 var execSync = require('child_process').execSync;
+const timeOut = 200;
 
 
 var Consumer = kafka.Consumer;
@@ -15,6 +16,10 @@ var git;
 
 async function create() {
     git = await vc.create(gitDIR);
+    fs.writeFile('./gitDB/init.txt', 'init', 'utf8', function (error) {
+        if (error) console.log("Error: ", err);
+    });
+    await vc.commit(git, 'init');
 }
 
 async function commit() {
@@ -52,9 +57,17 @@ consumer.on('message', function (message) {
         vc.file_manager(vc.DEL, gitDIR, folder, event.id, event.contents)
     }
 
-    commit()
+    // var filepath = folder+event.id+'.rdf';
+    // commit(filepath)
 });
 
 consumer.on('error', function (err) {
     console.log('error', err);
 });
+
+function run(){
+
+    commit();
+    setTimeout(run, timeOut);
+}
+setTimeout(run, timeOut);
