@@ -33,8 +33,8 @@ class Git {
         execSync('cd ' + this.gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir + ' >>  ../' + comID2 + '.patch', { stdio: 'ignore'});
     }
 
-    apply(){
-
+    apply(patch_name){
+         execSync('cd ' + this.gitDIR_ + ' && git apply '+ patch_name);
     }
 
     getInitCommit(){
