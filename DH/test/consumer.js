@@ -5,7 +5,7 @@ var gRPC_client = require('./gRPC/fileTransfer');
 
 const simpleGit = require('simple-git');
 var execSync = require('child_process').execSync;
-const timeOut = 200;
+const timeOut = 150;
 
 
 var Consumer = kafka.Consumer;
