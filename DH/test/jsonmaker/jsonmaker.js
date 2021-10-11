@@ -1,13 +1,20 @@
 var encoder = require('./encoder');
 
-if (process.argv.length != 3) {
-    console.log("This program needs 1 argument for file name to read/write");
+if (process.argv.length != 4) {
+    console.log("This program needs 2 argument: filename, option[content|raw]");
     process.exit();
 };
 
-var filename = "./" + process.argv[2];
-var encoded = encoder.rdf_to_binary(filename);
-console.log(encoded);
-var newjson = encoder.mkeventjson(encoded);
-console.log(newjson);
-encoder.str_to_file(newjson, filename);
+var filename = process.argv[2];
+var option = process.argv[3];
+if (option == 'content') {
+    var str = encoder.file_to_string(filename);
+    var encoded = encoder.utf8ToBin(str);
+    var newjson = encoder.mkeventjson(encoded);
+    encoder.str_to_file(newjson, filename, option);
+}
+else if (option == 'raw') {
+    var str = encoder.file_to_string(filename);
+    var newjson = encoder.mkeventjson(str);
+    encoder.str_to_file(newjson, filename, option);
+}
