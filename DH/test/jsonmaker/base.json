@@ -1,0 +1,13 @@
+{
+    "id":"A1",
+    "operation": "UPDATE",
+    "type": "asset",
+    "related": {
+      "domain": "DO1",
+      "taxonomy": "TX1",
+      "category": [
+        "CA1"
+      ]
+    },
+    "contents": "replace"
+}
