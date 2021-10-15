@@ -7,13 +7,13 @@ exports.refmodelhandler = function(operation) {
 
     }
     else if (operation == 'stop') {
-        
+
     }
     else {
         // error case
         errorhandler();
     }
-}
+};
 
 // msg type domain
 exports.domainhandler = function(operation) {
@@ -41,7 +41,7 @@ exports.domverhandler = function(operation) {
         // error case
         errorhandler();
     }
-}
+};
 
 // msg type datahub
 exports.datahubhandler = function(operation) {
@@ -64,7 +64,7 @@ exports.datahubhandler = function(operation) {
         // error case
         errorhandler();
     }
-}
+};
 
 // msg type catalog
 exports.cataloghandler = function(operation) {
@@ -81,16 +81,22 @@ exports.cataloghandler = function(operation) {
         // error case
         errorhandler();
     }
-}
+};
 
 // msg type for Asset
-exports.assethandler = function(operation, hierarchy, id, contents, gitDIR, git) {
+exports.assethandler = async function(operation, related, id, contents, gitDIR, git) {
+    // make the folder directory string from the related. </Domain/Taxonomy/Category/>
+    var folder = '/' + related.domain + '/' + related.taxonomy + '/';
+    related.category.forEach(function(item, index) {
+        folder = folder + item + '/';
+    });
+
     // first create/delete the asset in the proper folder
-    if (operation == 'update' || operation == 'create') {
-        vc.file_manager(vc.EDIT, gitDIR, hierarchy, id, contents)
+    if (operation == 'UPDATE' || operation == 'CREATE') {
+        vc.file_manager(vc.EDIT, gitDIR, folder, id, contents)
     }
-    else if (operation == 'delete') {
-        vc.file_manager(vc.DEL, gitDIR, hierarchy, id, contents)
+    else if (operation == 'DELETE') {
+        vc.file_manager(vc.DEL, gitDIR, folder, id, contents)
     }
     else {
         // this is error case
@@ -100,9 +106,9 @@ exports.assethandler = function(operation, hierarchy, id, contents, gitDIR, git)
     // then commit
     var comm_commit = 0;
     await vc.commit(git, "create asset " + msg.id).then((comm) => comm_commit = comm.slice());
-    // return the commit number to 
+    // return the commit number to
 
-}
+};
 
 function errorhandler() {
     console.log('undefined operation and type combination.')
