@@ -15,7 +15,7 @@ const packageDefinition = protoLoader.loadSync(
 let sessionNegotiationClient;
 let sessionNegotiationOptions;
 
-const workerName = 'S-Requester';
+const workerName = 'SessionRequester';
 
 var test = {
     session_desc: {
@@ -34,29 +34,30 @@ var test = {
         transfer_interface: ['gRPC']
     }
 }
+sessionNegotiationOptions = test;
 
-// [SM -> S-Request]
+// [SessionManager -> SessionRequester]
 parentPort.on('message', message => {
     switch (message.event) {
-        // S-Request 초기화 event
+        // SessionRequester 초기화 event
         case 'INIT':
             console.log('<--------------- [ ' + workerName + ' get message * INIT * ] --------------->')
             console.log(workerName + ' is now working!!!')
             break;
 
-        // 타 데이터 허브 S-Listener 의 endpoint 전달받아, gRPC 서버와 연동 및 세션 연동 절차를 시작하는 event
+        // 타 데이터 허브 SessionListener 의 endpoint 전달받아, gRPC 서버와 연동 및 세션 연동 절차를 시작하는 event
         case 'START_SESSION_CONNECTION':
             console.log('<--------------- [ ' + workerName + ' get message * START_SESSION_CONNECTION * ] --------------->')
             sessionNegotiationClient = grpc_init(message.data)
-            sessionNegotiationClient.RequestSessionNegotiation(test, (error, response) => {
+            sessionNegotiationClient.RequestSessionNegotiation(sessionNegotiationOptions, (error, response) => {
                 if (!error) {
                     console.log('Request Session Negotiation');
-                    console.log(test);
+                    console.log(sessionNegotiationOptions);
                     console.log(response);
-                    if (policy.check_negotiation_options(test, response)) {
+                    if (policy.check_negotiation_options(sessionNegotiationOptions, response)) {
                         console.log('Session Negotiation Completed!!');
 
-                        // [S-Requester -> SM] [TRANSMIT_LISTENER_SESSION_WORKER_ENDPOINT]
+                        // [SessionRequester -> SessionManager] [TRANSMIT_LISTENER_SESSION_WORKER_ENDPOINT]
                         parentPort.postMessage({ event: "TRANSMIT_LISTENER_SESSION_WORKER_ENDPOINT", data: { session_id: response.negotiation_info.session_desc.session_id, endpoint: response.end_point } });
                     }
                 } else {
@@ -65,18 +66,19 @@ parentPort.on('message', message => {
             });
             break;
 
-        // 타 데이터 허브 S-Listener 와의 세션 협상이 체결된 후, 전송해야 하는 S-Worker 정보를 받는 event
+        // 타 데이터 허브 SessionListener 와의 세션 협상이 체결된 후, 전송해야 하는 S-Worker 정보를 받는 event
         case 'GET_NEW_SESSION_WORKER_INFO':
             console.log('<--------------- [ ' + workerName + ' get message * GET_NEW_SESSION_WORKER_INFO * ] --------------->')
             console.log(message.data)
-            test.session_desc.session_creator = message.data.session_creator;
-            test.session_desc.session_id = message.data.session_id;
+            sessionNegotiationOptions.session_desc.session_creator = message.data.session_creator;
+            sessionNegotiationOptions.session_desc.session_id = message.data.session_id;
             break;
 
         // 데이터 허브 또는 사용자에 의해 협상 옵션이 바뀔 경우, 해당 정보를 보내는 event
         case 'UPDATE_NEGOTIATION_OPTIONS':
             console.log('<--------------- [ ' + workerName + ' get message * UPDATE_NEGOTIATION_OPTIONS * ] --------------->')
-            sessionNegotiationOptions = message.data
+            sessionNegotiationOptions.datamap_desc = message.data.datamap_desc
+            sessionNegotiationOptions.sync_desc = message.data.sync_desc
             console.log(sessionNegotiationOptions)
             break;
     }
@@ -89,5 +91,5 @@ function grpc_init(port) {
 
 function grpc_close(grpc_client) {
     grpc.closeClient(grpc_client);
-    console.log('gRPC session closed with other datahub S-Listener');
+    console.log('gRPC session closed with other datahub SessionListener');
 }

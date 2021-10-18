@@ -3,16 +3,17 @@ const {Worker, parentPort} = require('worker_threads');
 const crypto = require('crypto');
 
 const sm = require(__dirname+'/sessionManager');
+const grpc = require("@grpc/grpc-js");
 
-const workerName = 'SM';
+const workerName = 'SessionManager';
 
-exports.SessionManager = function() {
+exports.SessionManager = function(sessionListenerPort) {
     this.datahubInfo = {
         sodasAuthKey: crypto.randomBytes(20).toString('hex'),
         datahubID: crypto.randomBytes(20).toString('hex')
     }
     this.sessionRequester = { key: null, worker: this.init_session_requester(), status: null }
-    // this.sessionListener = { key: null, worker: this.init_session_listener(port), status: null }
+    this.sessionListener = { key: null, worker: this.init_session_listener(sessionListenerPort), status: null }
     this.sessionWorker = {
         medical: [
             {
@@ -54,14 +55,14 @@ exports.SessionManager = function() {
     }
 }
 
-//// ------- sessionRequesterWorker ------- ////
+//// ------- CreateSessionRequesterWorker ------- ////
 exports.SessionManager.prototype.init_session_requester = function () {
     const sessionRequesterWorker = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js')
 
-    // [SM -> S-Requester] [INIT]
+    // [SessionManager -> SessionRequester] [INIT]
     sessionRequesterWorker.postMessage({ event: "INIT", data: null });
 
-    // todo: S-Worker -> SM 보내는 이벤트 세부 정의 필요!
+    // todo: S-Worker -> SessionManager 보내는 이벤트 세부 정의 필요!
     sessionRequesterWorker.on('message', message => {
         switch (message.event) {
             //
@@ -73,45 +74,48 @@ exports.SessionManager.prototype.init_session_requester = function () {
     return sessionRequesterWorker
 }
 
-exports.SessionManager.prototype.update_negotiation_options = function () {
-    // [SM -> S-Requester] [UPDATE_NEGOTIATION_OPTIONS]
-    sessionManager.sessionRequester.worker.postMessage({ event: "UPDATE_NEGOTIATION_OPTIONS", data: sessionManager.sessionNegotiationOptions });
-}
+//// ------- CreateSessionListenerWorker ------- ////
+exports.SessionManager.prototype.init_session_listener = function (gRPC_server_endpoint) {
+    const sessionListenerWorker = new Worker('./DHSessionListener/sessionListener.js')
 
-
-exports.SessionManager.prototype.start_session_connection = function (listenerEndPoint) {
-    let session_id = crypto.randomBytes(20).toString('hex');
-    this.create_requester_session_worker(session_id, 9091);
-
-    // [SM -> S-Requester] [START_SESSION_CONNECTION]
-    sessionManager.sessionRequester.worker.postMessage({ event: "START_SESSION_CONNECTION", data: listenerEndPoint });
-}
-
-
-//// ------- sessionListenerWorker ------- ////
-exports.SessionManager.prototype.init_session_listener = function (port) {
-    const sessionListenerWorker = new Worker(__dirname+'/DHSessionListener/sessionListener.js')
-
-    // [SM -> S-Listener] [INIT]
-    sessionListenerWorker.postMessage({ event: "INIT", data: port });
+    // [SessionManager -> SessionListener] [INIT]
+    sessionListenerWorker.postMessage({event: "INIT", data: gRPC_server_endpoint});
 
     return sessionListenerWorker
 }
 
+//// ------- UpdateNegotiationOptions ------- ////
+exports.SessionManager.prototype.update_negotiation_options = function () {
+    // [SessionManager -> SessionRequester] [UPDATE_NEGOTIATION_OPTIONS]
+    sessionManager.sessionRequester.worker.postMessage({ event: "UPDATE_NEGOTIATION_OPTIONS", data: sessionManager.sessionNegotiationOptions });
 
-//// ------- sessionWorker ------- ////
+    // [SessionManager -> SessionRequester] [UPDATE_NEGOTIATION_OPTIONS]
+    sessionManager.sessionListener.worker.postMessage({ event: "UPDATE_NEGOTIATION_OPTIONS", data: sessionManager.sessionNegotiationOptions });
+}
+
+//// ------- SYNC_ON -> StartSessionConnection ------- ////
+exports.SessionManager.prototype.start_session_connection = function (listenerEndPoint) {
+    let session_id = crypto.randomBytes(20).toString('hex');
+    // todo: Session 생성 시, random port(중복 체크 필요) 전달해야 됨
+    this.create_requester_session_worker(session_id, 9091);
+
+    // [SessionManager -> SessionRequester] [START_SESSION_CONNECTION]
+    sessionManager.sessionRequester.worker.postMessage({ event: "START_SESSION_CONNECTION", data: listenerEndPoint });
+}
+
+//// ------- CreateSessionForSessionRequester ------- ////
 // todo: session worker 를 계속 생성할 때, end-point(port number) 부여 방법
 exports.SessionManager.prototype.create_requester_session_worker = function (session_id, port) {
     const sessionWorker = new Worker(__dirname+'/DHSession/session.js');
 
-    // [SM -> S-Worker] [INIT]
+    // [SessionManager -> S-Worker] [INIT]
     sessionWorker.postMessage({ event: "INIT", data: { session_id: session_id, port: port } });
 
     sessionManager.tempSessionWorker.requester.session_id = session_id;
     sessionManager.tempSessionWorker.requester.port = port;
     sessionManager.tempSessionWorker.requester.worker = sessionWorker;
 
-    // [SM -> S-Requester] [GET_NEW_SESSION_WORKER_INFO]
+    // [SessionManager -> SessionRequester] [GET_NEW_SESSION_WORKER_INFO]
     sessionManager.sessionRequester.worker.postMessage({ event: "GET_NEW_SESSION_WORKER_INFO", data: { session_creator: sessionManager.datahubInfo.datahubID, session_id: sessionManager.tempSessionWorker.requester.session_id } });
 
     console.log(sessionManager);
@@ -138,17 +142,26 @@ async function test() {
 
 test()
 
-// [S-Requester -> SM]
+// [DHDaemon -> SessionManager]
+parentPort.on('message', message => {
+    switch (message.event) {
+        // SessionManager 초기화
+        case 'INIT':
+            break;
+    }
+})
+
+// [SessionRequester -> SessionManager]
 sessionManager.sessionRequester.worker.on('message', message => {
     switch (message.event) {
-        // S-Requester 에서 세션 협상 완료된 Event 로, 타 데이터 허브의 S-Worker end-point 전송 받음
+        // SessionRequester 에서 세션 협상 완료된 Event 로, 타 데이터 허브의 S-Worker end-point 전송 받음
         case 'TRANSMIT_LISTENER_SESSION_WORKER_ENDPOINT':
             console.log('<--------------- [ ' + workerName + ' get message * TRANSMIT_LISTENER_SESSION_WORKER_ENDPOINT * ] --------------->')
             console.log(message.data)
 
             console.log(sessionManager.tempSessionWorker.requester.session_id)
             console.log(message.data.session_id)
-            // [SM -> S-Worker] [GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT]
+            // [SessionManager -> S-Worker] [GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT]
             if (sessionManager.tempSessionWorker.requester.session_id === message.data.session_id) {
                 sessionManager.tempSessionWorker.requester.worker.postMessage({ event: "START_GRPC_SERVER", data: null })
                 sessionManager.tempSessionWorker.requester.worker.postMessage({ event: "GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT", data: message.data.endpoint })
@@ -157,7 +170,7 @@ sessionManager.sessionRequester.worker.on('message', message => {
     }
 })
 
-// // [S-Listener -> SM]
+// // [SessionListener -> SessionManager]
 // SessionManager.sessionListener.worker.on('message', message => {
 //     switch (message.event) {
 //         //
@@ -166,3 +179,4 @@ sessionManager.sessionRequester.worker.on('message', message => {
 //             break;
 //     }
 // })
+

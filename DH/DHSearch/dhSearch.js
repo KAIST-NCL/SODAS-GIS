@@ -1,6 +1,14 @@
+
+const { parentPort, workerData } = require('worker_threads');
+
 const dh = require('./api/dhnode');
-const bootstrap = require(__dirname+'/proto/bootstrap');
 const knode = require('./kademlia/knode');
+const bootstrap = require(__dirname+'/proto/bootstrap');
+
+// daemonServer
+exports.dhServer = function(){
+
+};
 
 const bootstrapServerIP = '127.0.0.1:50051';
 const desc = {
@@ -54,3 +62,15 @@ async function discover_process(seedNodeList) {
 }
 
 bootstrap_process()
+
+// [DHDaemon -> DHSearch]
+parentPort.on('message', message => {
+    switch (message.event) {
+        // SessionManager 초기화
+        case 'INIT':
+            break;
+
+        case 'UPDATE_INTEREST_TOPIC':
+            break;
+    }
+})

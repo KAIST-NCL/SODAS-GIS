@@ -1,16 +1,13 @@
-// const grpc = require('grpc')
-// const protoLoader = require('@grpc/proto-loader')
-// const packageDefinition = protoLoader.loadSync('../proto/bootstrap.proto', {
-//     keepCase: true,
-//     longs: String,
-//     enums: String,
-//     defaults: true,
-//     oneofs: true
-// });
-// const bootstrapProto = grpc.loadPackageDefinition(packageDefinition).bootstrap.BootstrapBroker;
-
-const grpc = require('grpc');
-const bootstrapProto = grpc.load(__dirname+'/bootstrap.proto').bootstrap.BootstrapBroker;
+const grpc = require('grpc')
+const protoLoader = require('@grpc/proto-loader')
+const packageDefinition = protoLoader.loadSync(__dirname+'/bootstrap.proto', {
+    keepCase: true,
+    longs: String,
+    enums: String,
+    defaults: true,
+    oneofs: true
+});
+const bootstrapProto = grpc.loadPackageDefinition(packageDefinition).bootstrap.BootstrapBroker;
 
 let bootstrap_client;
 
