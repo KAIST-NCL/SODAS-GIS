@@ -1,16 +1,13 @@
-// const grpc = require('grpc')
-// const protoLoader = require('@grpc/proto-loader')
-// const packageDefinition = protoLoader.loadSync('./proto/bootstrap.proto', {
-//     keepCase: true,
-//     longs: String,
-//     enums: String,
-//     defaults: true,
-//     oneofs: true
-// });
-// const bootstrapProto = grpc.loadPackageDefinition(packageDefinition);
-
-const grpc = require('grpc')
-const bootstrapProto = grpc.load('./proto/bootstrap.proto')
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader')
+const packageDefinition = protoLoader.loadSync(__dirname+'/bootstrap.proto', {
+    keepCase: true,
+    longs: String,
+    enums: String,
+    defaults: true,
+    oneofs: true
+});
+const bootstrapProto = grpc.loadPackageDefinition(packageDefinition);
 
 const server = new grpc.Server()
 const seedNodeList = []
@@ -35,15 +32,15 @@ module.exports = {
                 console.log("GetSeedNodeList")
                 seedNode = call.request
                 console.log(seedNode)
-                callback(null, seedNodeList)
+                callback(null, {nodes: seedNodeList})
                 seedNodeList.unshift(seedNode)
                 console.log(seedNodeList)
             }
         })
 
-        server.bind(ip, grpc.ServerCredentials.createInsecure())
-        console.log('Server running at ' + ip)
-        server.start()
-
+        server.bindAsync(ip, grpc.ServerCredentials.createInsecure(), () => {
+            console.log('[RH] Bootstrap gRPC Server running at ' + ip)
+            server.start();
+        });
     }
 }

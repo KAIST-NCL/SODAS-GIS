@@ -1,30 +1,31 @@
 
-const {Worker, parentPort, workerData} = require('worker_threads');
-const rm = require(__dirname+'/rmSync');
-const workerName = 'RMSync';
+const { parentPort, workerData } = require('worker_threads');
 
-exports.RMSync = function() {
+const rm = require(__dirname+'/rmsync');
 
-    this.referenceHub_ip = workerData.referenceHub_ip
-    this.referenceHub_portNum = workerData.referenceHub_portNum
 
-}
-
-exports.RMSync.prototype.run = function() {
+//RMSync
+exports.RMSync = function(){
 
     parentPort.on('message', this.dhDaemonListener)
 
-}
+};
+
+exports.RMSync.prototype.run = function(){
+
+};
 
 // [DHDaemon -> RMSync]
-exports.RMSync.prototype.dhDaemonListener = function(message) {
+exports.RMSync.prototype.dhDaemonListener = function(message){
     switch (message.event) {
         // RMSync 초기화
         case 'INIT':
-
+            rmSync.run()
+            break;
+        default:
+            console.log('[ERROR] DH Daemon Listener Error ! event:', message.event);
             break;
     }
-}
+};
 
 const rmSync = new rm.RMSync()
-rmSync.run()
