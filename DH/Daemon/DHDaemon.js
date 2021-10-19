@@ -7,6 +7,7 @@ exports.DHDaemon = function(){
 
     this.conf = new ConfigParser();
     this.conf.read('../setting.cfg');
+    this.name = this.conf.get('Daemon', 'name');
     this.dm_ip = this.conf.get('Daemon', 'ip');
     this.dm_portNum = this.conf.get('Daemon', 'portNum');
     this.ds_portNum = this.conf.get('DHSearch', 'portNum');
@@ -19,11 +20,10 @@ exports.DHDaemon = function(){
     process.env.DH_HOME = this.conf.get('ENV', 'DH_HOME');
     console.log('[SETTING] DataHub daemon is running with %s:%s', this.dm_ip, this.dm_portNum);
 
-    // consumer - argument: kafkaHost, options, dhDaemon, conf
     this.ctrlConsumer = new ctrlConsumer(this.kafka, this.kafka_options, this, this.conf);
+    this.ctrlProducer = new ctrlProducer('recv.ctrl');
 
-    // producer
-    this.ctrlProducer = new ctrlProducer('recv:ctrl');
+    this.interest_topic = [];
 };
 
 exports.DHDaemon.prototype.run = function(){
@@ -32,7 +32,7 @@ exports.DHDaemon.prototype.run = function(){
     msgChn = new MessageChannel();
 
     // setEnvironmentData
-    const dmServerParam = {'dm_ip': this.dm_ip, 'dm_portNum': this.dm_portNum};
+    const dmServerParam = {'dm_ip': this.dm_ip, 'dm_portNum': this.dm_portNum, 'name': this.name};
     const dhSearchParam = {'ds_portNum': this.ds_portNum, 'bootstrap_ip': this.bs_ip, 'bootstrap_portNum': this.bs_portNum};
     const vcParam = {'sm_port': msgChn.port1};
     const smParam = {'vc_port': msgChn.port2};
@@ -59,6 +59,17 @@ exports.DHDaemon.prototype.run = function(){
 /* Worker threads Listener */
 exports.DHDaemon.prototype.dmServerListener = function(message){
     switch(message.event){
+        case 'UPDATE_INTEREST_TOPIC':
+            console.log('[SETTING] Interest Topic is Updated!');
+            this.interest_topic = message.data.interest_topic;
+            this.updateInterestTopic(this.interest_topic);
+            break;
+        case 'START':
+            this.rmSyncInit();
+            break;
+        case 'SYNC_ON':
+            this.smInit();
+            break;
         default:
             console.log('[ERROR] DM Server Listener Error ! event:', message.event);
     }
@@ -66,9 +77,7 @@ exports.DHDaemon.prototype.dmServerListener = function(message){
 exports.DHDaemon.prototype.dhSearchListener = function(message){
     switch(message.event){
         case 'UPDATE_BUCKET_LIST':
-            // save the bucket list in local
             this.bucket_list = message.data;
-            // distribute bucket list information
             this.dmServerSetBucketList(this.bucket_list);
             break;
         default:
@@ -79,11 +88,8 @@ exports.DHDaemon.prototype.dhSearchListener = function(message){
 exports.DHDaemon.prototype.SMListener = function(message){
     switch(message.event){
         case 'GET_SESSION_LIST_INFO':
-            // session list가 업데이트 된 걸 daemon 상에 저장
             this.sessionList = message.data;
-            // distribute the session list data to daemon server
             this.dmServerSetSessionList(this.sessionList);
-            //produce 'EVENT'
             this.ctrlProducer.produce({
                 event: 'UPDATE_SESSION_LIST',
                 data: this.sessionList
@@ -106,15 +112,14 @@ exports.DHDaemon.prototype.VCListener = function(message){
 exports.DHDaemon.prototype.RMSyncListener = function(message){
     switch (message.event) {
         case 'UPDATE_REFERENCE_MODEL':
-            // reference model 업데이트 된 걸 daemon 상에 저장
             this.RM = message.data;
-            // distribute the reference model data to daemon server
             this.dmServerSetRM(this.RM);
-            // produce 'EVENT'
             this.ctrlProducer.produce({
                 event: 'UPDATE_REFERENCE_MODEL',
                 data: this.RM
             });
+            this.dhSearchInit();
+            this.vcUpdateReferenceModel();
             break;
         default:
             console.log('[ERROR] Reference Model Listener Error !');
@@ -192,7 +197,7 @@ exports.DHDaemon.prototype.dmServerSetSessionList = function(sessionList){
     });
 };
 
-/* */
+/* stop */
 exports.DHDaemon.prototype.stop = function(){
     this.daemonServer.exit();
     this.dhSearch.exit();
