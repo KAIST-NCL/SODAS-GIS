@@ -8,21 +8,19 @@ package daemonserver;
 
 service daemonServer{
     rpc GetDHList(NULL) returns (DataHubList){}
-    rpc SetInterest(Interest) returns (NULL){}
+    rpc SetInterest(Topic) returns (NULL){}
 }
 
-message Interest{
-    repeated string syncKeywords = 1;
+message Topic{
+
 }
 
 message NULL{
 
 }
 message DataHub{
-    required string name = 1;
-    required string ip = 2;
-    required string portNum = 3;
-    repeated string syncKeywords = 4;
+    required string ip = 1;
+    required string portNum = 2;
 }
 
 message DataHubList{

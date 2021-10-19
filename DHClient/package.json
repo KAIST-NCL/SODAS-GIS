@@ -1,5 +1,5 @@
 {
-  "name": "kaist_soads_dhclient",
+  "name": "sodasctl",
   "version": "1.0.0",
   "description": "DHClient",
   "main": "",
@@ -10,8 +10,7 @@
     "type": "git",
     "url": "git+https://github.com/EunjuYang/KAIST_SODAS.git"
   },
-  "keywords": [
-  ],
+  "keywords": [],
   "author": "KAIST_NCL",
   "license": "ISC",
   "bugs": {
@@ -19,5 +18,10 @@
   },
   "homepage": "https://github.com/EunjuYang/KAIST_SODAS#readme",
   "dependencies": {
+    "@grpc/grpc-js": "^1.4.1",
+    "configparser": "^0.3.9"
+  },
+  "bin": {
+    "sodasctl": "sodasctl.js"
   }
 }
