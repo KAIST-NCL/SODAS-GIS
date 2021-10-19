@@ -2,10 +2,10 @@ const PROTO_PATH = __dirname + '/protos/dhdaemon.proto';
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const DS = require('./daemonServer');
-const { parentPort, MessagePort, getEnvironmentData } = require('worker_threads');
+const { parentPort, MessagePort, getEnvironmentData, MessageChannel, workerData } = require('worker_threads');
 
 // daemonServer
-exports.dServer = function(){
+dServer = function(){
 
     // grpc option
     var packageDefinition = protoLoader.loadSync(
@@ -18,19 +18,18 @@ exports.dServer = function(){
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.ds = this.protoDescriptor.daemonserver;
-    this.port = getEnvironmentData('dm_port');
-    this.ip = getEnvironmentData('dm_ip');
+    this.port = workerData.dm_portNum;
+    this.ip = workerData.dm_ip;
+    this.known_hosts = workerData.known_hosts;
 };
-
 // gRPC service function
-exports.dServer.prototype.getDHList = function(call, callback){
+dServer.prototype.getDHList = function(call, callback){
     // TODO
 };
-exports.dServer.prototype.setInterest = function(call, callback){
+dServer.prototype.setInterest = function(call, callback){
     // TODO
 };
-
-exports.dServer.prototype.getDaemonServer = function(){
+dServer.prototype.getDaemonServer = function(){
     var server = new grpc.Server();
     server.addService(this.ds.daemonServer.service, {
         getDHList: this.getDHList,
@@ -38,13 +37,13 @@ exports.dServer.prototype.getDaemonServer = function(){
     });
     return server;
 };
+exports.dServer = dServer;
 
 // run daemonServer
-const dServer = new DS.dServer();
-const daemonServer = dServer.getDaemonServer();
-daemonServer.bindAsync('0.0.0.0:'+ dServer.port,
+const ds = new DS.dServer();
+const daemonServer = ds.getDaemonServer();
+daemonServer.bindAsync('0.0.0.0:'+ ds.port,
     grpc.ServerCredentials.createInsecure(), () => {
-        console.log('[RUNNING] DataHub daemon is running with '+ dServer.ip +':'+ dServer.port);
+        console.log('[RUNNING] DataHub daemon is running with '+ ds.ip +':'+ ds.port);
         daemonServer.start();
 });
-
