@@ -39,10 +39,10 @@ class ctrlConsumer extends Consumer{
 
 exports.ctrlConsumer = ctrlConsumer;
 
-exports.ctrlProducer = function(){
+exports.ctrlProducer = function(topic){
     this.client = new kafka.KafkaClient();
     this.producer = new Producer(this.client);
-    this.topic = 'recv.control';
+    this.topic = topic;
 };
 
 exports.ctrlProducer.produce = function(msg){
