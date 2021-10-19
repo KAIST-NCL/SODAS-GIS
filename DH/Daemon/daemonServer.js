@@ -2,7 +2,7 @@ const PROTO_PATH = __dirname + '/protos/dhdaemon.proto';
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const DS = require('./daemonServer');
-const { parentPort, MessagePort, getEnvironmentData, MessageChannel } = require('worker_threads');
+const { parentPort, MessagePort, getEnvironmentData, MessageChannel, workerData } = require('worker_threads');
 
 // daemonServer
 dServer = function(){
@@ -18,11 +18,9 @@ dServer = function(){
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.ds = this.protoDescriptor.daemonserver;
-    this.port = getEnvironmentData('dm_port');
-    this.ip = getEnvironmentData('dm_ip');
-    const { port1, port2 } = new MessageChannel();
-    this.DHSearchListeningPort = port1;
-    this.DHSearch_port2 = port2;
+    this.port = workerData.dm_portNum;
+    this.ip = workerData.dm_ip;
+    this.known_hosts = workerData.known_hosts;
 };
 
 // gRPC service function
@@ -32,15 +30,12 @@ dServer.prototype.getDHList = function(call, callback){
 dServer.prototype.setInterest = function(call, callback){
     // TODO
 };
-
-dServer.prototype.daemon_on_message = function(value){
-    // on_message for DHDaemon (Parent node)
-    // parsing value and call proper action.
-    if (value.port) {
-        this.DHSearchPort = value.port;
-        this.DHSearchPort.postMessage({msg:'i am worker2!'});// send msg to worker1
-        console.log('[dServer] dhSearch MSG channel setting is complete');
-   }
+dServer.prototype.test_func = function(){
+    console.log('[TEST] Test function is called');
+    console.log(this.known_hosts);
+    // this.known_hosts = ['127.0.0.1'];
+    console.log(this.known_hosts);
+    parentPort.postMessage({event:'Test'});
 };
 
 dServer.prototype.getDaemonServer = function(){
@@ -62,15 +57,4 @@ daemonServer.bindAsync('0.0.0.0:'+ ds.port,
         console.log('[RUNNING] DataHub daemon is running with '+ ds.ip +':'+ ds.port);
         daemonServer.start();
 });
-
-// setting portInfo
-parentPort.postMessage({
-    port: ds.DHSearch_port2,
-}, [ds.DHSearch_port2]);
-
-// setting event listener for DHDaemon
-parentPort.on('message', dServer.prototype.daemon_on_message);
-// setting DHSearchPort
-ds.DHSearchListeningPort.on('message', value => {
-    console.log('[dServer: msg-print]' + value.msg);
-});
+ds.test_func();
