@@ -1,13 +1,26 @@
 
-const {Worker, parentPort} = require('worker_threads');
-const crypto = require('crypto');
-
+const {Worker, parentPort, MessagePort, workerData} = require('worker_threads');
 const sm = require(__dirname+'/sessionManager');
-const grpc = require("@grpc/grpc-js");
-
 const workerName = 'SessionManager';
 
+const crypto = require('crypto');
+
 exports.SessionManager = function(sessionListenerPort) {
+
+    parentPort.on('message', this.dhDaemonListener);
+
+    this.VC = workerData['vc_port'];
+    parentPort.once('message', ({VC}) => {
+        VC.on('message', message => {
+            switch (message.event) {
+                // [VersionControl -> SessionManager] [UPDATE_PUB_ASSET]
+                case 'UPDATE_PUB_ASSET':
+                    this.updatePubAssetEvent = message.data
+                    break;
+            }
+        })
+    });
+
     this.datahubInfo = {
         sodasAuthKey: crypto.randomBytes(20).toString('hex'),
         datahubID: crypto.randomBytes(20).toString('hex')
@@ -53,6 +66,16 @@ exports.SessionManager = function(sessionListenerPort) {
             status: null
         }
     }
+}
+
+exports.SessionManager.prototype.run = function (){
+
+    this.sessionRequester = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js');
+    this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js')
+
+    this.sessionRequester.on('message', this.sessionRequesterListener);
+    this.sessionListener.on('message', this.sessionListenerListener);
+
 }
 
 //// ------- CreateSessionRequesterWorker ------- ////
@@ -121,62 +144,61 @@ exports.SessionManager.prototype.create_requester_session_worker = function (ses
     console.log(sessionManager);
 }
 
-
 const sessionManager = new sm.SessionManager()
-console.log(sessionManager)
 
-
-// 탐색 모듈과 연동해서, 주기적으로 c-bucket 참조 -> 세션 연동 후보 노드 순차적으로 세션 연동 Request 보내는 로직
-
-async function test() {
-
-    let bootstrap_client = await sessionManager.update_negotiation_options();
-    await new Promise((resolve, reject) => setTimeout(resolve, 2000));
-
-    let get = await sessionManager.start_session_connection('127.0.0.1:50051')
-    await new Promise((resolve, reject) => setTimeout(resolve, 2000));
-
-    return null;
-
-}
-
-test()
+// // 탐색 모듈과 연동해서, 주기적으로 c-bucket 참조 -> 세션 연동 후보 노드 순차적으로 세션 연동 Request 보내는 로직
+//
+// async function test() {
+//
+//     let bootstrap_client = await sessionManager.update_negotiation_options();
+//     await new Promise((resolve, reject) => setTimeout(resolve, 2000));
+//
+//     let get = await sessionManager.start_session_connection('127.0.0.1:50051')
+//     await new Promise((resolve, reject) => setTimeout(resolve, 2000));
+//
+//     return null;
+//
+// }
+//
+// test()
 
 // [DHDaemon -> SessionManager]
-parentPort.on('message', message => {
+exports.SessionManager.prototype.dhDaemonListener = function (message){
     switch (message.event) {
         // SessionManager 초기화
         case 'INIT':
+            sessionManager.run();
             break;
     }
-})
+}
 
 // [SessionRequester -> SessionManager]
-sessionManager.sessionRequester.worker.on('message', message => {
+exports.SessionManager.prototype.sessionRequesterListener = function (message){
     switch (message.event) {
-        // SessionRequester 에서 세션 협상 완료된 Event 로, 타 데이터 허브의 S-Worker end-point 전송 받음
-        case 'TRANSMIT_LISTENER_SESSION_WORKER_ENDPOINT':
-            console.log('<--------------- [ ' + workerName + ' get message * TRANSMIT_LISTENER_SESSION_WORKER_ENDPOINT * ] --------------->')
+        // SessionRequester 에서 세션 협상 완료된 Event 로, 타 데이터 허브의 Session의 end-point 전송 받음
+        case 'TRANSMIT_LISTENER_SESSION_ENDPOINT':
+            console.log('<--------------- [ ' + workerName + ' get message * TRANSMIT_LISTENER_SESSION_ENDPOINT * ] --------------->')
             console.log(message.data)
 
             console.log(sessionManager.tempSessionWorker.requester.session_id)
             console.log(message.data.session_id)
-            // [SessionManager -> S-Worker] [GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT]
+            // [SessionManager -> Session] [GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT]
             if (sessionManager.tempSessionWorker.requester.session_id === message.data.session_id) {
                 sessionManager.tempSessionWorker.requester.worker.postMessage({ event: "START_GRPC_SERVER", data: null })
                 sessionManager.tempSessionWorker.requester.worker.postMessage({ event: "GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT", data: message.data.endpoint })
             }
             break;
     }
-})
+}
 
-// // [SessionListener -> SessionManager]
-// SessionManager.sessionListener.worker.on('message', message => {
-//     switch (message.event) {
-//         //
-//         case 'GET_NEW_SESSION_WORKER_INFO':
-//             console.log(message.data)
-//             break;
-//     }
-// })
+// [SessionListener -> SessionManager]
+exports.SessionManager.prototype.sessionListenerListener = function (message){
+    switch (message.event) {
+        //
+        case 'TRANSMIT_REQUESTER_SESSION_ENDPOINT':
+            console.log('<--------------- [ ' + workerName + ' get message * TRANSMIT_LISTENER_SESSION_ENDPOINT * ] --------------->')
+            console.log(message.data)
+            break;
+    }
+}
 

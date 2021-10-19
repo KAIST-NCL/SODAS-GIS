@@ -5,8 +5,13 @@ const dh = require('./api/dhnode');
 const knode = require('./kademlia/knode');
 const bootstrap = require(__dirname+'/proto/bootstrap');
 
-// daemonServer
-exports.dhServer = function(){
+exports.DHSearch = function(){
+
+    parentPort.on('message', this.dhDaemonListener)
+
+};
+
+exports.DHSearch.prototype.run = function(){
 
 };
 
@@ -64,13 +69,13 @@ async function discover_process(seedNodeList) {
 bootstrap_process()
 
 // [DHDaemon -> DHSearch]
-parentPort.on('message', message => {
+exports.DHSearch.prototype.dhDaemonListener = function(message){
     switch (message.event) {
-        // SessionManager 초기화
+        // DHSearch 초기화
         case 'INIT':
             break;
 
         case 'UPDATE_INTEREST_TOPIC':
             break;
     }
-})
+};
