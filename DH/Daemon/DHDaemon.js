@@ -29,20 +29,20 @@ exports.DHDaemon = function(){
 exports.DHDaemon.prototype.run = function(){
 
     // msg-channel(one-way) : VC -> sessionManager
-    const { port1, port2 } = new MessageChannel();
+    msgChn = new MessageChannel();
 
     // setEnvironmentData
     const dmServerParam = {'dm_ip': this.dm_ip, 'dm_portNum': this.dm_portNum};
     const dhSearchParam = {'ds_portNum': this.ds_portNum, 'bootstrap_ip': this.bs_ip, 'bootstrap_portNum': this.bs_portNum};
-    const vcParam = {'sm_port': port2};
-    const smParam = {'vc_port': port1};
+    const vcParam = {'sm_port': msgChn.port1};
+    const smParam = {'vc_port': msgChn.port2};
     const rmSyncParam = {};
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });
     this.dhSearch = new Worker('../DHSearch/dhSearch.js', { workerData: dhSearchParam });
-    this.VC = new Worker('../VersionControl/dmVersionController.js', { workerData: vcParam });
-    this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam });
+    this.VC = new Worker('../VersionControl/dmVersionController.js', { workerData: vcParam, transferList: [msgChn.port1]});
+    this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
     this.rmSync = new Worker('../RMSync/rmsync.js', { workerData: rmSyncParam });
 
     // setting on function

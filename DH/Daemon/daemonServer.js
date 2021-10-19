@@ -22,7 +22,6 @@ dServer = function(){
     this.ip = workerData.dm_ip;
     this.known_hosts = workerData.known_hosts;
 };
-
 // gRPC service function
 dServer.prototype.getDHList = function(call, callback){
     // TODO
@@ -30,14 +29,6 @@ dServer.prototype.getDHList = function(call, callback){
 dServer.prototype.setInterest = function(call, callback){
     // TODO
 };
-dServer.prototype.test_func = function(){
-    console.log('[TEST] Test function is called');
-    console.log(this.known_hosts);
-    // this.known_hosts = ['127.0.0.1'];
-    console.log(this.known_hosts);
-    parentPort.postMessage({event:'Test'});
-};
-
 dServer.prototype.getDaemonServer = function(){
     var server = new grpc.Server();
     server.addService(this.ds.daemonServer.service, {
@@ -46,7 +37,6 @@ dServer.prototype.getDaemonServer = function(){
     });
     return server;
 };
-
 exports.dServer = dServer;
 
 // run daemonServer
@@ -57,4 +47,3 @@ daemonServer.bindAsync('0.0.0.0:'+ ds.port,
         console.log('[RUNNING] DataHub daemon is running with '+ ds.ip +':'+ ds.port);
         daemonServer.start();
 });
-ds.test_func();

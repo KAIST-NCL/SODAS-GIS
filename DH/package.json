@@ -35,6 +35,7 @@
     "kademlia": "^0.2.0",
     "kafka-node": "^5.0.0",
     "simple-git": "^2.46.0",
+    "sprintf-js": "^1.1.2",
     "traverse": "^0.6.6",
     "underscore": "^1.13.1",
     "underscore.string": "^3.3.5"
