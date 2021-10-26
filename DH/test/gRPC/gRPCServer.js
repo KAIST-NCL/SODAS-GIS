@@ -1,6 +1,6 @@
 const fs = require('fs');
 const PROTO_PATH = __dirname + '/proto/sessionSync.proto';
-const { Git } = require('../../Lib/versionControl');
+const { Git } = require('../../Lib/git');
 
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');

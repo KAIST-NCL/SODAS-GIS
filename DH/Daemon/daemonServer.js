@@ -81,7 +81,7 @@ dServer.prototype.start = function(){
             console.log('[RUNNING] DataHub daemon is running with '+ this.ip +':'+ this.port);
             this.daemonServer.start();
         });
-    parentPort.onmessage(this._parentSwitch);
+    parentPort.on('message',this._parentSwitch);
 };
 // dServer methods
 dServer.prototype._dmSetInterest = function(interestList){
