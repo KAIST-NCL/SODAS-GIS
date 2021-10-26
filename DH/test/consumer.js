@@ -1,6 +1,6 @@
 var kafka = require('kafka-node');
 var fs = require('fs');
-var vc = require('../Lib/versionControl');
+var vc = require('../Lib/git');
 var gRPC_client = require('./gRPC/fileTransfer');
 
 const simpleGit = require('simple-git');

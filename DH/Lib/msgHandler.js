@@ -1,5 +1,5 @@
 // Define the msg handlers for each message operation here
-var vc = require('./versionControl');
+var vc = require('./git');
 
 // msg type reference-model
 exports.refmodelhandler = function(operation) {

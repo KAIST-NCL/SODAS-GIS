@@ -1,7 +1,7 @@
 const session  = require('./session');
 const path = require('path');
 const fs = require('fs');
-const { Git } = require('../Lib/versionControl');
+const { Git } = require('../Lib/git');
 const gitDIR = "./gitDB";
 const timeOut = 10;
 const PROTO_PATH = __dirname + '/proto/sessionSync.proto';
@@ -31,7 +31,7 @@ exports.Session.prototype._run = function(pastCommitID){
     setTimeout(this._run.bind(this), timeOut, curCommitID);
 };
 exports.Session.prototype.run = function(){
-    let initialCommit = this.git.getCurCommit();
+     let initialCommit = this.git.getCurCommit();
     console.log('Start to run from ' + initialCommit);
     setTimeout(this._run.bind(this), timeOut, initialCommit);
 };
