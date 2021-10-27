@@ -1,5 +1,6 @@
 const grpc = require('@grpc/grpc-js');
-const protoLoader = require('@grpc/proto-loader')
+const protoLoader = require('@grpc/proto-loader');
+
 const packageDefinition = protoLoader.loadSync(__dirname+'/bootstrap.proto', {
     keepCase: true,
     longs: String,
@@ -15,13 +16,12 @@ module.exports = {
 
     Init: function(ip){
 
-        bootstrap_client = new bootstrapProto(ip, grpc.credentials.createInsecure());
+        this.bootstrap_client = new bootstrapProto(ip, grpc.credentials.createInsecure());
 
     },
 
     SetSeedNode: function(seedNode){
-
-        bootstrap_client.SetSeedNode(seedNode, (error, response) => {
+        this.bootstrap_client.SetSeedNode(seedNode, (error, response) => {
             if (!error) {
                 console.log('Send node info to bootstrap server');
                 console.log(seedNode);
@@ -30,32 +30,21 @@ module.exports = {
                 console.error(error);
             }
         });
-
     },
 
-    GetSeedNodeList: function(seedNode){
-        var list = [];
-        async function getSeedNodeList() {
-
-            let get = await bootstrap_client.GetSeedNodeList(seedNode, (error, response) => {
-                if (!error) {
-                    console.log('Receive seed node from bootstrap server');
-                    list = JSON.parse(JSON.stringify( response.nodes ));
-                } else {
-                    console.error(error);
-                }
-            });
-            await new Promise((resolve, reject) => setTimeout(resolve, 2000));
-
-            return list
-        }
-
-        return getSeedNodeList().then((value) => value)
+    GetSeedNode: function(seedNode){
+        const promise = new Promise((resolve, reject) => this.bootstrap_client.GetSeedNodeList(seedNode, function(err, response) {
+            if(err) {
+                return reject(err)
+            }
+            resolve(response)
+        }))
+        return promise
     },
 
     Close: function (){
 
-        grpc.closeClient(bootstrap_client);
+        grpc.closeClient(this.bootstrap_client);
         console.log('gRPC session closed with bootstrap server');
 
     }

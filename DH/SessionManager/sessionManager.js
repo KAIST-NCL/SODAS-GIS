@@ -182,7 +182,6 @@ exports.SessionManager.prototype._sessionListener = function (message){
 
 
 const sessionManager = new sm.SessionManager()
-console.log(sessionManager)
 sessionManager.VC.postMessage({event: "INIT", data: "test"})
 
 // // 탐색 모듈과 연동해서, 주기적으로 c-bucket 참조 -> 세션 연동 후보 노드 순차적으로 세션 연동 Request 보내는 로직

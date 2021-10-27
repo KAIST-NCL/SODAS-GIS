@@ -18,11 +18,13 @@ exports.DHSearch = function(){
     this.seedNode = dh.seedNodeInfo({address: dh.getIpAddress(), port: parseInt(workerData.ds_portNum)});
     this.node = new knode.KNode({address: dh.getIpAddress(), port: parseInt(workerData.ds_portNum)});
     this.seedNodeList = [];
+
+    bootstrap.Init(this.bootstrapServerIP);
     console.log('[SETTING] DHSearch is running with %s:%s', dh.getIpAddress(), this.ds_portNum);
 
 };
 exports.DHSearch.prototype.run = function(){
-    this._bootstrapProcess().then(r => console.log("Bootstrap process is done!"))
+    this._bootstrapProcess().then(r => this._discoverProcess())
 };
 
 /* Worker threads Listener */
@@ -49,17 +51,16 @@ exports.DHSearch.prototype._dmUpdateBucketList = function(){
 
 /* DHSearch methods */
 exports.DHSearch.prototype._bootstrapProcess = async function() {
-    await new Promise((resolve, reject) => setTimeout(resolve, 2000));
-    this.seedNodeList = await bootstrap.GetSeedNodeList(this.seedNode);
-    await new Promise((resolve, reject) => setTimeout(resolve, 2000));
-    console.log(dhSearch)
-    let close = await bootstrap.Close();
+    await bootstrap.GetSeedNode(this.seedNode).then((value => {
+        dhSearch.seedNodeList = JSON.parse(JSON.stringify( value.nodes ));
+    }));
     return null;
 }
 exports.DHSearch.prototype._discoverProcess = async function() {
     for (var seedNodeIndex of this.seedNodeList) {
         var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port);
-        await new Promise((resolve, reject) => setTimeout(resolve, 2000));
+        // await new Promise((resolve, reject) => setTimeout(resolve, 2000));
+        await console.log(this.node._buckets)
     }
     return null;
 }

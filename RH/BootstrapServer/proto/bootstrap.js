@@ -29,11 +29,13 @@ module.exports = {
                 callback(null, { status: true, message: "Success enroll node info" })
             },
             GetSeedNodeList: (call, callback) => {
-                console.log("GetSeedNodeList")
+                console.log("[RH] [Bootstrap Server] - GetSeedNodeList")
                 seedNode = call.request
+                console.log("Access Bootstrap Server from")
                 console.log(seedNode)
                 callback(null, {nodes: seedNodeList})
                 seedNodeList.unshift(seedNode)
+                console.log("SeedNodeList is")
                 console.log(seedNodeList)
             }
         })
