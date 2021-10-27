@@ -25,7 +25,6 @@ exports.DHDaemon = function(){
 
     this.interest_topic = [];
 };
-
 exports.DHDaemon.prototype.run = function(){
 
     // msg-channel(one-way) : VC -> sessionManager
@@ -41,55 +40,61 @@ exports.DHDaemon.prototype.run = function(){
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });
     this.dhSearch = new Worker('../DHSearch/dhSearch.js', { workerData: dhSearchParam });
-    this.VC = new Worker('../VersionControl/dmVersionController.js', { workerData: vcParam, transferList: [msgChn.port1]});
+    this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port1]});
     this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
     this.rmSync = new Worker('../RMSync/rmsync.js', { workerData: rmSyncParam });
 
     // setting on function
-    this.daemonServer.on('message', this.dmServerListener);
-    this.dhSearch.on('message', this.dhSearchListener);
-    this.VC.on('message', this.VCListener);
-    this.sessionManager.on('message', this.SMListener);
-    this.rmSync.on('message', this.RMSyncListener);
+    this.daemonServer.on('message', this._dmServerListener);
+    this.dhSearch.on('message', this._dhSearchListener);
+    this.VC.on('message', this._vcListener);
+    this.sessionManager.on('message', this._smListener);
+    this.rmSync.on('message', this._rmSyncListener);
 
     // run ctrlConsumer
-    this.ctrlConsumer.on_message();
+    this.ctrlConsumer.onMessage();
+};
+exports.DHDaemon.prototype.stop = function(){
+    this.daemonServer.exit();
+    this.dhSearch.exit();
+    this.VC.exit();
+    this.sessionManager.exit();
 };
 
 /* Worker threads Listener */
-exports.DHDaemon.prototype.dmServerListener = function(message){
+exports.DHDaemon.prototype._dmServerListener = function(message){
     switch(message.event){
         case 'UPDATE_INTEREST_TOPIC':
             console.log('[SETTING] Interest Topic is Updated!');
             this.interest_topic = message.data.interest_topic;
-            this.updateInterestTopic(this.interest_topic);
+            this._dhSearchUpdateInterestTopic(this.interest_topic);
             break;
         case 'START':
-            this.rmSyncInit();
+            this._rmSyncInit();
             break;
         case 'SYNC_ON':
-            this.smInit();
+            this._smInit();
             break;
         default:
             console.log('[ERROR] DM Server Listener Error ! event:', message.event);
     }
 };
-exports.DHDaemon.prototype.dhSearchListener = function(message){
+exports.DHDaemon.prototype._dhSearchListener = function(message){
     switch(message.event){
         case 'UPDATE_BUCKET_LIST':
-            this.bucket_list = message.data;
-            this.dmServerSetBucketList(this.bucket_list);
+            this.bucketList = message.data;
+            this._dmServerSetBucketList(this.bucketList);
             break;
         default:
             console.log('[ERROR] DH Search Listener Error ! event:', message.event);
         //
     }
 };
-exports.DHDaemon.prototype.SMListener = function(message){
+exports.DHDaemon.prototype._smListener = function(message){
     switch(message.event){
         case 'GET_SESSION_LIST_INFO':
             this.sessionList = message.data;
-            this.dmServerSetSessionList(this.sessionList);
+            this._dmServerSetSessionList(this.sessionList);
             this.ctrlProducer.produce({
                 event: 'UPDATE_SESSION_LIST',
                 data: this.sessionList
@@ -100,7 +105,7 @@ exports.DHDaemon.prototype.SMListener = function(message){
             break;
     }
 };
-exports.DHDaemon.prototype.VCListener = function(message){
+exports.DHDaemon.prototype._vcListener = function(message){
     switch(message.event){
         case '':
             break;
@@ -109,17 +114,17 @@ exports.DHDaemon.prototype.VCListener = function(message){
             break;
     }
 };
-exports.DHDaemon.prototype.RMSyncListener = function(message){
+exports.DHDaemon.prototype._rmSyncListener = function(message){
     switch (message.event) {
         case 'UPDATE_REFERENCE_MODEL':
             this.RM = message.data;
-            this.dmServerSetRM(this.RM);
+            this._dmServerSetRM(this.RM);
             this.ctrlProducer.produce({
                 event: 'UPDATE_REFERENCE_MODEL',
                 data: this.RM
             });
-            this.dhSearchInit();
-            this.vcUpdateReferenceModel();
+            this._dhSearchInit();
+            this._vcUpdateReferenceModel();
             break;
         default:
             console.log('[ERROR] Reference Model Listener Error !');
@@ -128,49 +133,49 @@ exports.DHDaemon.prototype.RMSyncListener = function(message){
 };
 
 /* dhSearch methods */
-exports.DHDaemon.prototype.dhSearchInit = function(){
+exports.DHDaemon.prototype._dhSearchInit = function(){
     this.dhSearch.postMessage({
         event: 'INIT',
         data: {bootstrap_server_ip: this.bs_ip, bootstrap_server_portNum: this.bs_portNum}
     });
 };
-exports.DHDaemon.prototype.updateInterestTopic = function(interest_topic){
+exports.DHDaemon.prototype._dhSearchUpdateInterestTopic = function(interestTopic){
     this.dhSearch.postMessage({
         event: 'UPDATE_INTEREST_TOPIC',
-        data: {interest_topic: interest_topic}
+        data: {interestTopic: interestTopic}
     });
 };
 /* RMSync methods */
-exports.DHDaemon.prototype.rmSyncInit = function(){
+exports.DHDaemon.prototype._rmSyncInit = function(){
     this.rmSync.postMessage({
         event: 'INIT',
         data: {referencehub_ip:this.rh_ip, referencehub_port:this.rh_portNum}
     });
 };
 /* SessionManager methods */
-exports.DHDaemon.prototype.smInit= function(){
+exports.DHDaemon.prototype._smInit= function(){
     this.sessionManager.postMessage({
         event: 'INIT',
         data: {}
     });
 };
-exports.DHDaemon.prototype.updateNegotiation = function(){
+exports.DHDaemon.prototype._smUpdateNegotiation = function(){
     // TODO 세션 동기화 옵션 업데이트 후 작성
 };
-exports.DHDaemon.prototype.smSyncOn = function(){
+exports.DHDaemon.prototype._smSyncOn = function(){
     this.sessionManager.postMessage({
         event:'SYNC_ON',
-        data: this.bucket_list
+        data: this.bucketList
     })
 };
 /* Version Control methods */
-exports.DHDaemon.prototype.vcInit = function(){
+exports.DHDaemon.prototype._vcInit = function(){
     this.VC.postMessage({
         event: 'INIT',
         data: {}
     });
 };
-exports.DHDaemon.prototype.vcUpdateReferenceModel = function(){
+exports.DHDaemon.prototype._vcUpdateReferenceModel = function(){
     this.VC.postMessage({
         event: 'UPDATE_REFERENCE_MODEL',
         data: this.RM
@@ -178,33 +183,24 @@ exports.DHDaemon.prototype.vcUpdateReferenceModel = function(){
 };
 
 /* Daemon Server methods */
-exports.DHDaemon.prototype.dmServerSetBucketList = function(bucket_list){
+exports.DHDaemon.prototype._dmServerSetBucketList = function(bucket_list){
     this.daemonServer.postMessage({
         event: 'UPDATE_BUCKET_LIST',
         data: bucket_list
     });
 };
-exports.DHDaemon.prototype.dmServerSetRM = function(reference_model){
+exports.DHDaemon.prototype._dmServerSetRM = function(referenceModel){
     this.daemonServer.postMessage({
         event: 'UPDATE_REFERENCE_MODEL',
-        data: reference_model
+        data: referenceModel
     });
 };
-exports.DHDaemon.prototype.dmServerSetSessionList = function(sessionList){
+exports.DHDaemon.prototype._dmServerSetSessionList = function(sessionList){
     this.daemonServer.postMessage({
         event: 'UPDATE_SESSION_LIST',
         data: sessionList
     });
 };
-
-/* stop */
-exports.DHDaemon.prototype.stop = function(){
-    this.daemonServer.exit();
-    this.dhSearch.exit();
-    this.VC.exit();
-    this.sessionManager.exit();
-};
-
 
 const daemon = new dm.DHDaemon();
 daemon.run();

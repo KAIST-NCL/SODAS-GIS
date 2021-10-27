@@ -12,12 +12,13 @@ class ctrlConsumer extends Consumer{
         this.referenceHubIP = conf.get('ReferenceHub', 'ip');
         this.referenceHubPort = conf.get('ReferenceHub', 'port');
     }
-    on_message = function(){
+    onMessage = function(){
         console.log('[RUNNING] Kafka consumer for control signal is running ');
+        const that = this;
         this.consumer.on('message', function(message){
             const event = message.event;
             const msg = message.value;
-            this.eventSwitch(event, msg);
+            that.eventSwitch(event, msg);
         });
     };
     eventSwitch = function(event, msg){
@@ -37,7 +38,6 @@ class ctrlConsumer extends Consumer{
     };
 }
 
-exports.ctrlConsumer = ctrlConsumer;
 
 exports.ctrlProducer = function(topic){
     this.client = new kafka.KafkaClient();
@@ -51,3 +51,5 @@ exports.ctrlProducer.produce = function(msg){
         if(err) console.log(err);
     });
 };
+
+exports.ctrlConsumer = ctrlConsumer;
