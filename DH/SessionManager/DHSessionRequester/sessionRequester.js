@@ -1,21 +1,32 @@
 
+const PROTO_PATH = __dirname+'/../proto/sessionNegotiation.proto';
 const {parentPort} = require('worker_threads');
+const sr = require(__dirname+'/sessionRequester');
 const policy = require(__dirname+'/../api/sync_policy');
-
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
-const packageDefinition = protoLoader.loadSync(
-    __dirname+'/../proto/sessionNegotiation.proto',{
-        keepCase: true,
-        longs: String,
-        enums: String,
-        defaults: true,
-        oneofs: true
-});
-let sessionNegotiationClient;
-let sessionNegotiationOptions;
 
 const workerName = 'SessionRequester';
+
+exports.SessionRequester = function () {
+
+    parentPort.on('message', this._smListener);
+
+    const packageDefinition = protoLoader.loadSync(
+        PROTO_PATH,{
+            keepCase: true,
+            longs: String,
+            enums: String,
+            defaults: true,
+            oneofs: true
+        });
+    this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
+    this.SNproto = this.protoDescriptor.sessionNegotiation.SessionNegotiationBroker;
+
+}
+
+let sessionNegotiationClient;
+let sessionNegotiationOptions;
 
 var test = {
     session_desc: {
@@ -36,8 +47,9 @@ var test = {
 }
 sessionNegotiationOptions = test;
 
+
 // [SessionManager -> SessionRequester]
-parentPort.on('message', message => {
+exports.SessionRequester.prototype._smListener = function (message) {
     switch (message.event) {
         // SessionRequester 초기화 event
         case 'INIT':
@@ -48,7 +60,7 @@ parentPort.on('message', message => {
         // 타 데이터 허브 SessionListener 의 endpoint 전달받아, gRPC 서버와 연동 및 세션 연동 절차를 시작하는 event
         case 'START_SESSION_CONNECTION':
             console.log('<--------------- [ ' + workerName + ' get message * START_SESSION_CONNECTION * ] --------------->')
-            sessionNegotiationClient = grpc_init(message.data)
+            sessionNegotiationClient = this.gRPCInit(message.data)
             sessionNegotiationClient.RequestSessionNegotiation(sessionNegotiationOptions, (error, response) => {
                 if (!error) {
                     console.log('Request Session Negotiation');
@@ -82,14 +94,24 @@ parentPort.on('message', message => {
             console.log(sessionNegotiationOptions)
             break;
     }
-})
-
-function grpc_init(port) {
-    const sessionNegotiationProto = grpc.loadPackageDefinition(packageDefinition).sessionNegotiation.SessionNegotiationBroker;
-    return new sessionNegotiationProto(port, grpc.credentials.createInsecure());
 }
 
-function grpc_close(grpc_client) {
-    grpc.closeClient(grpc_client);
+/* SessionManager methods */
+// [SessionRequester -> SessionManager] [TRANSMIT_LISTENER_SESSION_ENDPOINT]
+exports.SessionRequester.prototype.SMTransmitListenerSessionEndpoint = function () {
+    parentPort.postMessage({
+        event: "TRANSMIT_LISTENER_SESSION_ENDPOINT",
+        data: null
+    });
+}
+
+exports.SessionRequester.prototype.gRPCInit = function (port) {
+    return new this.SNproto(port, grpc.credentials.createInsecure());
+}
+
+exports.SessionRequester.prototype.gRPCClose = function () {
+    grpc.closeClient(this.gRPCClient);
     console.log('gRPC session closed with other datahub SessionListener');
 }
+
+const sessionRequester = new sr.SessionRequester()

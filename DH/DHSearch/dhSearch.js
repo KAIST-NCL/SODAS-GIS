@@ -10,7 +10,7 @@ const dhsearch = require(__dirname+'/dhSearch');
 //DHSearch
 exports.DHSearch = function(){
 
-    parentPort.on('message', this.dhDaemonListener);
+    parentPort.on('message', this._dhDaemonListener);
 
     this.ds_portNum = workerData.ds_portNum;
     this.bootstrapServerIP = workerData.bootstrap_ip + ':' + workerData.bootstrap_portNum;
@@ -21,13 +21,12 @@ exports.DHSearch = function(){
     console.log('[SETTING] DHSearch is running with %s:%s', dh.getIpAddress(), this.ds_portNum);
 
 };
-
 exports.DHSearch.prototype.run = function(){
-    this.bootstrapProcess().then(r => console.log("Bootstrap process is done!"))
+    this._bootstrapProcess().then(r => console.log("Bootstrap process is done!"))
 };
 
-// [DHDaemon -> DHSearch]
-exports.DHSearch.prototype.dhDaemonListener = function(message){
+/* Worker threads Listener */
+exports.DHSearch.prototype._dhDaemonListener = function(message){
     switch (message.event) {
         // DHSearch 초기화
         case 'INIT':
@@ -40,8 +39,16 @@ exports.DHSearch.prototype.dhDaemonListener = function(message){
     }
 };
 
-exports.DHSearch.prototype.bootstrapProcess = async function() {
-    let init = await bootstrap.Init(this.bootstrapServerIP);
+/* DHDaemon methods */
+exports.DHSearch.prototype._dmUpdateBucketList = function(){
+    parentPort.postMessage({
+        event: 'UPDATE_BUCKET_LIST',
+        data: this.node._buckets
+    });
+};
+
+/* DHSearch methods */
+exports.DHSearch.prototype._bootstrapProcess = async function() {
     await new Promise((resolve, reject) => setTimeout(resolve, 2000));
     this.seedNodeList = await bootstrap.GetSeedNodeList(this.seedNode);
     await new Promise((resolve, reject) => setTimeout(resolve, 2000));
@@ -49,10 +56,9 @@ exports.DHSearch.prototype.bootstrapProcess = async function() {
     let close = await bootstrap.Close();
     return null;
 }
-
-exports.DHSearch.prototype.discoverProcess = async function() {
+exports.DHSearch.prototype._discoverProcess = async function() {
     for (var seedNodeIndex of this.seedNodeList) {
-        var connect = await node.connect(seedNodeIndex.address, seedNodeIndex.port);
+        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port);
         await new Promise((resolve, reject) => setTimeout(resolve, 2000));
     }
     return null;

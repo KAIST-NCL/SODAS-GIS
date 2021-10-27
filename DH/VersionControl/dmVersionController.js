@@ -3,30 +3,44 @@ var fs = require('fs');
 var consumer = require('../Lib/EventHandler/consumer/consumer');
 var vc = require('../Lib/versionControl');
 
-// Git variables
-const gitDIR = './gitDB';
-const git;
+const {Worker, parentPort, MessagePort, workerData} = require('worker_threads');
+var SM = workerData['sm_port'];
 
-async function create() {
-    git = await vc.create(gitDIR);
-}
-
-create();
-
-// Create file-tree
-!fs.existsSync('./DO1') && fs.mkdirSync('./DO1');
-!fs.existsSync('./DO1/TX1') && fs.mkdirSync('./DO1/TX1');
-!fs.existsSync('./DO1/TX1/CA1') && fs.mkdirSync('./DO1/TX1/CA1');
+SM.on('message', message => {
+    switch (message.event) {
+        // [VersionControl -> SessionManager] [UPDATE_PUB_ASSET]
+        case 'INIT':
+            console.log("test")
+            break;
+    }
+})
 
 
 
-// Receive message and handle it
-consumer.consumer.on('message', function (message) {
-    const topic_msg = message.topic;
-    const rcv_msg = JSON.parse(message.value);
-    consumer.apiSwitcher(topic_msg, rcv_msg, gitDIR, git);
-});
+// // Git variables
+// const gitDIR = './gitDB';
+// let git;
+//
+// async function create() {
+//     git = await vc.create(gitDIR);
+// }
+//
+// create();
+//
+// // Create file-tree
+// !fs.existsSync('./DO1') && fs.mkdirSync('./DO1');
+// !fs.existsSync('./DO1/TX1') && fs.mkdirSync('./DO1/TX1');
+// !fs.existsSync('./DO1/TX1/CA1') && fs.mkdirSync('./DO1/TX1/CA1');
+//
 
-consumer.consumer.on('error', function (err) {
-    console.log('error', err);
-});
+
+// // Receive message and handle it
+// consumer.consumer.on('message', function (message) {
+//     const topic_msg = message.topic;
+//     const rcv_msg = JSON.parse(message.value);
+//     consumer.apiSwitcher(topic_msg, rcv_msg, gitDIR, git);
+// });
+//
+// consumer.consumer.on('error', function (err) {
+//     console.log('error', err);
+// });
