@@ -45,6 +45,20 @@ class Git {
         this.currentCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");
         return this.currentCommitID;
     }
+
+    editFile(filepath, content) {
+        await fs.writeFile(filepath, contents, 'utf8', function (error) {
+            if (error) console.log("Error: ", err);
+        });
+    }
+
+    deleteFile(filepath) {
+        await fs.existsSync(filepath) && fs.unlink(filepath, function (err) {
+            if (err) {
+                console.log("Error: ", err);
+            }
+        });
+    }    
 }
 
 exports.Git = Git;
