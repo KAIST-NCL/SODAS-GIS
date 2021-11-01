@@ -39,17 +39,17 @@ exports.DHDaemon.prototype.run = function(){
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });
-    this.dhSearch = new Worker('../DHSearch/dhSearch.js', { workerData: dhSearchParam });
-    this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port1]});
-    this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
-    this.rmSync = new Worker('../RMSync/rmsync.js', { workerData: rmSyncParam });
+    // this.dhSearch = new Worker('../DHSearch/dhSearch.js', { workerData: dhSearchParam });
+    // this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port1]});
+    // this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
+    // this.rmSync = new Worker('../RMSync/rmsync.js', { workerData: rmSyncParam });
 
     // setting on function
     this.daemonServer.on('message', this._dmServerListener);
-    this.dhSearch.on('message', this._dhSearchListener);
-    this.VC.on('message', this._vcListener);
-    this.sessionManager.on('message', this._smListener);
-    this.rmSync.on('message', this._rmSyncListener);
+    // this.dhSearch.on('message', this._dhSearchListener);
+    // this.VC.on('message', this._vcListener);
+    // this.sessionManager.on('message', this._smListener);
+    // this.rmSync.on('message', this._rmSyncListener);
 
     // run ctrlConsumer
     this.ctrlConsumer.onMessage();

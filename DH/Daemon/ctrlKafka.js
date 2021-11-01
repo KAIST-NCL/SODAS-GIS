@@ -5,7 +5,7 @@ const KeyedMessage = kafka.KeyedMessage;
 
 class ctrlConsumer extends Consumer{
     constructor(kafkaHost, options, dhDaemon, conf){
-        const topics = [ {topic:'send.control', partitions:0 } ];
+        const topics = [ {topic:'send.datahub', partitions:0 } ];
         super(kafkaHost, topics, options);
         this.daemon = dhDaemon;
         this.conf = conf;
@@ -16,15 +16,27 @@ class ctrlConsumer extends Consumer{
         console.log('[RUNNING] Kafka consumer for control signal is running ');
         const that = this;
         this.consumer.on('message', function(message){
-            const event = message.event;
-            const msg = message.value;
-            that.eventSwitch(event, msg);
+
+            // JSON parsing error
+            try {
+                const message_ = JSON.parse(message.value);
+                const event = message_.event;
+                const msg = message_.value;
+                that.eventSwitch(event, msg);
+            } catch (e){
+                console.log(e);
+                return;
+            }
         });
     };
     eventSwitch = function(event, msg){
         switch(event){
+            case 'TEST':
+                console.log(msg);
+                this.daemon.daemonServer.postMessage({event:'TEST', data:{msg: 'test'}});
+                break;
             case 'START':
-                this.daemon.rmSync.postMessage({'type':'INIT', 'referenceHub_ip': this.referenceHubIP, 'referenceHub_port': this.referenceHubPort});
+                this.daemon.rmSync.postMessage({event:'INIT', data: {referenceHub_ip: this.referenceHubIP, referenceHub_port: this.referenceHubPort}});
                 break;
             case 'UPDATE':
                 this.daemon.dhSearch.postMessage({});
