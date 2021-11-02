@@ -33,16 +33,31 @@ class ref_parser {
         });
 
         // 현재 linked_list의 next와 prev에는 string 혹은 dictionary가 들어있는데, 이를 바로잡아 준다.
-        this.dom_related_list.forEach((element) => {
-            this._linked_list_correction(element);
-        });
-        this.tax_related_list.forEach((element) => {
-            this._linked_list_correction(element);
-        });
+        if (this._linked_list_correction_all()) return false;
+        
+        // next가 없는 category만 갖고 우선 디렉토리를 뽑아낸다.
         this.cat_related_list.forEach((element) => {
-            this._linked_list_correction(element);
+            if (element.next.length == 0) {
+                this.dir_list.push(this._mkdirlist(element));
+            }
         });
+        // next가 없는 taxonomy만 갖고 우선 디렉토리를 뽑아낸다.
+        this.tax_related_list.forEach((element) => {
+            if (element.next.length == 0) {
+                this.dir_list.push(this._mkdirlist(element));
+            }
+        });
+        // next가 없는 domain만 갖고 우선 디렉토리를 뽑아낸다.
+        this.dom_related_list.forEach((element) => {
+            if (element.next.length == 0) {
+                this.dir_list.push(this._mkdirarray(element));
+            }
+        });
+
+        // 뽑아낸 디렉토리 목록으로 디렉토리를 생성한다.
+        this._mkdir_from_list();
     }
+
     // 해당 경로에 폴더를 생성하는 함수
     _folder_create(target) {
         !fs.existsSync(target) && fs.mkdirSync(target);
@@ -112,7 +127,8 @@ class ref_parser {
         var line_inScheme = this._findLine(i_partition, '<skos:inScheme');
         var dv = i_partition[line_inScheme[0]].split('/domain-version/')[1].split('"')[0];
         // Linked List 생성
-        var LL = new linked_list(id, "taxonomy", dv);
+        var LL = new linked_list(id, "taxonomy");
+        LL._setPrev(dv);
         // <skos:hasTopConcept ~/> 내에 하위 폴더 정보가 있다.
         var line_hasTop = this._findLine(i_partition, '<skos:hasTopConcept');
         line_hasTop.forEach((element) => {
@@ -145,6 +161,31 @@ class ref_parser {
     }
 
     // 위에서 만든 linked list에서 prev와 next를 전부 다른 linked_list로 바꿔준다.
+    _linked_list_correction_all() {
+        var fault = false;
+        fault = fault || this.dom_related_list.some((element) => {
+            if(!this._linked_list_correction(element)) {
+                console.log("Error");
+                return true;
+            }
+        });
+        if (fault) return false;
+        fault = fault || this.tax_related_list.some((element) => {
+            if(!this._linked_list_correction(element)) {
+                console.log("Error");
+                return true;
+            }
+        });
+        if (fault) return false;
+        fault = fault || this.cat_related_list.some((element) => {
+            if(!this._linked_list_correction(element)) {
+                console.log("Error");
+                return true;
+            }
+        });
+        if (fault) return false;
+    }
+
     _linked_list_correction(LL) {
         // domain에 해당하는 경우 next와 taxonomy를 이어준다.
         if (LL.type == "domain") {
@@ -173,7 +214,7 @@ class ref_parser {
             }
             // prev correction
             LL.prev = this.dom_related_list.find((element) => {
-                if (element.id === LL.prev) return true;
+                if (element.dv === LL.prev) return true;
             });
         }
         // category인 경우
@@ -200,12 +241,31 @@ class ref_parser {
                 });                
             }
         }
-
         // 문제 여부 확인 - 상위 분류가 먼저 전부 correction이 끝났다고 가정한다.
         var noFault = true;
         if (LL.next.some((element) => { return (typeof(element) === 'string'); })) noFault = false;
         if (LL.prev != null) noFault = noFault && LL._checkRelation();
         return noFault;
+    }
+
+    // linked list들로부터 파일 트리 정보가 담긴 array를 만든다.
+    _mkdirarray(LL) {
+        var temp_dir_list = [LL.id];
+        // prev가 null이면 값을 반환한다.        
+        if (!LL.prev) return temp_dir_list;
+        // prev가 null일 때까지 검색해 들어가면서 temp_dir_list에 [상위, .. , 하위] 순서로 id를 쌓는다.
+        else return temp_dir_list.unshift(...this._mkdirarray(LL.prev));
+    }
+
+    // dir_list를 갖고 root 폴더 아래에 폴더들을 만든다.
+    _mkdir_from_list() {
+        this.dir_list.forEach((dirarray) => {
+            var folder_dir = this.root
+            dirarray.forEach((element) => {
+                folder_dir = folder_dir + '/' + element;
+                this._folder_create(folder_dir);
+            });
+        });
     }
 }
 
@@ -237,3 +297,5 @@ class linked_list {
         else return true;         
     }
 }
+
+exports.ref_parser = ref_parser;
