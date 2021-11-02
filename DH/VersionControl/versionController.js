@@ -41,9 +41,14 @@ class VC {
         }
     }
 
-    _createReferenceDir(){
-        this.rp = new ref_parser(this.vcRoot, this.referenceModel);
-        this.rp.createReferenceDir();
+    _createReferenceDir() {
+        // 만약 최초 실행인 경우
+        if(typeof this.rp === 'undefined') {
+            this.rp = new ref_parser(this.vcRoot, this.RM);
+            this.rp.createReferenceDir();
+        }
+        // 업데이트인 경우
+        else this.rp.update(this.RM);
     }
 }
 

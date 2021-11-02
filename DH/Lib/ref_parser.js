@@ -19,6 +19,7 @@ class ref_parser {
         this.cat_related_list = [];
     }
 
+    // ---------------------  외부 노출 함수 ----------------------- //
     // Reference Model을 파싱하여 폴더 트리를 생성하는 함수
     createReferenceDir() {
         // Reference Model을 읽어드린 후 Pre-Process ==> <rdf:Description> 구역 단위로 파티션들을 만든다.
@@ -58,6 +59,29 @@ class ref_parser {
         this._mkdir_from_list();
     }
 
+    // related 정보가 들어오면 이를 바탕으로 filepath를 만들어주는 함수
+    related_to_filepath() {
+
+    }
+
+    // Reference Model 변경 시 update하는 함수
+    update(referenceModel) {
+        // 정보 백업
+        this.old_dir_list = this.dir_list;
+        // 내부 변수 초기화
+        this.referenceModel = referenceModel;
+        this.dir_list = [];
+        this.dom_related_list = [];
+        this.tax_related_list = [];
+        this.cat_related_list = [];
+
+        // 폴더 트리 다시 생성
+        this.createReferenceDir();
+
+        // 현재 dir_list와 맞지 않는 폴더들 처리
+    }
+
+    // ---------------------  내부 동작용 함수 ----------------------- //
     // 해당 경로에 폴더를 생성하는 함수
     _folder_create(target) {
         !fs.existsSync(target) && fs.mkdirSync(target);
@@ -119,7 +143,6 @@ class ref_parser {
         });
         this.dom_related_list.push(LL);
     }
-
     _taxonomyparser(i_partition) {
         // id, dv를 구한다.
         var id = i_partition[0].split('/taxonomy/')[1].split('"')[0];
@@ -136,7 +159,6 @@ class ref_parser {
         });
         this.tax_related_list.push(LL);
     }
-
     _categoryparser(i_partition) {
         // id를 구한다.
         var id = i_partition[0].split('/category/')[1].split('"')[0];
@@ -185,7 +207,6 @@ class ref_parser {
         });
         if (fault) return false;
     }
-
     _linked_list_correction(LL) {
         // domain에 해당하는 경우 next와 taxonomy를 이어준다.
         if (LL.type == "domain") {
@@ -266,7 +287,7 @@ class ref_parser {
                 this._folder_create(folder_dir);
             });
         });
-    }
+    }    
 }
 
 // Linked list의 원본 클래스

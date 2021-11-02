@@ -26,7 +26,7 @@ exports.Session = function(reference_model) {
     this.git.init();
     // - Reference Model에 맞춰 폴더 트리 생성
     if(typeof(reference_model) != null){
-        
+        this.setReferenceModel(reference_model);
     }
 
     // Initiate gRPC Server - (1): 외부 Session으로부터 Subscribe
@@ -41,6 +41,17 @@ exports.Session = function(reference_model) {
             this.kafkaProducer(call.request.related);
         }
     });
+}
+
+exports.Session.prototype.setReferenceModel = function(referenceModel) {
+    this.RM = referenceModel;
+    // 최초 실행인 경우
+    if(typeof this.rp === 'undefined') {
+        this.rp = new ref_parser(this.vcRoot, this.RM);
+        this.rp.createReferenceDir();
+    }
+    // 업데이트인 경우
+    else this.rp.update(this.RM);
 }
 
 // [5]: 외부 Session으로 Publish
