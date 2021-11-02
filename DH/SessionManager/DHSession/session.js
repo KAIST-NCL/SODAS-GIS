@@ -1,12 +1,8 @@
-
-const fs = require('fs')
+const fs = require('fs');
 const {parentPort} = require('worker_threads');
-let workerName;
-let port;
-
-const CHUNK_SIZE = 4*1024*1024 - 10
+const { Git } = require('../../Lib/git');
+const { ref_parser } = require('../../Lib/ref_parser');
 const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
-
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const packageDefinition = protoLoader.loadSync(
@@ -16,111 +12,78 @@ const packageDefinition = protoLoader.loadSync(
         enums: String,
         defaults: true,
         oneofs: true
-    });
-const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
-const server = new grpc.Server();
-
-// todo: 타 데이터 허브의 데이터맵을 전송받아서 저장(git -> etri)하는 로직 정의 필요
-server.addService(session_sync.SessionSync.service, {
-    SessionInit: (call, callback) => {
-        var subfileDir = './SubMaps'
-        console.log("Server Side Received:" , call.request.transID)
-        fs.writeFile(subfileDir + call.request.filedir , call.request.publishDatamap, 'binary', function(err){
-            if (err) throw err
-            console.log('write end') });
-        callback(null, {transID: call.request.transID + 'OK', result: "Success"});
-    }
-})
-
-function SessionInitStart( target ) {
-    var client = new session_sync.SessionSync(target, grpc.credentials.createInsecure());
-    let timestamp = new Date()
-    let pubfileDir = './PubMaps'
-    let filelist = []
-
-    // fs.readdir(pubfileDir, function (err, files){
-    //     console.log("PubMaps filelist: ", files, files.length)
-    // })
-
-    // for( let i = 0 ; i < filelist.length; i++){
-    //     console.log("FLL:" , filelist[i])
-    // }
-
-    fs.readFile( pubfileDir + '/sample.pdf' , (err, data) => {
-        if (err) throw err
-        client.SessionInit({transID: timestamp + '/sample.pdf + "SEND',
-                                 filedir: '/sampleRCV.pdf',
-                                 publishDatamap: data},
-            function (err, response) {
-            console.log('Received Message:', response.transID, " // ", response.result);
-        })
     })
+
+// Constructor
+exports.Session = function(reference_model) {
+    // grpc 세팅
+    this.session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
+    this.server = new grpc.Server();
+
+    // gitDB 설정
+    this.git_DIR = __dirname+'/gitDB';
+    this.git = new Git(this.git_DIR);
+    this.git.init();
+    // - Reference Model에 맞춰 폴더 트리 생성
+    if(typeof(reference_model) != null){
+        
+    }
+
+    // Initiate gRPC Server - (1): 외부 Session으로부터 Subscribe
+    this.server.addService(this.session_sync.SessionSync.service, {
+        SessionComm: (call, callback) => {
+            // git Patch 적용
+            var result = this.gitPatch(call.request.filepath, call.request.git_patch);            
+            // ACK 전송
+            // 문제 없으면 0, 오류 사항은 차차 정의
+            callback(null, {transID: call.request.transID, result: result});
+            // 카프카 메시지 생성 및 전송
+            this.kafkaProducer(call.request.related);
+        }
+    });
 }
 
+// [5]: 외부 Session으로 Publish
+// target: Publish 받을 세션의 gRPC 서버 주소
+// message: Session Manager로부터 받은 메시지
+// - git diff pacth 파일(message.git_patch), related 정보(message.related), filepath(message.filepath)가 담겨있다.
+exports.Session.prototype.Publish = function(target, message) {
+    // gRPC 클라이언트 생성
+    var client = new this.session_sync.Comm(target, grpc.credentials.createInsecure());
+    // 보낼 내용 작성
+    var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
+                  'related': message.related, 
+                  'filepath': message.filepath, 
+                  'git_patch': message.git_patch};
 
-/**
- * Starts an RPC server that receives requests for the Greeter service at the
- * sample server port
- */
+    // gRPC 전송
+    client.SessionComm(toSend, function(err, response) {
+        if (err) throw err;
+        if (response.transID = toSend.transID && response.result == 0) {
+            console.log("Publish Communicateion Successfull");
+        }
+        else {
+            console.log("Error on Publish Communication");
+        }
+    });
+}
 
-// [SM -> S-Worker]
-parentPort.on('message', message => {
-    switch (message.event) {
-        // S-Worker 초기화 event
-        case 'INIT':
-            workerName = 'S-Worker[' + message.data.session_id + ']'
-            port = '0.0.0.0' + ':' + message.data.port
-            console.log('<--------------- [ ' + workerName + ' get message * INIT * ] --------------->')
-            break;
+// (2): 받은 gRPC 메시지를 갖고 자체 gitDB에 패치 적용
+exports.Session.prototype.gitPatch = function(filepath, git_patch) {
+    // git_pacth를 임시로 파일로 저장한다.
+    var temp = __dirname + new Date() + Math.random().toString(10).slice(2,3) + '.patch';
+    fs.writeFile(temp, git_patch, 'utf8', function(err) {
+        if (err) console.log("Error: ", err);
+        else {
+            // filepath에만 git_pacth를 적용한다.
+            this.git.apply(temp, filepath);
+            // temp 파일 삭제
+            this.git.deleteFile(temp);
+        }
+    });
+}
 
-        //
-        case 'START_GRPC_SERVER':
-            console.log('<--------------- [ ' + workerName + ' get message * START_GRPC_SERVER * ] --------------->')
-            server.bindAsync(port, grpc.ServerCredentials.createInsecure(), () => {
-                console.log(workerName + '`s gRPC server is now working on ' + port + '!!!')
-                server.start();
-            });
-            break;
+// (3): Producer:asset 메시지 생성 및 전송
+exports.Session.prototype.kafkaProducer = function(message) {
 
-        //
-        case 'GET_SESSION_NEGOTIATION_OPTIONS':
-            // todo: 세션 협상 옵션받아와서 내부 변수로 저장
-            break;
-
-        // 타 데이터 허브의 S-Worker end-point 전송 받음
-        case 'GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT':
-            // todo: 타 데이터 허브의 S-Worker 로 pubDatamap 전송
-            console.log('<--------------- [ ' + workerName + ' get message * GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT * ] --------------->')
-            console.log(workerName + ' is trying connection to ' + message.data.ip + ':' + message.data.port + '!!!')
-            SessionInitStart(message.data.ip + ':' + message.data.port)
-            break;
-
-        // event handler messageChannel port 전송 받아서, 객체 저장
-        case 'GET_EVENT_HANDLER_MESSAGECHANNEL_PORT':
-            // eventHandler 객체
-            break;
-    }
-})
-
-// eventHandler.on('message', message => {
-//     switch (message.event) {
-//         //
-//         case 'CHANGE_DATAMAP':
-                // todo: sessionNegotiationOption 정보를 참조하여, sync_time or sync_cycle 에 맞춰 전송
-                // 데이터맵 변화 이벤트 받은 뒤, git DB 참조하여 데이터맵 받아와서, 마지막 전송한 데이터맵 버전 비교한 뒤, 전송
-                // 마지막으로 전송한 gRPC 메시지의 ack가 온 경우, 해당 데이터맵 버전은 로컬에 저장
-//             break;
-//
-// })
-
-
-// function ReceiveHealthCheck (call, callback) {
-//     console.log("RECEIVED SessionConfigRequest of " + call.request.transID)
-//     console.log("HERE FOR SAVING " + call.request.publishDatamap)
-//     callback(null ,{transID: call.request.transID,
-//         result: 0})
-// }
-//
-// function DisconnectSession (call, callback) {
-//
-// }
+}
