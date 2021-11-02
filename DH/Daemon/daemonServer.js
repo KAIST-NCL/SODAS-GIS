@@ -87,7 +87,7 @@ dServer.prototype.start = function(){
 dServer.prototype._dmSetInterest = function(interestList){
     parentPort.postMessage({
         event: 'UPDATE_INTEREST_TOPIC',
-        data: {interest_topic: interestList}
+        data: {interest: interestList}
     });
 };
 dServer.prototype._dmStart = function(){

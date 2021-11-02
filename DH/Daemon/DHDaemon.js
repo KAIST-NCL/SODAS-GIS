@@ -21,9 +21,10 @@ exports.DHDaemon = function(){
     console.log('[SETTING] DataHub daemon is running with %s:%s', this.dm_ip, this.dm_portNum);
 
     this.ctrlConsumer = new ctrlConsumer(this.kafka, this.kafka_options, this, this.conf);
-    this.ctrlProducer = new ctrlProducer('recv.ctrl');
+    this.ctrlProducer = new ctrlProducer(this.kafka);
 
-    this.interest_topic = [];
+    this.interest = [];
+    this.bucketList = null;
 };
 exports.DHDaemon.prototype.run = function(){
 
@@ -39,17 +40,17 @@ exports.DHDaemon.prototype.run = function(){
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });
-    // this.dhSearch = new Worker('../DHSearch/dhSearch.js', { workerData: dhSearchParam });
-    // this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port1]});
-    // this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
-    // this.rmSync = new Worker('../RMSync/rmsync.js', { workerData: rmSyncParam });
+    this.dhSearch = new Worker('../DHSearch/dhSearch.js', { workerData: dhSearchParam });
+    this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port1]});
+    this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
+    this.rmSync = new Worker('../RMSync/rmsync.js', { workerData: rmSyncParam });
 
     // setting on function
     this.daemonServer.on('message', this._dmServerListener);
-    // this.dhSearch.on('message', this._dhSearchListener);
-    // this.VC.on('message', this._vcListener);
-    // this.sessionManager.on('message', this._smListener);
-    // this.rmSync.on('message', this._rmSyncListener);
+    this.dhSearch.on('message', this._dhSearchListener);
+    this.VC.on('message', this._vcListener);
+    this.sessionManager.on('message', this._smListener);
+    this.rmSync.on('message', this._rmSyncListener);
 
     // run ctrlConsumer
     this.ctrlConsumer.onMessage();
@@ -66,8 +67,8 @@ exports.DHDaemon.prototype._dmServerListener = function(message){
     switch(message.event){
         case 'UPDATE_INTEREST_TOPIC':
             console.log('[SETTING] Interest Topic is Updated!');
-            this.interest_topic = message.data.interest_topic;
-            this._dhSearchUpdateInterestTopic(this.interest_topic);
+            this.interest= message.data.interest;
+            this._dhSearchUpdateInterestTopic(this.interest);
             break;
         case 'START':
             this._rmSyncInit();
@@ -142,17 +143,17 @@ exports.DHDaemon.prototype._dhSearchInit = function(){
 exports.DHDaemon.prototype._dhSearchUpdateInterestTopic = function(interestTopic){
     this.dhSearch.postMessage({
         event: 'UPDATE_INTEREST_TOPIC',
-        data: {interestTopic: interestTopic}
+        data: {interest: interestTopic}
     });
 };
-/* RMSync methods */
+/* RMSync-related methods */
 exports.DHDaemon.prototype._rmSyncInit = function(){
     this.rmSync.postMessage({
         event: 'INIT',
-        data: {referencehub_ip:this.rh_ip, referencehub_port:this.rh_portNum}
+        data: {referenceHub_ip:this.rh_ip, referenceHub_port:this.rh_portNum}
     });
 };
-/* SessionManager methods */
+/* SessionManager-related methods */
 exports.DHDaemon.prototype._smInit= function(){
     this.sessionManager.postMessage({
         event: 'INIT',
@@ -163,10 +164,12 @@ exports.DHDaemon.prototype._smUpdateNegotiation = function(){
     // TODO 세션 동기화 옵션 업데이트 후 작성
 };
 exports.DHDaemon.prototype._smSyncOn = function(){
+    if(this.bucketList == null) return -1;
     this.sessionManager.postMessage({
         event:'SYNC_ON',
         data: this.bucketList
-    })
+    });
+    return 1;
 };
 /* Version Control methods */
 exports.DHDaemon.prototype._vcInit = function(){
@@ -200,6 +203,9 @@ exports.DHDaemon.prototype._dmServerSetSessionList = function(sessionList){
         event: 'UPDATE_SESSION_LIST',
         data: sessionList
     });
+};
+exports.DHDaemon.prototype._raiseError = function(errorCode){
+    this.ctrlProducer.sendError(errorCode);
 };
 
 const daemon = new dm.DHDaemon();

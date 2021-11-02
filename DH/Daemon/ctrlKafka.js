@@ -20,8 +20,8 @@ class ctrlConsumer extends Consumer{
             // JSON parsing error
             try {
                 const message_ = JSON.parse(message.value);
-                const event = message_.event;
-                const msg = message_.value;
+                const event = message_.operation;
+                const msg = message_.content;
                 that.eventSwitch(event, msg);
             } catch (e){
                 console.log(e);
@@ -31,18 +31,15 @@ class ctrlConsumer extends Consumer{
     };
     eventSwitch = function(event, msg){
         switch(event){
-            case 'TEST':
-                console.log(msg);
-                this.daemon.daemonServer.postMessage({event:'TEST', data:{msg: 'test'}});
-                break;
             case 'START':
-                this.daemon.rmSync.postMessage({event:'INIT', data: {referenceHub_ip: this.referenceHubIP, referenceHub_port: this.referenceHubPort}});
+                this.daemon._rmSyncInit();
                 break;
             case 'UPDATE':
-                this.daemon.dhSearch.postMessage({});
+                this.daemon._dmSetInterest(msg.interest);
                 break;
             case 'SYNC_ON':
-                this.daemon.sessionManager.postMessage({});
+                if (this.daemon._smSyncOn() === -1)
+                    this.daemon._raiseError('UPDATE IS NOT YET COMPLETED');
                 break;
             default:
                 break;
@@ -51,17 +48,21 @@ class ctrlConsumer extends Consumer{
 }
 
 
-exports.ctrlProducer = function(topic){
-    this.client = new kafka.KafkaClient();
+exports.ctrlProducer = function(kafkaHost){
+    this.client = new kafka.KafkaClient({kafkaHost: kafkaHost});
     this.producer = new Producer(this.client);
-    this.topic = topic;
+    this.topic = 'recv.datahub'
 };
 
-exports.ctrlProducer.produce = function(msg){
-    const payloads = [{ topic: this.topic, messages: msg }];
+exports.ctrlProducer._produce = function(msg){
+    const payloads = [{ topic: this.topic, value: msg }];
     this.producer.send(payloads, function(err, data){
         if(err) console.log(err);
     });
+};
+
+exports.ctrlProducer.sendError = function(errorCode){
+    this._produce({'operation':'ERROR', 'error_code': errorCode});
 };
 
 exports.ctrlConsumer = ctrlConsumer;
