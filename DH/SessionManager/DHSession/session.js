@@ -13,17 +13,30 @@ const packageDefinition = protoLoader.loadSync(
         defaults: true,
         oneofs: true
     })
+// 최대 저장 카운트 수
+var max_count = 3;
 
 // Constructor
-exports.Session = function(reference_model) {
+// Reference Model: 해당하는 reference model.rdf 파일의 경로
+// rootDir: 해당 스레드의 root 폴더 이름
+exports.Session = function(reference_model,rootDir) {
+    // 루트 폴더 생성
+    this.rootDir = __dirname+'/'+rootDir
+    !fs.existsSync(rootDir) && fs.mkdirSync(rootDir);
+
+    // 쓰레드 간 메시지 관련
+    this.count_msg = 0;
+    this.msg_storepath = this.rootDir+'/msgStore.json'
+    
     // grpc 세팅
     this.session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
     this.server = new grpc.Server();
 
     // gitDB 설정
-    this.git_DIR = __dirname+'/gitDB';
+    this.git_DIR = this.rootDir+'/gitDB';
     this.git = new Git(this.git_DIR);
     this.git.init();
+
     // - Reference Model에 맞춰 폴더 트리 생성
     if(typeof(reference_model) != null){
         this.setReferenceModel(reference_model);
@@ -54,18 +67,42 @@ exports.Session.prototype.setReferenceModel = function(referenceModel) {
     else this.rp.update(this.RM);
 }
 
+// [4]: SM으로부터 메시지 받아 처리하는 코드
+// 해야할 일: PublishVC로부터 git diff 추출해내기
+// 해야할 일: SM으로부터 현재 받고 있는 메시지의 카운트를 세서 일정 카운트마다 [5] 실시
+// 해야할 일: SM으로부터 받고 있는 commit 번호 파일로 저장하기
+exports.Session.prototype.prePublish = function() {
+    // parentPort, 즉 자신을 생성한 SM으로부터 메시지를 받아 처리하는 함수.
+    parentPort.on('message', message => {
+        // 우선 메시지 수신 시 카운트를 센다.
+        this.count_msg += 1;
+
+
+    });
+    // count가 max_count에 도달한 경우 Publish를 한다.
+    if (this.count_msg >= max_count) {
+        // 우선, 파일 내용을 읽어온다.
+        var storedData = fs.readFileSync(this.msg_storepath).toString();
+        // 파일 파싱
+
+        // git diff 추출
+
+        // gRPC 전송
+
+    }
+}
+
 // [5]: 외부 Session으로 Publish
+// gRPC 전송 전용 코드
 // target: Publish 받을 세션의 gRPC 서버 주소
-// message: Session Manager로부터 받은 메시지
-// - git diff pacth 파일(message.git_patch), related 정보(message.related), filepath(message.filepath)가 담겨있다.
-exports.Session.prototype.Publish = function(target, message) {
+exports.Session.prototype.Publish = function(target, related, filepath, git_patch) {
     // gRPC 클라이언트 생성
     var client = new this.session_sync.Comm(target, grpc.credentials.createInsecure());
     // 보낼 내용 작성
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
-                  'related': message.related, 
-                  'filepath': message.filepath, 
-                  'git_patch': message.git_patch};
+                  'related': related, 
+                  'filepath': filepath, 
+                  'git_patch': git_patch};
 
     // gRPC 전송
     client.SessionComm(toSend, function(err, response) {
