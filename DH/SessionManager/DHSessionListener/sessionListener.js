@@ -1,6 +1,6 @@
 
 const PROTO_PATH = __dirname+'/../proto/sessionNegotiation.proto';
-const {parentPort} = require('worker_threads');
+const {parentPort, workerData} = require('worker_threads');
 const sl = require(__dirname+'/sessionListener');
 const policy = require(__dirname+'/../api/sync_policy');
 const grpc = require('@grpc/grpc-js');
@@ -11,7 +11,7 @@ const workerName = 'SessionListener';
 exports.SessionListener = function () {
 
     parentPort.on('message', this._smListener);
-
+    this.sl_ip = workerData.sl_ip
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH,{
             keepCase: true,
@@ -22,7 +22,6 @@ exports.SessionListener = function () {
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.SNproto = this.protoDescriptor.sessionNegotiation.SessionNegotiationBroker;
-
     this.sessionNegotiationOptions = {
         status: true,
         end_point: {
@@ -35,21 +34,19 @@ exports.SessionListener = function () {
                 session_id: 'session_listener_id'
             },
             datamap_desc: {
-                datamap_list: ['rewrew', 'rewrew3'],
-                data_catalog_vocab: 'DCATv2',
-                datamap_sync_depth: 'Asset'
+                sync_interest_list: ['rewrew', 'rewrew3'],
+                data_catalog_vocab: 'DCATv2'
             },
             sync_desc: {
-                sync_time_cycle: [33, 43],
-                sync_count_cycle: [66, 200],
-                is_active_sync: true,
+                sync_time: [33, 43],
+                sync_count: [66, 200],
                 transfer_interface: ['gRPC']
             }
         }
     }
-
 }
 
+// gRPC service function
 exports.SessionListener.prototype._requestSN = function (call, callback) {
     console.log("[gRPC Call] RequestSessionNegotiation")
     var result = call.request
@@ -62,7 +59,6 @@ exports.SessionListener.prototype._requestSN = function (call, callback) {
         callback(null, sessionListener.sessionNegotiationOptions)
     }
 }
-
 exports.SessionListener.prototype._checkNegotiation = function (call, callback) {
     console.log("[gRPC Call] CheckNegotiation")
     var result = call.request
@@ -81,30 +77,27 @@ exports.SessionListener.prototype._setListenerServer = function () {
     return this.server;
 }
 
-exports.SessionListener.prototype.run = function (address) {
+exports.SessionListener.prototype.run = function () {
     this.sessionListenerServer = this._setListenerServer();
-    this.sessionListenerServer.bindAsync(address,
+    this.sessionListenerServer.bindAsync(this.sl_ip,
         grpc.ServerCredentials.createInsecure(), () => {
-            console.log('Session Listener gRPC Server running at ' + address)
+            console.log('Session Listener gRPC Server running at ' + this.sl_ip)
             this.sessionListenerServer.start();
         });
 }
 
-// [SessionManager -> SessionListener]
+/* Worker threads Listener */
 exports.SessionListener.prototype._smListener = function (message) {
     switch (message.event) {
         // SessionListener 초기화 event, gRPC 서버 start
         case 'INIT':
             console.log('<--------------- [ ' + workerName + ' get message * INIT * ] --------------->')
-            this.run(message.data.ip + ':' + message.data.port)
             break;
-
         // 타 데이터 허브 SessionRequester 와의 세션 협상이 체결된 후, 전송해야 하는 S-Worker 정보를 받는 event
         case 'GET_NEW_SESSION_WORKER_INFO':
             console.log('<--------------- [ ' + workerName + ' get message * GET_NEW_SESSION_WORKER_INFO * ] --------------->')
             console.log(message.data)
             break;
-
         // 데이터 허브 또는 사용자에 의해 협상 옵션이 바뀔 경우, 해당 정보를 보내는 event
         case 'UPDATE_NEGOTIATION_OPTIONS':
             console.log('<--------------- [ ' + workerName + ' get message * UPDATE_NEGOTIATION_OPTIONS * ] --------------->')

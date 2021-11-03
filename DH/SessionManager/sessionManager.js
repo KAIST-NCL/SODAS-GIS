@@ -8,8 +8,11 @@ const workerName = 'SessionManager';
 exports.SessionManager = function() {
 
     parentPort.on('message', this._dhDaemonListener);
+
     this.VC = workerData['vc_port'];
     this.VC.on('message', this._vcListener);
+
+    this.sessionListenerIP = workerData.dm_ip + ':' + workerData.sl_port;
 
     this.datahubInfo = {
         sodasAuthKey: crypto.randomBytes(20).toString('hex'),
@@ -19,105 +22,18 @@ exports.SessionManager = function() {
 
 exports.SessionManager.prototype.run = function (){
 
-    this.sessionRequester = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js');
-    this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js')
+    // setEnvironmentData
+    const srParam = {}
+    const slParam = {'sl_ip': this.sessionListenerIP}
 
-    this.sessionRequester.on('message', this._sessionRequesterListener);
-    this.sessionListener.on('message', this._sessionListenerListener);
+    this.sessionRequester = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js', {workerData: srParam});
+    this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js', {workerData: slParam})
+
+    // setting on function
+    this.sessionRequester.on('message', this._srListener);
+    this.sessionListener.on('message', this._slListener);
 
 }
-
-/* DHDaemon methods */
-exports.SessionManager.prototype._dmGetSessionListInfo = function () {
-    // [SessionManager -> DHDaemon] [GET_SESSION_LIST_INFO]
-    parentPort.postMessage({
-        event: "GET_SESSION_LIST_INFO",
-        data: this.sessionList
-    });
-}
-
-/* SessionRequester methods */
-// [SessionManager -> SessionRequester] [INIT]
-exports.SessionManager.prototype._srInit = function () {
-    this.sessionRequester.postMessage({
-        event: "INIT",
-        data: null
-    });
-}
-// [SessionManager -> SessionRequester] [START_SESSION_CONNECTION]
-exports.SessionManager.prototype._srStartSessionConnection = function () {
-    this.sessionRequester.postMessage({
-        event: "START_SESSION_CONNECTION",
-        data: this.bucket
-    });
-}
-// [SessionManager -> SessionRequester] [GET_NEW_SESSION_INFO]
-exports.SessionManager.prototype._srGetNewSessionInfo = function () {
-    this.sessionRequester.postMessage({
-        event: "GET_NEW_SESSION_INFO",
-        data: this.tempSRSession
-    });
-}
-// [SessionManager -> SessionRequester] [UPDATE_NEGOTIATION_OPTIONS]
-exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
-    this.sessionRequester.postMessage({
-        event: "UPDATE_NEGOTIATION_OPTIONS",
-        data: this.sessionNegotiationOptions
-    });
-}
-
-/* SessionListener methods */
-// [SessionManager -> SessionListener] [INIT]
-exports.SessionManager.prototype._slInit = function (gRPC_server_endpoint) {
-    this.sessionListener.postMessage({
-        event: "INIT",
-        data: gRPC_server_endpoint
-    });
-}
-// [SessionManager -> SessionListener] [GET_NEW_SESSION_INFO]
-exports.SessionManager.prototype._slGetNewSessionInfo = function () {
-    this.sessionListener.postMessage({
-        event: "GET_NEW_SESSION_INFO",
-        data: this.tempSLSession
-    });
-}
-// [SessionManager -> sessionListener] [UPDATE_NEGOTIATION_OPTIONS]
-exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
-    this.sessionListener.postMessage({
-        event: "UPDATE_NEGOTIATION_OPTIONS",
-        data: sessionManager.sessionNegotiationOptions
-    });
-}
-
-
-//// ------- SYNC_ON -> StartSessionConnection ------- ////
-exports.SessionManager.prototype._startSessionConnection = function (listenerEndPoint) {
-    let session_id = crypto.randomBytes(20).toString('hex');
-    // todo: Session 생성 시, random port(중복 체크 필요) 전달해야 됨
-    this._createSession(session_id, 9091);
-
-    // [SessionManager -> SessionRequester] [START_SESSION_CONNECTION]
-    sessionManager.sessionRequester.worker.postMessage({ event: "START_SESSION_CONNECTION", data: listenerEndPoint });
-}
-
-//// ------- CreateSessionForSessionRequester ------- ////
-// todo: session worker 를 계속 생성할 때, end-point(port number) 부여 방법
-exports.SessionManager.prototype._createSession = function (session_id, port) {
-    const sessionWorker = new Worker(__dirname+'/DHSession/session.js');
-
-    // [SessionManager -> S-Worker] [INIT]
-    sessionWorker.postMessage({ event: "INIT", data: { session_id: session_id, port: port } });
-
-    sessionManager.tempSessionWorker.requester.session_id = session_id;
-    sessionManager.tempSessionWorker.requester.port = port;
-    sessionManager.tempSessionWorker.requester.worker = sessionWorker;
-
-    // [SessionManager -> SessionRequester] [GET_NEW_SESSION_WORKER_INFO]
-    sessionManager.sessionRequester.worker.postMessage({ event: "GET_NEW_SESSION_WORKER_INFO", data: { session_creator: sessionManager.datahubInfo.datahubID, session_id: sessionManager.tempSessionWorker.requester.session_id } });
-
-    console.log(sessionManager);
-}
-
 
 /* Worker threads Listener */
 exports.SessionManager.prototype._dhDaemonListener = function (message){
@@ -145,7 +61,7 @@ exports.SessionManager.prototype._vcListener = function (message){
             break;
     }
 }
-exports.SessionManager.prototype._sessionRequesterListener = function (message){
+exports.SessionManager.prototype._srListener = function (message){
     switch (message.event) {
         // SessionRequester 에서 세션 협상 완료된 Event 로, 타 데이터 허브의 Session의 end-point 전송 받음
         case 'TRANSMIT_LISTENER_SESSION_ENDPOINT':
@@ -162,7 +78,7 @@ exports.SessionManager.prototype._sessionRequesterListener = function (message){
             break;
     }
 }
-exports.SessionManager.prototype._sessionListenerListener = function (message){
+exports.SessionManager.prototype._slListener = function (message){
     switch (message.event) {
         // 데이터 허브 간 세션 협상에 의해 세션 연동이 결정난 경우, 상대방 세션의 endpoint 전달받는 이벤트
         case 'TRANSMIT_REQUESTER_SESSION_ENDPOINT':
@@ -179,7 +95,112 @@ exports.SessionManager.prototype._sessionListener = function (message){
     }
 }
 
+/* DHDaemon methods */
+exports.SessionManager.prototype._dmGetSessionListInfo = function () {
+    // [SessionManager -> DHDaemon] [GET_SESSION_LIST_INFO]
+    parentPort.postMessage({
+        event: "GET_SESSION_LIST_INFO",
+        data: this.sessionList
+    });
+}
 
+/* SessionRequester methods */
+exports.SessionManager.prototype._srInit = function () {
+    this.sessionRequester.postMessage({
+        event: "INIT",
+        data: null
+    });
+}
+exports.SessionManager.prototype._srStartSessionConnection = function () {
+    this.sessionRequester.postMessage({
+        event: "START_SESSION_CONNECTION",
+        data: this.bucket
+    });
+}
+exports.SessionManager.prototype._srGetNewSessionInfo = function () {
+    this.sessionRequester.postMessage({
+        event: "GET_NEW_SESSION_INFO",
+        data: this.tempSRSession
+    });
+}
+exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
+    this.sessionRequester.postMessage({
+        event: "UPDATE_NEGOTIATION_OPTIONS",
+        data: this.sessionNegotiationOptions
+    });
+}
+
+/* SessionListener methods */
+exports.SessionManager.prototype._slInit = function (gRPC_server_endpoint) {
+    this.sessionListener.postMessage({
+        event: "INIT",
+        data: gRPC_server_endpoint
+    });
+}
+exports.SessionManager.prototype._slGetNewSessionInfo = function () {
+    this.sessionListener.postMessage({
+        event: "GET_NEW_SESSION_INFO",
+        data: this.tempSLSession
+    });
+}
+exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
+    this.sessionListener.postMessage({
+        event: "UPDATE_NEGOTIATION_OPTIONS",
+        data: sessionManager.sessionNegotiationOptions
+    });
+}
+
+/* Session methods */
+exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
+    sessionWorker.postMessage({
+        event: "INIT",
+        data: null
+    });
+}
+exports.SessionManager.prototype._sessionGetOtherDatahubSessionEndpoint = function (sessionWorker) {
+    sessionWorker.postMessage({
+        event: "GET_OTHER_DATAHUB_SESSION_ENDPOINT",
+        data: null
+    });
+}
+exports.SessionManager.prototype._sessionGetNegotiationResult = function (sessionWorker) {
+    sessionWorker.postMessage({
+        event: "GET_NEGOTIATION_RESULT",
+        data: null
+    });
+}
+exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorker) {
+    sessionWorker.postMessage({
+        event: "UPDATE_PUB_ASSET",
+        data: null
+    });
+}
+
+/* sessionManager methods */
+exports.SessionManager.prototype._startSessionConnection = function (listenerEndPoint) {
+    let session_id = crypto.randomBytes(20).toString('hex');
+    // todo: Session 생성 시, random port(중복 체크 필요) 전달해야 됨
+    this._createSession(session_id, 9091);
+
+    // [SessionManager -> SessionRequester] [START_SESSION_CONNECTION]
+    sessionManager.sessionRequester.worker.postMessage({ event: "START_SESSION_CONNECTION", data: listenerEndPoint });
+}
+// todo: session worker 를 계속 생성할 때, end-point(port number) 부여 방법
+exports.SessionManager.prototype._createSession = function (session_id, port) {
+    const sessionWorker = new Worker(__dirname+'/DHSession/session.js');
+
+    // [SessionManager -> S-Worker] [INIT]
+    sessionWorker.postMessage({ event: "INIT", data: { session_id: session_id, port: port } });
+
+    sessionManager.tempSessionWorker.requester.session_id = session_id;
+    sessionManager.tempSessionWorker.requester.port = port;
+    sessionManager.tempSessionWorker.requester.worker = sessionWorker;
+
+    // [SessionManager -> SessionRequester] [GET_NEW_SESSION_WORKER_INFO]
+    sessionManager.sessionRequester.worker.postMessage({ event: "GET_NEW_SESSION_WORKER_INFO", data: { session_creator: sessionManager.datahubInfo.datahubID, session_id: sessionManager.tempSessionWorker.requester.session_id } });
+
+    console.log(sessionManager);
+}
 
 const sessionManager = new sm.SessionManager()
 sessionManager.VC.postMessage({event: "INIT", data: "test"})
