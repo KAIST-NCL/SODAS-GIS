@@ -10,9 +10,6 @@ class ref_parser {
     constructor(root, referenceModel) {
         this.root = root; // gitDB의 root 디렉토리
         this.referenceModel = referenceModel; // reference Model의 파일 경로
-        // 완성된 root 폴더부터 leaf 폴더들까지의 경로가 저장될 배열
-        // ex) [[domain, taxonomy, category, category, ..., category], [...]];
-        this.dir_list = [];
         // referenceModel로부터 뽑아낸 관계 정보가 담긴 linked list의 배열
         this.dom_related_list = [];
         this.tax_related_list = [];
@@ -36,26 +33,7 @@ class ref_parser {
         // 현재 linked_list의 next와 prev에는 string 혹은 dictionary가 들어있는데, 이를 바로잡아 준다.
         if (this._linked_list_correction_all()) return false;
         else {
-            // next가 없는 category만 갖고 우선 디렉토리를 뽑아낸다.
-            this.cat_related_list.forEach((element) => {
-                if (element.next.length == 0) {
-                    this.dir_list.push(this._mkdirarray(element));
-                }
-            });
-            // next가 없는 taxonomy만 갖고 우선 디렉토리를 뽑아낸다.
-            this.tax_related_list.forEach((element) => {
-                if (element.next.length == 0) {
-                    this.dir_list.push(this._mkdirarray(element));
-                }
-            });
-            // next가 없는 domain만 갖고 우선 디렉토리를 뽑아낸다.
-            this.dom_related_list.forEach((element) => {
-                if (element.next.length == 0) {
-                    this.dir_list.push(this._mkdirarray(element));
-                }
-            });
-
-            // 뽑아낸 디렉토리 목록으로 디렉토리를 생성한다.
+            // 뽑아낸 Linked List들로 디렉토리를 생성한다.
             this._mkdir_from_list();
 
             return true;
@@ -63,8 +41,37 @@ class ref_parser {
     }
 
     // related 정보가 들어오면 이를 바탕으로 filepath를 만들어주는 함수
-    related_to_filepath() {
-
+    related_to_filepath(related) {
+        // domain부터 시작해서 next를 타고 내려가면서 related 내에 해당하는 것들이 있는지 확인을 한다.
+        // - related 내의 domain 정보 확인
+        var related_domain = related.find((element) => {
+            if (element.type === "domain") return true;
+        });
+        if (typeof related_domain === 'undefined') return false;
+        // - domain_linked_list 에서 해당하는 linked_list 색출
+        var current_LL = this.dom_related_list.find((element) => {
+            if (element.id === related_domain.id) return true;
+        });
+        if (typeof current_LL === 'undefined') return false;
+        // - next를 타고 내려가면서 related와 일치하는 지 확인한 후 마지막 linked list를 가져온다.
+        for (var i = 1; i < related.length; i++) {
+            // current LL의 next 검사
+            current_LL = current_LL.next.find((LL) => {
+                return related.some((element) => {
+                    return (element.id === LL.id);
+                });
+            });
+            // 검색되지 않는 경우 함수를 종료한다.
+            if (typeof current_LL === 'undefined') return false;
+        }
+        // 정상적으로 끝냈다면 현재 current LL은 가장 마지막의 category를 가르켜야한다.
+        var filePathArray = this._mkdirarray(current_LL);
+        // Array로부터 string 형태의 filepath를 추출해내고 반환한다.
+        var filePath = "";
+        filePathArray.forEach((element) => {
+            filePath = filePath + '/' + element;
+        });
+        return filePath;
     }
 
     // Reference Model 변경 시 update하는 함수
@@ -73,7 +80,6 @@ class ref_parser {
         this.old_dir_list = this.dir_list;
         // 내부 변수 초기화
         this.referenceModel = referenceModel;
-        this.dir_list = [];
         this.dom_related_list = [];
         this.tax_related_list = [];
         this.cat_related_list = [];
@@ -282,7 +288,27 @@ class ref_parser {
 
     // dir_list를 갖고 root 폴더 아래에 폴더들을 만든다.
     _mkdir_from_list() {
-        this.dir_list.forEach((dirarray) => {
+        var dir_list = [];
+        // next가 없는 category만 갖고 우선 디렉토리를 뽑아낸다.
+        this.cat_related_list.forEach((element) => {
+            if (element.next.length == 0) {
+                dir_list.push(this._mkdirarray(element));
+            }
+        });
+        // next가 없는 taxonomy만 갖고 우선 디렉토리를 뽑아낸다.
+        this.tax_related_list.forEach((element) => {
+            if (element.next.length == 0) {
+                dir_list.push(this._mkdirarray(element));
+            }
+        });
+        // next가 없는 domain만 갖고 우선 디렉토리를 뽑아낸다.
+        this.dom_related_list.forEach((element) => {
+            if (element.next.length == 0) {
+                dir_list.push(this._mkdirarray(element));
+            }
+        });
+
+        dir_list.forEach((dirarray) => {
             var folder_dir = this.root
             dirarray.forEach((element) => {
                 folder_dir = folder_dir + '/' + element;
