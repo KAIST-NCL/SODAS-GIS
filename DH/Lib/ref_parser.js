@@ -23,7 +23,7 @@ class ref_parser {
     // Reference Model을 파싱하여 폴더 트리를 생성하는 함수
     createReferenceDir() {
         // Reference Model을 읽어드린 후 Pre-Process ==> <rdf:Description> 구역 단위로 파티션들을 만든다.
-        const content = fs.readFileSync(this.referenceModel).toString();
+        var content = fs.readFileSync(this.referenceModel).toString();
         var partition = this._partition(content.split('\n'));
 
         // 각 파티션들을 Domain, Taxonomy, Category로 분류한 다음 각각 linked_list를 만든다.
@@ -35,28 +35,31 @@ class ref_parser {
 
         // 현재 linked_list의 next와 prev에는 string 혹은 dictionary가 들어있는데, 이를 바로잡아 준다.
         if (this._linked_list_correction_all()) return false;
-        
-        // next가 없는 category만 갖고 우선 디렉토리를 뽑아낸다.
-        this.cat_related_list.forEach((element) => {
-            if (element.next.length == 0) {
-                this.dir_list.push(this._mkdirlist(element));
-            }
-        });
-        // next가 없는 taxonomy만 갖고 우선 디렉토리를 뽑아낸다.
-        this.tax_related_list.forEach((element) => {
-            if (element.next.length == 0) {
-                this.dir_list.push(this._mkdirlist(element));
-            }
-        });
-        // next가 없는 domain만 갖고 우선 디렉토리를 뽑아낸다.
-        this.dom_related_list.forEach((element) => {
-            if (element.next.length == 0) {
-                this.dir_list.push(this._mkdirarray(element));
-            }
-        });
+        else {
+            // next가 없는 category만 갖고 우선 디렉토리를 뽑아낸다.
+            this.cat_related_list.forEach((element) => {
+                if (element.next.length == 0) {
+                    this.dir_list.push(this._mkdirarray(element));
+                }
+            });
+            // next가 없는 taxonomy만 갖고 우선 디렉토리를 뽑아낸다.
+            this.tax_related_list.forEach((element) => {
+                if (element.next.length == 0) {
+                    this.dir_list.push(this._mkdirarray(element));
+                }
+            });
+            // next가 없는 domain만 갖고 우선 디렉토리를 뽑아낸다.
+            this.dom_related_list.forEach((element) => {
+                if (element.next.length == 0) {
+                    this.dir_list.push(this._mkdirarray(element));
+                }
+            });
 
-        // 뽑아낸 디렉토리 목록으로 디렉토리를 생성한다.
-        this._mkdir_from_list();
+            // 뽑아낸 디렉토리 목록으로 디렉토리를 생성한다.
+            this._mkdir_from_list();
+
+            return true;
+        }
     }
 
     // related 정보가 들어오면 이를 바탕으로 filepath를 만들어주는 함수
@@ -253,12 +256,12 @@ class ref_parser {
             // prev correction
             if (LL.prev.type === 'cat') {
                 LL.prev = this.cat_related_list.find((element) => {
-                    if (element.id === LL.prev) return true;
+                    if (element.id === LL.prev.id) return true;
                 });
             }
             else {
                 LL.prev = this.tax_related_list.find((element) => {
-                    if (element.id === LL.prev) return true;
+                    if (element.id === LL.prev.id) return true;
                 });                
             }
         }
@@ -272,10 +275,9 @@ class ref_parser {
     // linked list들로부터 파일 트리 정보가 담긴 array를 만든다.
     _mkdirarray(LL) {
         var temp_dir_list = [LL.id];
-        // prev가 null이면 값을 반환한다.        
-        if (!LL.prev) return temp_dir_list;
         // prev가 null일 때까지 검색해 들어가면서 temp_dir_list에 [상위, .. , 하위] 순서로 id를 쌓는다.
-        else return temp_dir_list.unshift(...this._mkdirarray(LL.prev));
+        if (LL.prev) temp_dir_list = this._mkdirarray(LL.prev).concat(temp_dir_list);
+        return temp_dir_list;
     }
 
     // dir_list를 갖고 root 폴더 아래에 폴더들을 만든다.
