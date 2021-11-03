@@ -16,7 +16,7 @@ class vcConsumer extends Consumer{
     handler(message){
         // TODO
         const event = message.operation;
-        const filepath = this.VC.vcRoot + this.VC.rp.related_to_filepath(message.related);
+        const filepath = this.VC.vcRoot + this.VC.rp.related_to_filepath(message.related) + '/' + message.id + '.asset';
         switch(event){
             case 'UPDATE':
                 // file write
