@@ -16,6 +16,9 @@ exports.DHSearch = function(){
 
     this.seedNode = dh.seedNodeInfo({address: dh.getIpAddress(), port: parseInt(workerData.ds_portNum)});
     this.node = new knode.KNode({address: dh.getIpAddress(), port: parseInt(workerData.ds_portNum)});
+    this.node._updateContactEvent.on('update_contact', () => {
+        this._dmUpdateBucketList()
+    })
     this.seedNodeList = [];
 
     const packageDefinition = protoLoader.loadSync(
@@ -95,8 +98,8 @@ exports.DHSearch.prototype._discoverProcess = async function() {
     for (var seedNodeIndex of this.seedNodeList) {
         var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port);
         // await new Promise((resolve, reject) => setTimeout(resolve, 2000));
-        await console.log(this.node._buckets)
     }
+    await this._dmUpdateBucketList();
     return null;
 }
 exports.DHSearch.prototype._setInterestTopic = function() {
