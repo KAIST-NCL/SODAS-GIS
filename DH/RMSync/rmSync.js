@@ -6,7 +6,7 @@ const rm = require(__dirname+'/rmSync');
 const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const fs = require("fs");
-var execSync = require('child_process').execSync;
+const execSync = require('child_process').execSync;
 
 exports.RMSync = function () {
 
@@ -43,17 +43,19 @@ exports.RMSync = function () {
     this.rmSyncproto = this.rmSyncprotoDescriptor.RMSync.RMSyncBroker;
 };
 
-exports.RMSync.prototype._referenceModelSync = function (call, callback) {
+// gRPC server service function
+exports.RMSync.prototype._referenceModelSync = function(call, callback) {
     !fs.existsSync(__dirname+'/gitDB/') && fs.mkdirSync(__dirname+'/gitDB/');
-    var subFileDir = __dirname+'/gitDB/';
+    var targetFilePath = __dirname+'/gitDB/' + call.request.commit_number;
     console.log("Server Side Received:" , call.request.commit_number);
-    fs.writeFile(subFileDir + call.request.commit_number, call.request.file, 'binary', function(err){
+    fs.writeFile(targetFilePath, call.request.file, 'binary', function(err){
         if (err) throw err
         console.log('write end') });
     callback(null, {result: call.request.commit_number + 'Success'});
+    rmSync._dmUpdateReferenceModel(targetFilePath)
 }
 
-exports.RMSync.prototype._setRMSyncServer = function () {
+exports.RMSync.prototype._setRMSyncServer = function() {
     this.server = new grpc.Server();
     this.server.addService(this.rmSyncproto.service, {
         ReferenceModelSync: this._referenceModelSync
@@ -61,7 +63,7 @@ exports.RMSync.prototype._setRMSyncServer = function () {
     return this.server;
 };
 
-exports.RMSync.prototype.run = function () {
+exports.RMSync.prototype.run = function() {
     this.rmSyncServer = this._setRMSyncServer();
     this.rmSyncServer.bindAsync(this.dh_rm_sync_ip,
         grpc.ServerCredentials.createInsecure(), () => {
@@ -71,6 +73,7 @@ exports.RMSync.prototype.run = function () {
     this._requestRMSession();
 };
 
+// gRPC client service function
 exports.RMSync.prototype._requestRMSession = function() {
     rmSync.rmSessionClient.RequestRMSession({'dh_id': 'fdfds', dh_ip: rmSync.dh_ip, dh_port: rmSync.rm_port}, (error, response) => {
         if (!error) {
@@ -83,9 +86,10 @@ exports.RMSync.prototype._requestRMSession = function() {
 };
 
 /* Worker threads Listener */
-exports.RMSync.prototype._dhDaemonListener = function(message){
+exports.RMSync.prototype._dhDaemonListener = function(message) {
     switch (message.event) {
         case 'INIT':
+            rmSync.run();
             break;
         default:
             console.log('[ERROR] DH Daemon Listener Error ! event:', message.event);
@@ -94,12 +98,11 @@ exports.RMSync.prototype._dhDaemonListener = function(message){
 };
 
 /* DHDaemon methods */
-exports.RMSync.prototype._dmUpdateReferenceModel = function(){
+exports.RMSync.prototype._dmUpdateReferenceModel = function(path) {
     parentPort.postMessage({
         event: 'UPDATE_REFERENCE_MODEL',
-        data: null
+        data: path
     });
 };
 
 const rmSync = new rm.RMSync();
-rmSync.run();
