@@ -24,22 +24,42 @@ exports.Session = function() {
     this.count_msg = 0;
     // parentPort, 즉 자신을 생성한 SM으로부터 메시지를 받아 처리하는 함수.
     parentPort.on('message', message => {
+        // 루트 폴더 생성
+        this.id = message.session_id;
+        this.rootDir = __dirname+'/'+workerData.id;
+        !fs.existsSync(rootDir) && fs.mkdirSync(rootDir);
+
+        // 쓰레드 간 메시지 관련
+        this.msg_storepath = this.rootDir+'/msgStore.json'
+
+        // gitDB 설정
+        this.git_DIR = this.rootDir+'/gitDB';
+        this.git = new Git(this.git_DIR);
+        this.git.init();
+
+        // - Reference Model에 맞춰 폴더 트리 생성
+        if(typeof(message.reference_model) != null){
+            this.setReferenceModel(workerData.reference_model);
+        }
+
+        // gRPC 서버 시작
+        this.ip = workerData.dm_ip;
+        this.my_port = workerData.sess_portNum;
+        this.server = new grpc.Server();
+        this.server.addService(session_sync.SessionSync.service, {
+            SessionComm: this.Subscribe
+        });
         switch(message.event) {
             // Session 실행 시 SM으로부터 받아오는 값
             case 'INIT':
-                this.id = message.session_id;
-                this.my_port = message.port;
                 this._init();
                 break;
             // 연결될 상대방 Session 정보
-            case 'GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT':
+            case 'TRANSMIT_NEGOTIATION_RESULT':
                 this.target = message.ip + ':' + message.port;
                 // gRPC 클라이언트 생성
                 this.grpc_client = new this.session_sync.Comm(this.target, grpc.credentials.createInsecure());
                 this._reset_count();
-                break;
-            // 연결 관련 정보
-            case 'GET_NEGOTIATION_RESULT':
                 this.sync_interest_list = message.sync_interest_list;
                 this.data_catalog_vocab = message.data_catalog_vocab;
                 this.sync_time = message.sync_time;
@@ -59,29 +79,8 @@ exports.Session = function() {
 
 // Initiate Session
 exports.Session.prototype._init = function(message) {
-    // 루트 폴더 생성
-    this.rootDir = __dirname+'/'+message.id;
-    !fs.existsSync(rootDir) && fs.mkdirSync(id);
-
-    // 쓰레드 간 메시지 관련
-    this.msg_storepath = this.rootDir+'/msgStore.json'
-
-    // gitDB 설정
-    this.git_DIR = this.rootDir+'/gitDB';
-    this.git = new Git(this.git_DIR);
-    this.git.init();
-
-    // - Reference Model에 맞춰 폴더 트리 생성
-    if(typeof(message.reference_model) != null){
-        this.setReferenceModel(message.reference_model);
-    }
-
-    // gRPC 서버 시작
-    this.server = new grpc.Server();
-    this.server.addService(session_sync.SessionSync.service, {
-        SessionComm: this.Subscribe
-    });
-    this.server.bindAsync(ip.address()+':'+this.my_port, grpc.ServerCredentials.createInsecure(), ()=> {
+    const address = this.ip+':'+this.my_port;
+    this.server.bindAsync(address, grpc.ServerCredentials.createInsecure(), ()=> {
         this.server.start();
     });
 }
@@ -102,8 +101,9 @@ exports.Session.prototype.setReferenceModel = function(referenceModel) {
 // 해야할 일: SM으로부터 현재 받고 있는 메시지의 카운트를 세서 일정 카운트마다 [5] 실시
 // 해야할 일: SM으로부터 받고 있는 commit 번호 파일로 저장하기
 exports.Session.prototype.prePublish = function(message) {
+    // message로 전달받은 내용을 갖고 파일 작성 및 저장
+    // 처음 연동일 때에 sync_interest_list를 참조해서 상대방에 gitDB Publish를 한다.
     
-
 
     // 아래 조건 충족 시 Publsih를 실행한다.
     if (this.__check_MaxCount()) this.onMaxCount();
