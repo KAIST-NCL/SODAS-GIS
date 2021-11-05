@@ -15,13 +15,16 @@ class vcConsumer extends Consumer{
     }
     handler(message){
         // TODO
-        const event = message.operation;
-        const filepath = this.VC.vcRoot + this.VC.rp.related_to_filepath(message.related) + '/' + message.id + '.asset';
+        // 은주 누나의 지적: message를 바로 파싱했었는데 json 파싱을 하고 난 뒤 써야한다.
+        const message_ = JSON.parse(message);
+        const event = message_.operation;
+        const filepath = this.VC.vcRoot + this.VC.rp.related_to_filepath(message_.related) + '/' + message_.id + '.asset';
+        const commitMessage = '';
         switch(event){
             case 'UPDATE':
                 // file write
-                this.VC.editFile(filepath, message.content);
-                const commitNum = this.VC.commit(filepath, message);
+                this.VC.editFile(filepath, message_.content);
+                const commitNum = this.VC.commit(filepath, commitMessage);
                 this.VC.reportCommit(filepath, assetID, commitNum);
                 break;
             case 'DELETE':
