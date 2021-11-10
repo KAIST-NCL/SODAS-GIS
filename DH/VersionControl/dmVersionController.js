@@ -6,15 +6,10 @@ var vc = require('../Lib/versionControl');
 const {Worker, parentPort, MessagePort, workerData} = require('worker_threads');
 var SM = workerData['sm_port'];
 
-SM.on('message', message => {
-    switch (message.event) {
-        // [VersionControl -> SessionManager] [UPDATE_PUB_ASSET]
-        case 'INIT':
-            console.log("test")
-            break;
-    }
-})
-
+SM.postMessage({
+    event: "UPDATE_PUB_ASSET",
+    data: this.sessionList
+});
 
 
 // // Git variables

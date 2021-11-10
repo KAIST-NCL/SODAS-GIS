@@ -23,7 +23,7 @@ exports.SessionListener = function () {
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.SNproto = this.protoDescriptor.sessionNegotiation.SessionNegotiationBroker;
     this.sessionNegotiationOptions = {
-        status: true,
+        result: true,
         end_point: {
             ip: '0.0.0.0',
             port: 9091
@@ -44,6 +44,7 @@ exports.SessionListener = function () {
             }
         }
     }
+    console.log('[SETTING] SessionListener Created');
 }
 
 // gRPC service function
@@ -92,10 +93,11 @@ exports.SessionListener.prototype._smListener = function (message) {
         // SessionListener 초기화 event, gRPC 서버 start
         case 'INIT':
             console.log('<--------------- [ ' + workerName + ' get message * INIT * ] --------------->')
+            sessionListener.run();
             break;
         // 타 데이터 허브 SessionRequester 와의 세션 협상이 체결된 후, 전송해야 하는 S-Worker 정보를 받는 event
-        case 'GET_NEW_SESSION_WORKER_INFO':
-            console.log('<--------------- [ ' + workerName + ' get message * GET_NEW_SESSION_WORKER_INFO * ] --------------->')
+        case 'GET_NEW_SESSION_INFO':
+            console.log('<--------------- [ ' + workerName + ' get message * GET_NEW_SESSION_INFO * ] --------------->')
             console.log(message.data)
             break;
         // 데이터 허브 또는 사용자에 의해 협상 옵션이 바뀔 경우, 해당 정보를 보내는 event

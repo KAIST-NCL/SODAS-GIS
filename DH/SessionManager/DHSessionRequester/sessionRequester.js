@@ -22,11 +22,12 @@ exports.SessionRequester = function () {
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.SNproto = this.protoDescriptor.sessionNegotiation.SessionNegotiationBroker;
+    console.log('[SETTING] SessionRequester Created');
 
 }
 
 exports.SessionRequester.prototype.run = function () {
-
+    console.log('[SETTING] SessionRequester is running');
 }
 
 let sessionNegotiationClient;
@@ -78,8 +79,8 @@ exports.SessionRequester.prototype._smListener = function (message) {
             });
             break;
         // 타 데이터 허브 SessionListener 와의 세션 협상이 체결된 후, 전송해야 하는 S-Worker 정보를 받는 event
-        case 'GET_NEW_SESSION_WORKER_INFO':
-            console.log('<--------------- [ ' + workerName + ' get message * GET_NEW_SESSION_WORKER_INFO * ] --------------->')
+        case 'GET_NEW_SESSION_INFO':
+            console.log('<--------------- [ ' + workerName + ' get message * GET_NEW_SESSION_INFO * ] --------------->')
             console.log(message.data)
             sessionNegotiationOptions.session_desc.session_creator = message.data.session_creator;
             sessionNegotiationOptions.session_desc.session_id = message.data.session_id;
@@ -87,9 +88,7 @@ exports.SessionRequester.prototype._smListener = function (message) {
         // 데이터 허브 또는 사용자에 의해 협상 옵션이 바뀔 경우, 해당 정보를 보내는 event
         case 'UPDATE_NEGOTIATION_OPTIONS':
             console.log('<--------------- [ ' + workerName + ' get message * UPDATE_NEGOTIATION_OPTIONS * ] --------------->')
-            sessionNegotiationOptions.datamap_desc = message.data.datamap_desc
-            sessionNegotiationOptions.sync_desc = message.data.sync_desc
-            console.log(sessionNegotiationOptions)
+            console.log(message.data)
             break;
     }
 }

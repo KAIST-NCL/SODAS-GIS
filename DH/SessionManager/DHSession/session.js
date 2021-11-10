@@ -1,6 +1,6 @@
 
 const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
-const {parentPort} = require('worker_threads');
+const {parentPort, workerData} = require('worker_threads');
 const sess = require(__dirname+'/session');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
@@ -23,7 +23,8 @@ exports.Session = function () {
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.sessSyncproto = this.protoDescriptor.SessionSync.SessionSyncBroker;
-
+    console.log('[SETTING] SessionManager Created');
+    console.log(workerData.session_id + ' / ' + workerData.sess_portNum)
 }
 
 exports.Session.prototype.sessInit = function (call, callback) {
@@ -82,8 +83,6 @@ exports.Session.prototype.SMListener = function (message) {
     switch (message.event) {
         // S-Worker 초기화 event
         case 'INIT':
-            workerName = 'S-Worker[' + message.data.session_id + ']'
-            port = '0.0.0.0' + ':' + message.data.port
             console.log('<--------------- [ ' + workerName + ' get message * INIT * ] --------------->')
             break;
 

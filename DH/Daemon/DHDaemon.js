@@ -11,6 +11,8 @@ exports.DHDaemon = function(){
     this.dm_ip = this.conf.get('Daemon', 'ip');
     this.dm_portNum = this.conf.get('Daemon', 'portNum');
     this.ds_portNum = this.conf.get('DHSearch', 'portNum');
+    this.rm_portNum = this.conf.get('RMSync', 'portNum');
+    this.sl_portNum = this.conf.get('SessionListener', 'portNum');
     this.bs_ip = this.conf.get('ReferenceHub', 'bootstrap_ip');
     this.bs_portNum = this.conf.get('ReferenceHub', 'bootstrap_portNum');
     this.rh_ip = this.conf.get('ReferenceHub', 'referenceHub_ip');
@@ -34,8 +36,8 @@ exports.DHDaemon.prototype.run = function(){
     const dmServerParam = {'dm_ip': this.dm_ip, 'dm_portNum': this.dm_portNum, 'name': this.name};
     const dhSearchParam = {'ds_portNum': this.ds_portNum, 'bootstrap_ip': this.bs_ip, 'bootstrap_portNum': this.bs_portNum};
     const vcParam = {'sm_port': msgChn.port1};
-    const smParam = {'vc_port': msgChn.port2};
-    const rmSyncParam = {};
+    const smParam = {'vc_port': msgChn.port2, 'dm_ip': this.dm_ip, 'sl_port': this.sl_port};
+    const rmSyncParam = {'dm_ip': this.dm_ip, 'rm_port': this.rm_portNum, 'rh_ip': this.rh_ip, 'rh_portNum': this.rh_portNum};
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });

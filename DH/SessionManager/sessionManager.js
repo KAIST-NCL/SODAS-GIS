@@ -2,37 +2,55 @@
 const {Worker, parentPort, workerData} = require('worker_threads');
 const sm = require(__dirname+'/sessionManager');
 const crypto = require('crypto');
+const detect = require('detect-port');
 
 const workerName = 'SessionManager';
+
+const MIN_PORT_NUM_OF_SESSION = 55000;
+const MAX_PORT_NUM_OF_SESSION = 65535;
 
 exports.SessionManager = function() {
 
     parentPort.on('message', this._dhDaemonListener);
 
-    this.VC = workerData['vc_port'];
-    this.VC.on('message', this._vcListener);
+    // this.VC = workerData['vc_port'];
+    // this.VC.on('message', this._vcListener);
 
-    this.sessionListenerIP = workerData.dm_ip + ':' + workerData.sl_port;
+    this.dm_ip = workerData.dm_ip;
+    this.sl_ip = workerData.dm_ip + ':' + workerData.sl_port;
 
     this.datahubInfo = {
         sodasAuthKey: crypto.randomBytes(20).toString('hex'),
         datahubID: crypto.randomBytes(20).toString('hex')
-    }
+    };
+    this.sessionNegotiationOptions = {};
+    console.log('[SETTING] SessionManager Created');
 }
 
 exports.SessionManager.prototype.run = function (){
 
     // setEnvironmentData
     const srParam = {}
-    const slParam = {'sl_ip': this.sessionListenerIP}
+    const slParam = {'sl_ip': this.sl_ip}
 
+    // create SR, SL Thread
     this.sessionRequester = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js', {workerData: srParam});
-    this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js', {workerData: slParam})
+    this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js', {workerData: slParam});
 
     // setting on function
     this.sessionRequester.on('message', this._srListener);
     this.sessionListener.on('message', this._slListener);
 
+    this._srInit();
+    this._slInit();
+
+    this._createSession().then(value => {
+        this.slTempSession = value;
+        this._sessionInit(this.slTempSession.worker);
+        this._slGetNewSessionInfo();
+    });
+
+    console.log('[RUNNING] SessionManager is running');
 }
 
 /* Worker threads Listener */
@@ -44,10 +62,13 @@ exports.SessionManager.prototype._dhDaemonListener = function (message){
             break;
         // 세션 협상 정보 업데이트
         case 'UPDATE_NEGOTIATION_OPTIONS':
-            this.sessionNegotiationOptions = message.data
+            sessionManager.sessionNegotiationOptions = message.data
+            console.log(sessionManager)
+            sessionManager._srUpdateNegotiationOptions()
             break;
         // 동기화 시작 이벤트로, SessionRequester 에게 Bucket 정보와 함께 START_SESSION_CONNECTION 이벤트 전송
         case 'SYNC_ON':
+            this._srStartSessionConnection(message.data)
             break;
     }
 }
@@ -111,10 +132,10 @@ exports.SessionManager.prototype._srInit = function () {
         data: null
     });
 }
-exports.SessionManager.prototype._srStartSessionConnection = function () {
+exports.SessionManager.prototype._srStartSessionConnection = function (bucketList) {
     this.sessionRequester.postMessage({
         event: "START_SESSION_CONNECTION",
-        data: this.bucket
+        data: bucketList
     });
 }
 exports.SessionManager.prototype._srGetNewSessionInfo = function () {
@@ -140,7 +161,7 @@ exports.SessionManager.prototype._slInit = function (gRPC_server_endpoint) {
 exports.SessionManager.prototype._slGetNewSessionInfo = function () {
     this.sessionListener.postMessage({
         event: "GET_NEW_SESSION_INFO",
-        data: this.tempSLSession
+        data: {'sess_id': sessionManager.slTempSession.session_id, 'sess_ip': sessionManager.dm_ip, 'sess_portNum': sessionManager.slTempSession.port}
     });
 }
 exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
@@ -178,32 +199,30 @@ exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorke
 
 /* sessionManager methods */
 exports.SessionManager.prototype._startSessionConnection = function (listenerEndPoint) {
-    let session_id = crypto.randomBytes(20).toString('hex');
-    // todo: Session 생성 시, random port(중복 체크 필요) 전달해야 됨
-    this._createSession(session_id, 9091);
-
     // [SessionManager -> SessionRequester] [START_SESSION_CONNECTION]
     sessionManager.sessionRequester.worker.postMessage({ event: "START_SESSION_CONNECTION", data: listenerEndPoint });
 }
-// todo: session worker 를 계속 생성할 때, end-point(port number) 부여 방법
-exports.SessionManager.prototype._createSession = function (session_id, port) {
-    const sessionWorker = new Worker(__dirname+'/DHSession/session.js');
+exports.SessionManager.prototype._createSession = async function () {
+    var session = {};
+    session.session_id = crypto.randomBytes(20).toString('hex');
+    await this._setSessionPort().then(value => session.port = value);
+    session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'session_id': session.session_id, 'dm_ip': this.dm_ip, 'sess_portNum': session.port} });
+    session.worker.on('message', this._sessionListener);
 
-    // [SessionManager -> S-Worker] [INIT]
-    sessionWorker.postMessage({ event: "INIT", data: { session_id: session_id, port: port } });
-
-    sessionManager.tempSessionWorker.requester.session_id = session_id;
-    sessionManager.tempSessionWorker.requester.port = port;
-    sessionManager.tempSessionWorker.requester.worker = sessionWorker;
-
-    // [SessionManager -> SessionRequester] [GET_NEW_SESSION_WORKER_INFO]
-    sessionManager.sessionRequester.worker.postMessage({ event: "GET_NEW_SESSION_WORKER_INFO", data: { session_creator: sessionManager.datahubInfo.datahubID, session_id: sessionManager.tempSessionWorker.requester.session_id } });
-
-    console.log(sessionManager);
+    return session
+}
+exports.SessionManager.prototype._setSessionPort = async function () {
+    await detect(MIN_PORT_NUM_OF_SESSION)
+        .then(_port => {
+        })
+        .catch(err => {
+            console.log(err);
+        });
+    return detect();
 }
 
 const sessionManager = new sm.SessionManager()
-sessionManager.VC.postMessage({event: "INIT", data: "test"})
+// sessionManager.VC.postMessage({event: "INIT", data: "test"})
 
 // // 탐색 모듈과 연동해서, 주기적으로 c-bucket 참조 -> 세션 연동 후보 노드 순차적으로 세션 연동 Request 보내는 로직
 //
