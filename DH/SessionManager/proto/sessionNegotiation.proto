@@ -23,16 +23,14 @@ message SessionDescription {
 }
 
 message DatamapDescription {
-  repeated string datamap_list = 1;
+  repeated string sync_interest_list = 1;
   string data_catalog_vocab = 2;
-  string datamap_sync_depth = 3;
 }
 
 message SynchronizationDescription {
-  repeated int32 sync_time_cycle = 1;
-  repeated int32 sync_count_cycle = 2;
-  bool is_active_sync = 3;
-  repeated string transfer_interface = 4;
+  repeated int32 sync_time = 1;
+  repeated int32 sync_count = 2;
+  repeated string transfer_interface = 3;
 }
 
 message NegotiationInfo {

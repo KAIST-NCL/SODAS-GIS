@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rdf:RDF
+	xmlns:skos="http://www.w3.org/2004/02/skos/core#"
+	xmlns:dct="http://purl.org/dc/terms/"
+	xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+	xmlns:prof="http://www.w3.org/ns/dx/prof/"
+	xmlns:sodas="http://purl.org/etri/sodas#"
+>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/domain-version/domainVersion00">
+	<rdf:type rdf:resource="http://purl.org/etri/sodas#DomainVersion"/>
+	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+	<dct:isVersionOf rdf:resource="https://sodas.etri.re.kr/domain/domain01"/>
+  <dct:isReplacedBy rdf:resource="https://sodas.etri.re.kr/domain-version/domainVersion01"/>
+	<skos:prefLabel>domain version name</skos:prefLabel>
+	<skos:notion>domain version description</skos:notion>
+	<dct:issued>2021-07-07T14:19:09.288Z</dct:issued>
+	<dct:modified>2021-07-07T15:19:09.100Z</dct:modified>
+	<sodas:taxonomy rdf:resource="https://sodas.etri.re.kr/taxonomy/taxonomy000"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/taxonomy/taxonomy000">
+	<rdf:type rdf:resource="http://purl.org/etri/sodas#Taxonomy"/>
+	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#ConceptScheme"/>
+	<skos:inScheme rdf:resource="https://sodas.etri.re.kr/domain-version/domainVersion00"/>
+	<skos:hasTopConcept rdf:resource="https://sodas.etri.re.kr/category/category0000"/>
+	<skos:hasTopConcept rdf:resource="https://sodas.etri.re.kr/category/category0001"/>
+	<skos:prefLabel>taxonomy name</skos:prefLabel>
+	<skos:notion>taxonomy description</skos:notion>
+	<sodas:deprecated>false</sodas:deprecated>
+	<dct:issued>2021-07-08T14:19:09.288Z</dct:issued>
+	<dct:modified>2021-07-09T15:19:09.100Z</dct:modified>
+</rdf:Description>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/category/category0000">
+	<rdf:type rdf:resource="http://purl.org/etri/sodas#Category"/>
+	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+	<skos:inScheme rdf:resource="https://sodas.etri.re.kr/taxonomy/taxonomy000"/>
+	<skos:topConceptOf rdf:resource="https://sodas.etri.re.kr/taxonomy/taxonomy000"/>
+	<skos:prefLabel>category name</skos:prefLabel>
+	<skos:notion>category description</skos:notion>
+	<sodas:deprecated>true</sodas:deprecated>
+	<dct:issued>2021-07-08T14:19:09.288Z</dct:issued>
+	<dct:modified>2021-07-09T15:19:09.100Z</dct:modified>
+</rdf:Description>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/category/category0001">
+	<rdf:type rdf:resource="http://purl.org/etri/sodas#Category"/>
+	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+	<skos:inScheme rdf:resource="https://sodas.etri.re.kr/taxonomy/taxonomy000"/>
+	<skos:topConceptOf rdf:resource="https://sodas.etri.re.kr/taxonomy/taxonomy000"/>
+	<skos:narrower rdf:resource="https://sodas.etri.re.kr/category/category00011"/>
+	<skos:prefLabel>category name</skos:prefLabel>
+	<skos:notion>category description</skos:notion>
+	<sodas:deprecated>false</sodas:deprecated>
+	<dct:issued>2021-07-08T14:19:09.288Z</dct:issued>
+	<dct:modified>2021-07-09T15:19:09.100Z</dct:modified>
+</rdf:Description>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/category/category00011">
+	<rdf:type rdf:resource="http://purl.org/etri/sodas#Category"/>
+	<rdf:type rdf:resource="http://www.w3.org/2004/02/skos/core#Concept"/>
+	<skos:inScheme rdf:resource="https://sodas.etri.re.kr/taxonomy/taxonomy000"/>
+	<skos:broader rdf:resource="https://sodas.etri.re.kr/category/category0001"/>
+	<skos:prefLabel>category name</skos:prefLabel>
+	<skos:notion>category description</skos:notion>
+	<sodas:deprecated>false</sodas:deprecated>
+	<dct:issued>2021-07-08T14:19:09.288Z</dct:issued>
+	<dct:modified>2021-07-09T15:19:09.100Z</dct:modified>
+</rdf:Description>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/profile/category0001">
+	<rdf:type rdf:resource="http://purl.org/etri/sodas#Profile"/>
+	<rdf:type rdf:resource="http://www.w3.org/ns/dx/prof/Profile"/>
+	<prof:hasResource rdf:resource="https://sodas.etri.re.kr/profile/resource-descriptor/role-vocabulary/vocabulary00011"/>
+	<prof:hasResource rdf:resource="https://sodas.etri.re.kr/profile/resource-descriptor/role-constraint/constraint00011"/>
+	<prof:hasResource rdf:resource="https://sodas.etri.re.kr/profile/resource-descriptor/role-others/guidance00011"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/profile/resource-descriptor/role-vocabulary/vocabulary00011">
+	<rdf:type rdf:resource="http://purl.org/etri/sodas#ResourceDescriptor"/>
+	<rdf:type rdf:resource="http://www.w3.org/ns/dx/prof/ResourceDescriptor"/>
+	<prof:hasRole rdf:resource="http://www.w3.org/ns/dx/prof/role/vocabulary"/>
+	<sodas:vocabulary rdf:resource="http://sodas.etri.re.kr/vocabulary/vocabulary01"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/profile/resource-descriptor/role-constraint/constraint00011">
+	<rdf:type rdf:resource="http://purl.org/etri/sodas#ResourceDescriptor"/>
+	<rdf:type rdf:resource="http://www.w3.org/ns/dx/prof/ResourceDescriptor"/>
+	<prof:hasRole rdf:resource="http://www.w3.org/ns/dx/prof/role/constraint"/>
+</rdf:Description>
+
+<rdf:Description rdf:about="https://sodas.etri.re.kr/profile/resource-descriptor/role-others/guidance00011">
+	<rdf:type rdf:resource="http://purl.org/etri/sodas#ResourceDescriptor"/>
+	<rdf:type rdf:resource="http://www.w3.org/ns/dx/prof/ResourceDescriptor"/>
+	<prof:hasRole rdf:resource="http://www.w3.org/ns/dx/prof/role/guidance"/>
+</rdf:Description>
+
+</rdf:RDF>
