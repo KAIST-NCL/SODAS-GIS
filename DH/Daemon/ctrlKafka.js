@@ -51,17 +51,27 @@ class ctrlConsumer extends Consumer{
 exports.ctrlProducer = function(kafkaHost){
     this.client = new kafka.KafkaClient({kafkaHost: kafkaHost});
     this.producer = new Producer(this.client);
-    this.topic = 'recv.datahub'
+    this.topic = 'recv.datahub';
 };
 
-exports.ctrlProducer._produce = function(msg){
+exports.ctrlProducer.prototype.createCtrlTopics = async function(){
+    // create topics for DHDaemon
+    await this.client.createTopics([
+        { topic: 'recv.datahub', partitions: 1 , replicationFactor: 1},
+        { topic: 'send.datahub', partitions: 1, replicationFactor: 1},
+        { topic: 'recv.asset', partitions: 1 , replicationFactor: 1},
+        { topic: 'send.asset', partitions: 1, replicationFactor: 1}], function (err, data) {
+    });
+};
+
+exports.ctrlProducer.prototype._produce = function(msg){
     const payloads = [{ topic: this.topic, value: msg }];
     this.producer.send(payloads, function(err, data){
         if(err) console.log(err);
     });
 };
 
-exports.ctrlProducer.sendError = function(errorCode){
+exports.ctrlProducer.prototype.sendError = function(errorCode){
     this._produce({'operation':'ERROR', 'error_code': errorCode});
 };
 

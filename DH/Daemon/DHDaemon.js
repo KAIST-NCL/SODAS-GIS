@@ -3,6 +3,7 @@ const { Worker, MessageChannel } = require("worker_threads");
 const dm = require('./DHDaemon');
 const { ctrlConsumer, ctrlProducer } = require('./ctrlKafka');
 
+
 exports.DHDaemon = function(){
 
     this.conf = new ConfigParser();
@@ -19,12 +20,16 @@ exports.DHDaemon = function(){
     this.kafka_options = this.conf.get('Kafka', 'options');
     process.env.DH_HOME = this.conf.get('ENV', 'DH_HOME');
     console.log('[SETTING] DataHub daemon is running with %s:%s', this.dm_ip, this.dm_portNum);
-
-    this.ctrlConsumer = new ctrlConsumer(this.kafka, this.kafka_options, this, this.conf);
     this.ctrlProducer = new ctrlProducer(this.kafka);
+    // ctrlConsumer will be created in init()
 
     this.interest = [];
     this.bucketList = null;
+};
+exports.DHDaemon.prototype.init = async function(){
+    // create kafka topic if doesn't exist
+    await this.ctrlProducer.createCtrlTopics();
+    this.ctrlConsumer = new ctrlConsumer(this.kafka, this.kafka_options, this, this.conf);
 };
 exports.DHDaemon.prototype.run = function(){
 
@@ -36,7 +41,7 @@ exports.DHDaemon.prototype.run = function(){
     const dhSearchParam = {'ds_portNum': this.ds_portNum, 'bootstrap_ip': this.bs_ip, 'bootstrap_portNum': this.bs_portNum};
     const vcParam = {'sm_port': msgChn.port1};
     const smParam = {'vc_port': msgChn.port2};
-    const rmSyncParam = {};
+    const rmSyncParam = {'dm_ip': this.dm_ip, 'dm_port': this.dm_portNuma, 'rh_ip': this.rh_ip, 'rh_portNum': this.rh_portNum};
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });
@@ -209,7 +214,7 @@ exports.DHDaemon.prototype._raiseError = function(errorCode){
 };
 
 const daemon = new dm.DHDaemon();
-daemon.run();
+daemon.init().then(() => {daemon.run();});
 
 process.on('SIGINT', () => {
     daemon.stop();
