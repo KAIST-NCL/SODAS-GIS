@@ -13,16 +13,20 @@ exports.vcModule = function(){
     this.vc = new publishVC(gitDir, this.referenceModel);
     this.consumer = new vcConsumer(kafkaHost, options, this);
 };
+
 exports.vcModule.prototype.init = async function(){
     await this.vc.init();
 };
+
 exports.vcModule.prototype.run = function(){
     this.consumer.run();
 
 };
+
 exports.vcModule.prototype.commit = async function(filepath, message){
     await this.vc.commit(filepath, message);
 };
+
 exports.vcModule.prototype.reportCommit = function(filepath, assetID, commitNumber){
     // TODO
     const msg = {

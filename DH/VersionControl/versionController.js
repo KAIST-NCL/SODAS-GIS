@@ -1,5 +1,4 @@
 const { Git } = require(__dirname + '/../Lib/git');
-const fs = require('fs');
 const { ref_parser } = require('../Lib/ref_parser');
 
 class VC {
@@ -26,21 +25,6 @@ class VC {
         this._createReferenceDir();
     }
 
-    async commit(filepath, message){
-        if(this.constructor.name.Flag){
-            // retry commit
-            const timeOut = 100;
-            setTimeout(this.commit.bind(this), timeOut, filepath, message);
-        }else{
-            // MUTEX ON
-            this.constructor.name.Flag = true;
-            const commitNum = await this.git.commit(filepath, message);
-            // MUTEX OFF
-            this.constructor.name.Flag = false;
-            return commitNum;
-        }
-    }
-
     _createReferenceDir() {
         // 만약 최초 실행인 경우
         if(typeof this.rp === 'undefined') {
@@ -56,14 +40,34 @@ class publishVC extends VC{
     constructor(gitDir, referenceModel) {
         super(gitDir, referenceModel);
     }
+    async commit(filepath, message){
+        if(this.constructor.name.Flag){
+            // retry commit
+            const timeOut = 100;
+            setTimeout(this.commit.bind(this), timeOut, filepath, message);
+        }else{
+            // MUTEX ON
+            this.constructor.name.Flag = true;
+            const commitNum = await this.git.commit(filepath, message);
+            // MUTEX OFF
+            this.constructor.name.Flag = false;
+            return commitNum;
+        }
+    }
 }
 
 class subscribeVC extends VC{
     constructor(gitDir, referenceModel) {
         super(gitDir, referenceModel);
     }
+    
     async commit(filepath, message){
+        // commit 처리할 때 mutex 없게 수정해야함
         await this.git.commit(filepath, message);
+    }
+
+    async apply(gitPatch) {
+        this.git.apply(gitPatch);
     }
 }
 

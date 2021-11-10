@@ -6,7 +6,7 @@ class ref_parser {
     // 목표 2. message.related <-> filepath 변환 기능 제공
     // 목표 3. Reference Model이 바뀔 때 업데이트 기능 제공
 
-    // message.related 양식: [{operation: '', id: '', type: ''}, {...}]
+    // message.related 양식: [{'operation': '', 'id': '', 'type': ''}, {...}]
     constructor(root, referenceModel) {
         this.root = root; // gitDB의 root 디렉토리
         this.referenceModel = referenceModel; // reference Model의 파일 경로
