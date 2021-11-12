@@ -10,12 +10,14 @@ const execSync = require('child_process').execSync;
 
 exports.RMSync = function () {
 
-    parentPort.on('message', this._dhDaemonListener);
+    self = this;
+    parentPort.on('message', function(message) {self._dhDaemonListener(message)});
 
     this.dh_ip = workerData.dm_ip;
     this.rm_port = workerData.rm_port;
     this.dh_rm_sync_ip = this.dh_ip + ':' + this.rm_port;
     this.rh_rm_sm_ip = workerData.rh_ip + ':' + workerData.rh_portNum;
+    this.rmsync_root_dir = workerData.rmsync_root_dir;
 
     // gRPC Client to RH-RMSessionManager
     const rmSessionPackageDefinition = protoLoader.loadSync(
@@ -89,7 +91,7 @@ exports.RMSync.prototype._requestRMSession = function() {
 exports.RMSync.prototype._dhDaemonListener = function(message) {
     switch (message.event) {
         case 'INIT':
-            rmSync.run();
+            this.run();
             break;
         default:
             console.log('[ERROR] DH Daemon Listener Error ! event:', message.event);

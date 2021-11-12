@@ -53,7 +53,7 @@ exports.BootstrapServer.prototype.run = function () {
     this.bootstrapServer = this._setBootstrapServer();
     this.bootstrapServer.bindAsync(this.bootstrapServerIP,
         grpc.ServerCredentials.createInsecure(), () => {
-            console.log('Session Listener gRPC Server running at ' + this.bootstrapServerIP)
+            console.log('Bootstrap Server gRPC Server running at ' + this.bootstrapServerIP)
             this.bootstrapServer.start();
         });
 }

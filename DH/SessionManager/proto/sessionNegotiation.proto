@@ -5,10 +5,10 @@ package sessionNegotiation;
 service SessionNegotiationBroker{
 
   // request session negotiation to other data hub's session listener
-  rpc RequestSessionNegotiation(NegotiationInfo) returns (Reply) {}
+  rpc RequestSessionNegotiation(RequestSN) returns (ResultSN) {}
 
   // check negotiation info & send result to other data hub's session listener
-  rpc CheckNegotiation(Result) returns (Null) {}
+  rpc AckSessionNegotiation(Ack) returns (Null) {}
 
 }
 
@@ -33,19 +33,24 @@ message SynchronizationDescription {
   repeated string transfer_interface = 3;
 }
 
-message NegotiationInfo {
-  SessionDescription session_desc = 1;
-  DatamapDescription datamap_desc = 2;
-  SynchronizationDescription sync_desc = 3;
+message SessionNegotiation {
+  DatamapDescription datamap_desc = 1;
+  SynchronizationDescription sync_desc = 2;
 }
 
-message Reply {
+message RequestSN {
+  SessionDescription session_desc = 1;
+  SessionNegotiation sn_options = 2;
+}
+
+message ResultSN {
   bool status = 1;
   EndPoint end_point = 2;
-  NegotiationInfo negotiation_info = 3;
+  SessionDescription session_desc = 3;
+  SessionNegotiation sn_options = 4;
 }
 
-message Result {
+message Ack {
   bool status = 1;
   EndPoint end_point = 2;
 }

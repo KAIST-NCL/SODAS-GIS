@@ -9,16 +9,19 @@ const protoLoader = require('@grpc/proto-loader');
 
 exports.DHSearch = function(){
 
-    parentPort.on('message', this._dhDaemonListener);
+    self = this;
+    parentPort.on('message', function(message) {self._dhDaemonListener(message)});
 
+    this.ip = workerData.dm_ip;
     this.ds_portNum = workerData.ds_portNum;
+    this.sl_portNum = workerData.sl_portNum;
     this.bootstrap_server_ip = workerData.bootstrap_ip + ':' + workerData.bootstrap_portNum;
 
-    this.seedNode = dh.seedNodeInfo({address: dh.getIpAddress(), port: parseInt(workerData.ds_portNum)});
-    this.node = new knode.KNode({address: dh.getIpAddress(), port: parseInt(workerData.ds_portNum)});
+    this.seedNode = dh.seedNodeInfo({address: this.ip, port: parseInt(workerData.ds_portNum)});
+    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.ds_portNum)});
     this.node._updateContactEvent.on('update_contact', () => {
         this._dmUpdateBucketList()
-    })
+    });
     this.seedNodeList = [];
 
     const packageDefinition = protoLoader.loadSync(
@@ -36,17 +39,20 @@ exports.DHSearch = function(){
 
 };
 exports.DHSearch.prototype.run = function(){
-    this._bootstrapProcess().then(r => this._discoverProcess())
+    this._bootstrapProcess().then(r => {
+        this._closeConnection();
+        this._discoverProcess();
+    });
 };
 
 /* Worker threads Listener */
 exports.DHSearch.prototype._dhDaemonListener = function(message){
     switch (message.event) {
-        case 'INIT':
-            break;
         case 'UPDATE_INTEREST_TOPIC':
-            this.interestTopic = message.data.interestTopic
-            this._setInterestTopic()
+            this.run()
+            this.sync_interest_list = message.data.sync_interest_list;
+            console.log(this.sync_interest_list);
+            // this._setInterestTopic()
             break;
         default:
             console.log('[ERROR] DH Daemon Listener Error ! event:', message.event);
@@ -85,6 +91,7 @@ exports.DHSearch.prototype._getSeedNode = function(seedNode) {
 }
 exports.DHSearch.prototype._closeConnection = function() {
     grpc.closeClient(this.bootstrapClient);
+    console.log('gRPC session closed with bootstrap server');
 }
 
 /* DHSearch methods */
@@ -107,4 +114,3 @@ exports.DHSearch.prototype._setInterestTopic = function() {
 }
 
 const dhSearch = new dhsearch.DHSearch()
-dhSearch.run()

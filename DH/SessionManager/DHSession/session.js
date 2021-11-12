@@ -24,7 +24,7 @@ exports.Session = function () {
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.sessSyncproto = this.protoDescriptor.SessionSync.SessionSyncBroker;
     console.log('[SETTING] SessionManager Created');
-    console.log(workerData.session_id + ' / ' + workerData.sess_portNum)
+    console.log(workerData.my_session_id + ' / ' + workerData.my_portNum)
 }
 
 exports.Session.prototype.sessInit = function (call, callback) {
