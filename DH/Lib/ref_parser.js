@@ -24,12 +24,15 @@ class ref_parser {
         // List가 입력되면 Concat
         var self = this;
         if (typeof ReferenceModel === 'object') {
+            console.log("list");
             ReferenceModel.forEach((element) => {
+                console.log(this.refRootdir + '/' + element);
                 self._createReferenceDir(this.refRootdir + '/' + element);
             });
         }
         // String이 입력되면 추가
         else if (typeof ReferenceModel === 'string') {
+            console.log(this.refRootdir + '/' + ReferenceModel);
             this._createReferenceDir(this.refRootdir + '/' + ReferenceModel);
         }
         else {
@@ -95,18 +98,18 @@ class ref_parser {
 
         // 각 파티션들을 Domain, Taxonomy, Category로 분류한 다음 각각 linked_list를 만든다.
         partition.forEach((element) => {
-            if (element[0].indexOf('/domain-version') >= 0) this._domainparser(element, temp_dom);
-            else if (element[0].indexOf('/taxonomy/') >= 0) this._taxonomyparser(element, temp_tax);
-            else if (element[0].indexOf('/category/') >= 0) this._categoryparser(element, temp_cat);
+            if (element[0].indexOf('/domain-version') >= 0) temp_dom.push(this._domainparser(element));
+            else if (element[0].indexOf('/taxonomy/') >= 0) temp_tax.push(this._taxonomyparser(element));
+            else if (element[0].indexOf('/category/') >= 0) temp_cat.push(this._categoryparser(element));
         });
 
         // 현재 linked_list의 next와 prev에는 string 혹은 dictionary가 들어있는데, 이를 바로잡아 준다.
         if (this._linked_list_correction_all(temp_dom, temp_tax, temp_cat)) return false;
         else {
             // 뽑아낸 Linked List들로 디렉토리를 생성한다.
-            this.dom_related_list.concat(temp_dom);
-            this.tax_related_list.concat(temp_tax);
-            this.cat_related_list.concat(temp_cat);
+            this.dom_related_list.push(...temp_dom);
+            this.tax_related_list.push(...temp_tax);
+            this.cat_related_list.push(...temp_cat);
             this._mkdir_from_list();
             return true;
         }
@@ -158,7 +161,7 @@ class ref_parser {
 
     // 파티션들에서 파싱한 정보를 갖고 linked_list를 만든다.
     // 아래 함수들에선 임시로 prev와 next를 문자열로 저장. 추후에 pop을 통하여 정비할 예정
-    _domainparser(i_partition, temp_dom) {
+    _domainparser(i_partition) {
         // <dct:isVersionOf ~/> 내에 domain 폴더 정보가 있다.
         var line_isVersion = this._findLine(i_partition, '<dct:isVersionOf');
         // id, dv를 구한다.
@@ -171,9 +174,9 @@ class ref_parser {
         line_isTax.forEach((element) => {
             LL.next.push(i_partition[element].split('/taxonomy/')[1].split('"')[0])
         });
-        temp_dom.push(LL);
+        return LL;
     }
-    _taxonomyparser(i_partition, temp_tax) {
+    _taxonomyparser(i_partition) {
         // id, dv를 구한다.
         var id = i_partition[0].split('/taxonomy/')[1].split('"')[0];
         // <skos:inScheme ~/> 내에 상위 폴더 정보가 있다.
@@ -187,9 +190,9 @@ class ref_parser {
         line_hasTop.forEach((element) => {
             LL.next.push(i_partition[element].split('/category/')[1].split('"')[0]);
         });
-        temp_tax.push(LL);
+        return LL;
     }
-    _categoryparser(i_partition, temp_cat) {
+    _categoryparser(i_partition) {
         // id를 구한다.
         var id = i_partition[0].split('/category/')[1].split('"')[0];
         var LL = new linked_list(id, "category");
@@ -209,7 +212,7 @@ class ref_parser {
         line_nar.forEach((element) => {
             LL.next.push(i_partition[element].split('/category/')[1].split('"')[0]);
         });
-        temp_cat.push(LL);
+        return LL;
     }
 
     // 위에서 만든 linked list에서 prev와 next를 전부 다른 linked_list로 바꿔준다.
