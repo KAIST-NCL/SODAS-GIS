@@ -1,3 +1,4 @@
+const { forEach } = require('async');
 const fs = require('fs');
 
 class ref_parser {
@@ -6,10 +7,11 @@ class ref_parser {
     // 목표 2. message.related <-> filepath 변환 기능 제공
     // 목표 3. Reference Model이 바뀔 때 업데이트 기능 제공
 
-    // message.related 양식: [{'operation': '', 'id': '', 'type': ''}, {...}]
-    constructor(root, referenceModel) {
+    // message.related 양식: [{operation': '', 'id': '', 'type': ''}, {...}]
+    constructor(root, refRootdir) {
         this.root = root; // gitDB의 root 디렉토리
-        this.referenceModel = referenceModel; // reference Model의 파일 경로
+        this.refRootdir = refRootdir;
+        this.referenceModel = []; // reference Model의 파일 경로
         // referenceModel로부터 뽑아낸 관계 정보가 담긴 linked list의 배열
         this.dom_related_list = [];
         this.tax_related_list = [];
@@ -17,26 +19,21 @@ class ref_parser {
     }
 
     // ---------------------  외부 노출 함수 ----------------------- //
-    // Reference Model을 파싱하여 폴더 트리를 생성하는 함수
-    createReferenceDir() {
-        // Reference Model을 읽어드린 후 Pre-Process ==> <rdf:Description> 구역 단위로 파티션들을 만든다.
-        var content = fs.readFileSync(this.referenceModel).toString();
-        var partition = this._partition(content.split('\n'));
-
-        // 각 파티션들을 Domain, Taxonomy, Category로 분류한 다음 각각 linked_list를 만든다.
-        partition.forEach((element) => {
-            if (element[0].indexOf('/domain-version') >= 0) this._domainparser(element);
-            else if (element[0].indexOf('/taxonomy/') >= 0) this._taxonomyparser(element);
-            else if (element[0].indexOf('/category/') >= 0) this._categoryparser(element);
-        });
-
-        // 현재 linked_list의 next와 prev에는 string 혹은 dictionary가 들어있는데, 이를 바로잡아 준다.
-        if (this._linked_list_correction_all()) return false;
+    // Reference Model 추가하는 함수
+    addReferenceModel(ReferenceModel) {
+        // List가 입력되면 Concat
+        var self = this;
+        if (typeof ReferenceModel === 'object') {
+            ReferenceModel.forEach((element) => {
+                self._createReferenceDir(this.refRootdir + '/' + element);
+            });
+        }
+        // String이 입력되면 추가
+        else if (typeof ReferenceModel === 'string') {
+            this._createReferenceDir(this.refRootdir + '/' + ReferenceModel);
+        }
         else {
-            // 뽑아낸 Linked List들로 디렉토리를 생성한다.
-            this._mkdir_from_list();
-
-            return true;
+            console.log("Error on Input Type");
         }
     }
 
@@ -74,23 +71,47 @@ class ref_parser {
         return filePath;
     }
 
-    // Reference Model 변경 시 update하는 함수
-    update(referenceModel) {
-        // 정보 백업
-        this.old_dir_list = this.dir_list;
-        // 내부 변수 초기화
-        this.referenceModel = referenceModel;
-        this.dom_related_list = [];
-        this.tax_related_list = [];
-        this.cat_related_list = [];
+    // ---------------------  내부 동작용 함수 ----------------------- //
+    // 추가된 ReferenceModel이 기존 Domain의 업데이트인지 여부 확인
+    _check_update(Ref) {
+        // 새로 들어온 Ref의 /domain/ 뒷 부분을 확인하여 Domain 정보를 얻는다.
 
-        // 폴더 트리 다시 생성
-        this.createReferenceDir();
+        // 기존 Domain 중 중복되는 Domain이 있는지 확인 후 해당 DomainVersion을 구한다.
 
-        // 현재 dir_list와 맞지 않는 폴더들 처리
+        // 기존 내용 중 DomainVersion이 일치하는 내용을 삭제한다.
+
     }
 
-    // ---------------------  내부 동작용 함수 ----------------------- //
+    // Reference Model을 파싱하여 폴더 트리를 생성하는 함수
+    _createReferenceDir(Ref) {
+        this.referenceModel.push(Ref);
+        // Reference Model을 읽어드린 후 Pre-Process ==> <rdf:Description> 구역 단위로 파티션들을 만든다.
+        var content = fs.readFileSync(Ref).toString();
+        var partition = this._partition(content.split('\n'));
+
+        var temp_dom = [];
+        var temp_tax = [];
+        var temp_cat = [];
+
+        // 각 파티션들을 Domain, Taxonomy, Category로 분류한 다음 각각 linked_list를 만든다.
+        partition.forEach((element) => {
+            if (element[0].indexOf('/domain-version') >= 0) this._domainparser(element, temp_dom);
+            else if (element[0].indexOf('/taxonomy/') >= 0) this._taxonomyparser(element, temp_tax);
+            else if (element[0].indexOf('/category/') >= 0) this._categoryparser(element, temp_cat);
+        });
+
+        // 현재 linked_list의 next와 prev에는 string 혹은 dictionary가 들어있는데, 이를 바로잡아 준다.
+        if (this._linked_list_correction_all(temp_dom, temp_tax, temp_cat)) return false;
+        else {
+            // 뽑아낸 Linked List들로 디렉토리를 생성한다.
+            this.dom_related_list.concat(temp_dom);
+            this.tax_related_list.concat(temp_tax);
+            this.cat_related_list.concat(temp_cat);
+            this._mkdir_from_list();
+            return true;
+        }
+    }
+
     // 해당 경로에 폴더를 생성하는 함수
     _folder_create(target) {
         !fs.existsSync(target) && fs.mkdirSync(target);
@@ -137,7 +158,7 @@ class ref_parser {
 
     // 파티션들에서 파싱한 정보를 갖고 linked_list를 만든다.
     // 아래 함수들에선 임시로 prev와 next를 문자열로 저장. 추후에 pop을 통하여 정비할 예정
-    _domainparser(i_partition) {
+    _domainparser(i_partition, temp_dom) {
         // <dct:isVersionOf ~/> 내에 domain 폴더 정보가 있다.
         var line_isVersion = this._findLine(i_partition, '<dct:isVersionOf');
         // id, dv를 구한다.
@@ -150,25 +171,25 @@ class ref_parser {
         line_isTax.forEach((element) => {
             LL.next.push(i_partition[element].split('/taxonomy/')[1].split('"')[0])
         });
-        this.dom_related_list.push(LL);
+        temp_dom.push(LL);
     }
-    _taxonomyparser(i_partition) {
+    _taxonomyparser(i_partition, temp_tax) {
         // id, dv를 구한다.
         var id = i_partition[0].split('/taxonomy/')[1].split('"')[0];
         // <skos:inScheme ~/> 내에 상위 폴더 정보가 있다.
         var line_inScheme = this._findLine(i_partition, '<skos:inScheme');
         var dv = i_partition[line_inScheme[0]].split('/domain-version/')[1].split('"')[0];
         // Linked List 생성
-        var LL = new linked_list(id, "taxonomy");
+        var LL = new linked_list(id, "taxonomy", dv);
         LL._setPrev(dv);
         // <skos:hasTopConcept ~/> 내에 하위 폴더 정보가 있다.
         var line_hasTop = this._findLine(i_partition, '<skos:hasTopConcept');
         line_hasTop.forEach((element) => {
             LL.next.push(i_partition[element].split('/category/')[1].split('"')[0]);
         });
-        this.tax_related_list.push(LL);
+        temp_tax.push(LL);
     }
-    _categoryparser(i_partition) {
+    _categoryparser(i_partition, temp_cat) {
         // id를 구한다.
         var id = i_partition[0].split('/category/')[1].split('"')[0];
         var LL = new linked_list(id, "category");
@@ -188,35 +209,35 @@ class ref_parser {
         line_nar.forEach((element) => {
             LL.next.push(i_partition[element].split('/category/')[1].split('"')[0]);
         });
-        this.cat_related_list.push(LL);
+        temp_cat.push(LL);
     }
 
     // 위에서 만든 linked list에서 prev와 next를 전부 다른 linked_list로 바꿔준다.
-    _linked_list_correction_all() {
+    _linked_list_correction_all(temp_dom, temp_tax, temp_cat) {
         var fault = false;
-        fault = fault || this.dom_related_list.some((element) => {
-            if(!this._linked_list_correction(element)) {
+        fault = fault || temp_dom.some((element) => {
+            if(!this._linked_list_correction(element,temp_dom, temp_tax, temp_cat)) {
                 console.log("Error");
                 return true;
             }
         });
         if (fault) return false;
-        fault = fault || this.tax_related_list.some((element) => {
-            if(!this._linked_list_correction(element)) {
+        fault = fault || temp_tax.some((element) => {
+            if(!this._linked_list_correction(element,temp_dom, temp_tax, temp_cat)) {
                 console.log("Error");
                 return true;
             }
         });
         if (fault) return false;
-        fault = fault || this.cat_related_list.some((element) => {
-            if(!this._linked_list_correction(element)) {
+        fault = fault || temp_cat.some((element) => {
+            if(!this._linked_list_correction(element,temp_dom, temp_tax, temp_cat)) {
                 console.log("Error");
                 return true;
             }
         });
         if (fault) return false;
     }
-    _linked_list_correction(LL) {
+    _linked_list_correction(LL,temp_dom,temp_tax,temp_cat) {
         // domain에 해당하는 경우 next와 taxonomy를 이어준다.
         if (LL.type == "domain") {
             // next correction
@@ -224,7 +245,7 @@ class ref_parser {
                 // 각각에 대하여 마지막 것을 제거하고 앞에 삽입한다.
                 var tax_id = LL.next.pop();
                 // - tax_id에 해당하는 linked_list를 찾는다.
-                const tax_ll = this.tax_related_list.find((element) => {
+                const tax_ll = temp_tax.find((element) => {
                     if (element.id === tax_id) return true;
                 });
                 LL.next.unshift(tax_ll);
@@ -237,13 +258,14 @@ class ref_parser {
                 // 각각에 대하여 마지막 것을 제거하고 앞에 삽입한다.
                 var cat_id = LL.next.pop();
                 // - cat_id에 해당하는 linked_list를 찾는다.
-                const cat_ll = this.cat_related_list.find((element) => {
+                var cat_ll = temp_cat.find((element) => {
                     if (element.id === cat_id) return true;
                 });
+                cat_ll.dv = LL.dv
                 LL.next.unshift(cat_ll);
             }
             // prev correction
-            LL.prev = this.dom_related_list.find((element) => {
+            LL.prev = temp_dom.find((element) => {
                 if (element.dv === LL.prev) return true;
             });
         }
@@ -254,21 +276,24 @@ class ref_parser {
                 // 각각에 대하여 마지막 것을 제거하고 앞에 삽입한다.
                 var cat_id = LL.next.pop();
                 // - cat_id에 해당하는 linked_list를 찾는다.
-                const cat_ll = this.cat_related_list.find((element) => {
+                var cat_ll = temp_cat.find((element) => {
                     if (element.id === cat_id) return true;
                 });
+                if (LL.dv !== null) cat_ll.dv = LL.dv;
                 LL.next.unshift(cat_ll);
             }
             // prev correction
             if (LL.prev.type === 'cat') {
-                LL.prev = this.cat_related_list.find((element) => {
+                LL.prev = temp_cat.find((element) => {
                     if (element.id === LL.prev.id) return true;
                 });
+                if (LL.prev.dv !== null) LL.dv = LL.prev.dv;
             }
             else {
-                LL.prev = this.tax_related_list.find((element) => {
+                LL.prev = temp_tax.find((element) => {
                     if (element.id === LL.prev.id) return true;
-                });                
+                });
+                LL.dv = LL.prev.dv;                
             }
         }
         // 문제 여부 확인 - 상위 분류가 먼저 전부 correction이 끝났다고 가정한다.

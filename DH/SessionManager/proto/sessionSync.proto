@@ -18,6 +18,7 @@ message PublishDatamap {
   string related = 2; // Kafka 메시지에서 받은 내용 그대로
   string filepath = 3; // /doamin/taxonomy/category/.../category/id.asset
   bytes git_patch = 4; // git_patch 파일
+  string sender_id = 5;
 }
 
 // ACK 메시지

@@ -8,21 +8,36 @@ class Git {
         this.gitDIR_ = gitDIR_;
     }
     async init(){
+        // callback, argDict는 optional.
         !fs.existsSync(this.gitDIR_) && fs.mkdirSync(this.gitDIR_);
         this.git = await simpleGit(this.gitDIR_, { binary: 'git' });
         await this.git.init();
         const stdout = execSync('cd ' + this.gitDIR_ + '&& git rev-list --all --count');
-        if(parseInt(stdout.toString()) === 0) await this._first_commit().then(()=> {console.log('Git repository is initialized & first commit is added')});
+        if(parseInt(stdout.toString()) === 0) {
+            var commnum;
+            await this._first_commit().then((commit_number)=> {
+                commnum = (' '+commit_number).slice(1);
+                console.log('Git repository is initialized & first commit is added')});
+            return commnum;
+        }
     }
 
     async _first_commit(){
         execSync('cd '+ this.gitDIR_ + '&& touch init.txt');
-        await this.commit(['.'], 'initial commit').then();
+        /*
+        await this.commit(['.'], 'initial commit').then((comm) => {
+            if (typeof callback !== 'undefined' && typeof argDict !== 'undefined') {
+                callback("firstCommit", [], "firstCommit", comm);
+            }
+        });*/
+        var commnum = '';
+        await this.commit(['.'], 'initial commit').then((commit_number) => commnum = (' ' + commit_number).slice(1));
+        return commnum;
     }
 
     async commit(filepath, message){
         await this.git.add([filepath]);
-        const comm = await this.git.commit(message);
+        const comm =await this.git.commit(message);
         return comm.commit;
     }
 
@@ -61,13 +76,13 @@ class Git {
     }
 
     editFile(filepath, content) {
-        await fs.writeFile(filepath, content, 'utf8', function (error) {
+        fs.writeFile(filepath, content, 'utf8', function (error) {
             if (error) console.log("Error: ", err);
         });
     }
 
     deleteFile(filepath) {
-        await fs.existsSync(filepath) && fs.unlink(filepath, function (err) {
+        fs.existsSync(filepath) && fs.unlink(filepath, function (err) {
             if (err) {
                 console.log("Error: ", err);
             }

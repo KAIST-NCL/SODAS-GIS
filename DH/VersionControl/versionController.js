@@ -5,14 +5,12 @@ class VC {
 
     // static class variable (mutex)
     static Flag = false;
-    constructor(gitDir, referenceModel) {
+    constructor(gitDir, refRootdir) {
         this.vcRoot = gitDir;
         this.git = new Git(this.vcRoot);
         this.dir_list = [];
-        if(typeof(referenceModel) != null){
-            this.setReferenceModel(referenceModel);
-        }
         this.isInit = false;
+        this.rp = new ref_parser(this.vcRoot, refRootdir);
     }
 
     async init(){
@@ -20,19 +18,8 @@ class VC {
         this.isInit = true;
     }
 
-    setReferenceModel(referenceModel){
-        this.RM = referenceModel;
-        this._createReferenceDir();
-    }
-
-    _createReferenceDir() {
-        // 만약 최초 실행인 경우
-        if(typeof this.rp === 'undefined') {
-            this.rp = new ref_parser(this.vcRoot, this.RM);
-            this.rp.createReferenceDir();
-        }
-        // 업데이트인 경우
-        else this.rp.update(this.RM);
+    addReferenceModel(ReferenceModel) {
+        this.rp.addReferenceModel(ReferenceModel);
     }
 }
 
@@ -48,7 +35,8 @@ class publishVC extends VC{
         }else{
             // MUTEX ON
             this.constructor.name.Flag = true;
-            const commitNum = await this.git.commit(filepath, message);
+            let commitNum = '';
+            await this.git.commit(filepath, message).then((commit_number) => commitNum = (' ' + commit_number).slice(1));
             // MUTEX OFF
             this.constructor.name.Flag = false;
             return commitNum;

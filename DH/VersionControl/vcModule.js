@@ -9,13 +9,23 @@ exports.vcModule = function(){
     const kafkaHost = workerData.kafkaHost; // update
     const options = workerData.kafka; // update
     this.smPort = workerData.sm_port;
-    this.referenceModel = workerData.kafka_options;
-    this.vc = new publishVC(gitDir, this.referenceModel);
+    this.vc = new publishVC(gitDir, workerData.rmsync_root_dir);
     this.consumer = new vcConsumer(kafkaHost, options, this);
+    parentPort.on('message', message => {
+        switch(message.event) {
+            case 'UPDATE_REFERENCE_MODEL':
+                
+        }
+    });
 };
 
+// Todo: parentPort on 함수 작성
+
+
 exports.vcModule.prototype.init = async function(){
-    await this.vc.init();
+    await this.vc.init().then((commit_number) => {
+        if (typeof commit_number !== 'undefined') this.reportCommit("fisrtCommit", [], "firstCommit", commit_number);
+    });
 };
 
 exports.vcModule.prototype.run = function(){
@@ -24,16 +34,19 @@ exports.vcModule.prototype.run = function(){
 };
 
 exports.vcModule.prototype.commit = async function(filepath, message){
-    await this.vc.commit(filepath, message);
+    // message양식 확인
+    await this.vc.commit(filepath, message).then((commNum) => this.reportCommit(filepath, message.related, message.id, commNum));
 };
 
-exports.vcModule.prototype.reportCommit = function(filepath, assetID, commitNumber){
+exports.vcModule.prototype.reportCommit = function(filepath, related, assetID, commitNumber){
     // TODO
     const msg = {
         event: 'UPDATE_PUB_ASSET',
         data: {
             asset_id: assetID,
-            commit_number: commitNumber
+            commit_number: commitNumber,
+            related: related,
+            filepath: filepath
         }
     };
     this.smPort.postMessage(msg);
