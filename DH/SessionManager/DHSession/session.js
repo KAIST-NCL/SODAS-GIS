@@ -24,6 +24,9 @@ exports.Session = function () {
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.sessSyncproto = this.protoDescriptor.SessionSync.SessionSyncBroker;
     console.log('[SETTING] SessionManager Created');
+    this.my_end_point = {}
+    this.my_end_point.ip = workerData.my_ip;
+    this.my_end_point.port = workerData.my_portNum;
     console.log(workerData.my_session_id + ' / ' + workerData.my_portNum)
 }
 
@@ -96,17 +99,12 @@ exports.Session.prototype.SMListener = function (message) {
             break;
 
         //
-        case 'GET_SESSION_NEGOTIATION_OPTIONS':
-            // todo: 세션 협상 옵션받아와서 내부 변수로 저장
+        case 'TRANSMIT_NEGOTIATION_RESULT':
+            console.log('<--------------- [ ' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ] --------------->')
+            console.log(message.data)
+            console.log(session.my_end_point)
             break;
 
-        // 타 데이터 허브의 S-Worker end-point 전송 받음
-        case 'GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT':
-            // todo: 타 데이터 허브의 S-Worker 로 pubDatamap 전송
-            console.log('<--------------- [ ' + workerName + ' get message * GET_OTHER_DATAHUB_SESSION_WORKER_ENDPOINT * ] --------------->')
-            console.log(workerName + ' is trying connection to ' + message.data.ip + ':' + message.data.port + '!!!')
-            SessionInitStart(message.data.ip + ':' + message.data.port)
-            break;
 
         // event handler messageChannel port 전송 받아서, 객체 저장
         case 'GET_EVENT_HANDLER_MESSAGECHANNEL_PORT':

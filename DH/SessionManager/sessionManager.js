@@ -29,7 +29,6 @@ exports.SessionManager = function() {
 
     console.log('[SETTING] SessionManager Created');
 }
-
 exports.SessionManager.prototype.run = function (){
 
     // setEnvironmentData
@@ -81,7 +80,7 @@ exports.SessionManager.prototype._vcListener = function (message){
         // ETRI's KAFKA 에서 Asset 데이터맵 변화 이벤트 감지 시, 해당 데이터맵 및 git Commit 정보를 전달받아서
         // sessionList 정보 조회 후, 해당 session 에게 UPDATE_PUB_ASSET 이벤트 전달
         case 'UPDATE_PUB_ASSET':
-            console.log('[ ' + workerName + ' get message * TRANSMIT_LISTENER_SESSION_ENDPOINT * ]')
+            console.log('[ ' + workerName + ' get message * UPDATE_PUB_ASSET * ]')
             console.log(message.data)
             break;
     }
@@ -89,36 +88,60 @@ exports.SessionManager.prototype._vcListener = function (message){
 exports.SessionManager.prototype._srListener = function (message){
     switch (message.event) {
         // SessionRequester 에서 세션 협상 완료된 Event 로, 타 데이터 허브의 Session의 end-point 전송 받음
-        case 'TRANSMIT_LISTENER_SESSION_ENDPOINT':
-            console.log('[ ' + workerName + ' get message * TRANSMIT_LISTENER_SESSION_ENDPOINT * ]')
-            console.log(message.data)
-
-            // data: { sess_id: sess_id, ip: end_point.ip, port: end_point.port, negotiation_result: negotiation_result }
-            //
-            // todo: daemon 에 GET_SESSION_LIST_INFO
+        case 'TRANSMIT_NEGOTIATION_RESULT':
+            console.log('[ ' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]')
+            sessionManager.srTempSession.negotiation_result = message.data.negotiation_result;
 
             // todo: srTempSession, slTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
-            // todo: srTempSession, slTempSession 초기화
+            sessionManager._sessionTransmitNegotiationResult(sessionManager.srTempSession.worker, message.data.end_point, message.data.session_desc, message.data.negotiation_result);
+
             // todo: sessionList 관리
+            if (message.data.negotiation_result.datamap_desc.sync_interest_list[0] in sessionManager.session_list) {
+                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]].push(sessionManager.srTempSession)
+            } else {
+                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]] = [];
+                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]].push(sessionManager.srTempSession)
+            }
 
-            sessionManager.srTempSession.negotiation_result = message.data.negotiation_result;
-            sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]] = sessionManager.srTempSession;
+            // todo: srTempSession, slTempSession 초기화
             sessionManager.srTempSession = {};
-
             sessionManager._createSession().then(value => {
                 sessionManager.srTempSession = value;
                 sessionManager._sessionInit(sessionManager.srTempSession.worker);
                 sessionManager._srGetNewSessionInfo();
             });
+
+            // todo: daemon 에 GET_SESSION_LIST_INFO
+
             break;
     }
 }
 exports.SessionManager.prototype._slListener = function (message){
     switch (message.event) {
         // 데이터 허브 간 세션 협상에 의해 세션 연동이 결정난 경우, 상대방 세션의 endpoint 전달받는 이벤트
-        case 'TRANSMIT_REQUESTER_SESSION_ENDPOINT':
-            console.log('[ ' + workerName + ' get message * TRANSMIT_LISTENER_SESSION_ENDPOINT * ]')
-            console.log(message.data)
+        case 'TRANSMIT_NEGOTIATION_RESULT':
+            console.log('[ ' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]');
+            sessionManager.slTempSession.negotiation_result = message.data.negotiation_result;
+
+            // todo: srTempSession, slTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
+            sessionManager._sessionTransmitNegotiationResult(sessionManager.slTempSession.worker, message.data.end_point, message.data.session_desc, message.data.negotiation_result);
+
+            // todo: sessionList 관리
+            if (message.data.negotiation_result.datamap_desc.sync_interest_list[0] in sessionManager.session_list) {
+                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]].push(sessionManager.slTempSession)
+            } else {
+                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]] = [];
+                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]].push(sessionManager.slTempSession)
+            }
+
+            // todo: srTempSession, slTempSession 초기화
+            sessionManager.slTempSession = {};
+            sessionManager._createSession().then(value => {
+                sessionManager.slTempSession = value;
+                sessionManager._sessionInit(sessionManager.slTempSession.worker);
+                sessionManager._slGetNewSessionInfo();
+            });
+
             break;
     }
 }
@@ -166,10 +189,10 @@ exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
 }
 
 /* SessionListener methods */
-exports.SessionManager.prototype._slInit = function (gRPC_server_endpoint) {
+exports.SessionManager.prototype._slInit = function () {
     this.sessionListener.postMessage({
         event: "INIT",
-        data: gRPC_server_endpoint
+        data: null
     });
 }
 exports.SessionManager.prototype._slGetNewSessionInfo = function () {
@@ -192,10 +215,10 @@ exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
         data: null
     });
 }
-exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (sessionWorker) {
+exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (sessionWorker, end_point, session_desc, sn_options) {
     sessionWorker.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
-        data: null
+        data: { end_point: end_point, session_desc: session_desc, sn_options: sn_options}
     });
 }
 exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorker) {
@@ -228,4 +251,3 @@ exports.SessionManager.prototype._setSessionPort = async function () {
 
 const sessionManager = new sm.SessionManager()
 sessionManager.run();
-// sessionManager.VC.postMessage({event: "INIT", data: "test"})

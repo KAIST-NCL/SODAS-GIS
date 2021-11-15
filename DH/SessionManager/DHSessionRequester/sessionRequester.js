@@ -13,10 +13,10 @@ exports.SessionRequester = function () {
     self = this;
     parentPort.on('message', function(message) {self._smListener(message)});
 
-    this.session_desc = {};
-    this.end_point = {};
+    this.my_session_desc = {};
+    this.my_end_point = {};
 
-    this.session_desc.session_creator = workerData.dh_id;
+    this.my_session_desc.session_creator = workerData.dh_id;
     this.sn_options = workerData.sn_options;
 
     const packageDefinition = protoLoader.loadSync(
@@ -32,7 +32,6 @@ exports.SessionRequester = function () {
     console.log('[SETTING] SessionRequester Created');
 
 }
-
 exports.SessionRequester.prototype.run = function () {
     console.log('[SETTING] SessionRequester is running');
 }
@@ -51,9 +50,9 @@ exports.SessionRequester.prototype._smListener = function (message) {
         case 'GET_NEW_SESSION_INFO':
             console.log('[ ' + workerName + ' get message * GET_NEW_SESSION_INFO * ]');
             console.log(message.data)
-            this.session_desc.session_id = message.data.sess_id;
-            this.end_point.ip = message.data.sess_ip;
-            this.end_point.port = message.data.sess_portNum;
+            this.my_session_desc.session_id = message.data.sess_id;
+            this.my_end_point.ip = message.data.sess_ip;
+            this.my_end_point.port = message.data.sess_portNum;
             break;
         case 'UPDATE_NEGOTIATION_OPTIONS':
             console.log('[ ' + workerName + ' get message * UPDATE_NEGOTIATION_OPTIONS * ]');
@@ -63,10 +62,10 @@ exports.SessionRequester.prototype._smListener = function (message) {
 }
 
 /* SessionManager methods */
-exports.SessionRequester.prototype._smTransmitListenerSessionEndpoint = function (sess_id, end_point, negotiation_result) {
+exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_point, session_desc, negotiation_result) {
     parentPort.postMessage({
-        event: "TRANSMIT_LISTENER_SESSION_ENDPOINT",
-        data: { sess_id: sess_id, ip: end_point.ip, port: end_point.port, negotiation_result: negotiation_result }
+        event: "TRANSMIT_NEGOTIATION_RESULT",
+        data: { end_point: end_point, session_desc: session_desc, negotiation_result: negotiation_result }
     });
 }
 
@@ -90,22 +89,22 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                 let sl_addr = node.address + ':' + node.port;
                 sessionRequester.sessionNegotiationClient = await sessionRequester._initConnection(sl_addr);
                 console.log("--=-=-=-=- test -=-=-=-=-");
-                console.log(sessionRequester.session_desc.session_id);
-                if ( sessionRequester.session_desc.session_id == null ) {
+                console.log(sessionRequester.my_session_desc.session_id);
+                if ( sessionRequester.my_session_desc.session_id == null ) {
                     console.log("srTempSession is not yet Created")
                     setTimeout(checkCreateTempSession, 1000);
                 }
                 else {
                     await sessionRequester.sessionNegotiationClient.RequestSessionNegotiation(
-                        {session_desc: sessionRequester.session_desc, sn_options: sessionRequester.sn_options}, (error, response) => {
+                        {session_desc: sessionRequester.my_session_desc, sn_options: sessionRequester.sn_options}, (error, response) => {
                             if (!error) {
                                 console.log('Request Session Negotiation to ' + node.port);
                                 if (response.status) {
                                     console.log('Session Negotiation Completed!!');
-                                    sessionRequester._smTransmitListenerSessionEndpoint(response.session_desc.session_id, response.end_point, response.sn_options)
-                                    sessionRequester.session_desc.session_id = null;
-                                    console.log(sessionRequester.session_desc.session_id)
-                                    sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, end_point: sessionRequester.end_point}, (error, response) => {
+                                    sessionRequester._smTransmitNegotiationResult(response.end_point, response.session_desc, response.sn_options)
+                                    sessionRequester.my_session_desc.session_id = null;
+                                    console.log(sessionRequester.my_session_desc.session_id)
+                                    sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, end_point: sessionRequester.my_end_point}, (error, response) => {
                                         if (!error) {
                                             console.log('Ack Session Negotiation to ' + node.port);
                                         } else {
@@ -130,76 +129,6 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
             console.log(result);
         }
     }
-
-
-    // for (let key in bucketList) {
-    //     for (let i = 0; i < bucketList[key].length; i++) {
-    //         setTimeout(async function checkCreateTempSession() {
-    //             console.log(bucketList[key][i]);
-    //             let sl_addr = bucketList[key][i].address + ':' + bucketList[key][i].port;
-    //             sessionRequester.sessionNegotiationClient = await sessionRequester._initConnection(sl_addr);
-    //             console.log("--=-=-=-=- test -=-=-=-=-");
-    //             console.log(sessionRequester.session_desc.session_id);
-    //             if ( !sessionRequester.session_desc.session_id ) {
-    //                 console.log("srTempSession is not yet Created")
-    //                 setTimeout(checkCreateTempSession, 1000);
-    //             }
-    //             else {
-    //                 await sessionRequester.sessionNegotiationClient.RequestSessionNegotiation(
-    //                     {session_desc: sessionRequester.session_desc, sn_options: sessionRequester.sn_options}, (error, response) => {
-    //                     if (!error) {
-    //                         console.log('Request Session Negotiation');
-    //                         console.log(sessionRequester.session_desc);
-    //                         console.log(sessionRequester.sn_options);
-    //                         console.log(response);
-    //                         if (response.status) {
-    //                             console.log('Session Negotiation Completed!!');
-    //                             let negotiationResult = {};
-    //                             negotiationResult.datamap_desc = response.sn_options.datamap_desc;
-    //                             negotiationResult.sync_desc = response.sn_options.sync_desc;
-    //                             sessionRequester._smTransmitListenerSessionEndpoint(response.session_desc.session_id, response.end_point, negotiationResult)
-    //                             sessionRequester.session_desc.session_id = null;
-    //                             console.log(sessionRequester.session_desc.session_id)
-    //                         }
-    //                     } else {
-    //                         console.error(error);
-    //                     }
-    //                 });
-    //             }
-    //             await sessionRequester._closeConnection();
-    //         }, 2000);
-    //     }
-    // }
-
-
-    // for (let key in bucketList) {
-    //     for(let i = 0; i < bucketList[key].length; i++) {
-    //         console.log(bucketList[key][i]);
-    //         let sl_addr = bucketList[key][i].address + ':' + bucketList[key][i].port
-    //         this.sessionNegotiationClient = await this._initConnection(sl_addr);
-    //
-    //         await this.sessionNegotiationClient.RequestSessionNegotiation(
-    //             {session_desc: this.session_desc, sn_options: this.sn_options}, (error, response) => {
-    //             if (!error) {
-    //                 console.log('Request Session Negotiation');
-    //                 console.log(this.session_desc);
-    //                 console.log(this.sn_options);
-    //                 console.log(response);
-    //                 if (response.status) {
-    //                     console.log('Session Negotiation Completed!!');
-    //                     let negotiationResult = {};
-    //                     negotiationResult.datamap_desc = response.sn_options.datamap_desc;
-    //                     negotiationResult.sync_desc = response.sn_options.sync_desc;
-    //                     this._smTransmitListenerSessionEndpoint(response.session_desc.session_id, response.end_point, negotiationResult)
-    //                 }
-    //             } else {
-    //                 console.error(error);
-    //             }
-    //         });
-    //
-    //         await this._closeConnection();
-    //     }
-    // }
 }
 
 const sessionRequester = new sr.SessionRequester();
