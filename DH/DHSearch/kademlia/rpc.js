@@ -45,8 +45,8 @@ exports.RPC.prototype.send = function(node, message, callback) {
     assert(node.address);
     _.extend(message, { rpcID: this._rack() });
     var data = new Buffer(JSON.stringify(message), 'utf8');
-    console.log("[rpc->send function] message:")
-    console.log(message)
+    // console.log("[rpc->send function] message:")
+    // console.log(message)
     this._socket.send(data, 0, data.length, node.port, node.address);
     if (_.isFunction(callback)) { // only store rpcID if we are expecting a reply
         this._awaitingReply[message.rpcID] = { timestamp: Date.now(), callback: callback };

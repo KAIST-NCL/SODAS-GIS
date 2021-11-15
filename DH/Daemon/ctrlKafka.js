@@ -35,7 +35,9 @@ class ctrlConsumer extends Consumer{
                 this.daemon._rmSyncInit();
                 break;
             case 'UPDATE':
-                this.daemon._dmSetInterest(msg.interest);
+                this.daemon._dhSearchUpdateInterestTopic(msg.interest);
+                this.daemon._vcUpdateReferenceModel(msg.reference_model);
+                this.daemon._smUpdateNegotiation(msg.negotiation_option);
                 break;
             case 'SYNC_ON':
                 if (this.daemon._smSyncOn() === -1)
@@ -73,6 +75,10 @@ exports.ctrlProducer.prototype._produce = function(msg){
 
 exports.ctrlProducer.prototype.sendError = function(errorCode){
     this._produce({'operation':'ERROR', 'error_code': errorCode});
+};
+
+exports.ctrlProducer.prototype.sendUpdate = function(id, data){
+    this._produce({'operateion':'UPDATE', 'content':{'id':id, 'data':data}});
 };
 
 exports.ctrlConsumer = ctrlConsumer;

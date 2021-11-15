@@ -1,38 +1,59 @@
 
-const fs = require('fs')
-const {parentPort} = require('worker_threads');
-let workerName;
-let port;
-
-const CHUNK_SIZE = 4*1024*1024 - 10
 const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
-
+const {parentPort, workerData} = require('worker_threads');
+const sess = require(__dirname+'/session');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
-const packageDefinition = protoLoader.loadSync(
-    PROTO_PATH,
-    {keepCase: true,
-        longs: String,
-        enums: String,
-        defaults: true,
-        oneofs: true
+const fs = require('fs')
+
+let workerName = 'Session';
+let port;
+
+exports.Session = function () {
+
+    parentPort.on('message', this.SMListener);
+
+    const packageDefinition = protoLoader.loadSync(
+        PROTO_PATH,{
+            keepCase: true,
+            longs: String,
+            enums: String,
+            defaults: true,
+            oneofs: true
+        });
+    this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
+    this.sessSyncproto = this.protoDescriptor.SessionSync.SessionSyncBroker;
+    console.log('[SETTING] SessionManager Created');
+    console.log(workerData.session_id + ' / ' + workerData.sess_portNum)
+}
+
+exports.Session.prototype.sessInit = function (call, callback) {
+    var subfileDir = './SubMaps'
+    console.log("Server Side Received:" , call.request.transID)
+    fs.writeFile(subfileDir + call.request.filedir , call.request.publishDatamap, 'binary', function(err){
+        if (err) throw err
+        console.log('write end') });
+    callback(null, {transID: call.request.transID + 'OK', result: "Success"});
+}
+
+exports.Session.prototype.setSessionServer = function () {
+    this.server = new grpc.Server();
+    this.server.addService(this.sessSyncproto.service, {
+        SessionInit: this.sessInit
     });
-const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
-const server = new grpc.Server();
+    return this.server;
+}
 
-// todo: 타 데이터 허브의 데이터맵을 전송받아서 저장(git -> etri)하는 로직 정의 필요
-server.addService(session_sync.SessionSync.service, {
-    SessionInit: (call, callback) => {
-        var subfileDir = './SubMaps'
-        console.log("Server Side Received:" , call.request.transID)
-        fs.writeFile(subfileDir + call.request.filedir , call.request.publishDatamap, 'binary', function(err){
-            if (err) throw err
-            console.log('write end') });
-        callback(null, {transID: call.request.transID + 'OK', result: "Success"});
-    }
-})
+exports.Session.prototype.run = function (address) {
+    this.sessionServer = this.setSessionServer();
+    this.sessionServer.bindAsync(address,
+        grpc.ServerCredentials.createInsecure(), () => {
+            console.log('Session Listener gRPC Server running at ' + address)
+            this.sessionServer.start();
+        });
+}
 
-function SessionInitStart( target ) {
+exports.Session.prototype.SessionInitStart = function ( target ) {
     var client = new session_sync.SessionSync(target, grpc.credentials.createInsecure());
     let timestamp = new Date()
     let pubfileDir = './PubMaps'
@@ -57,19 +78,11 @@ function SessionInitStart( target ) {
     })
 }
 
-
-/**
- * Starts an RPC server that receives requests for the Greeter service at the
- * sample server port
- */
-
-// [SM -> S-Worker]
-parentPort.on('message', message => {
+// [SessionManager -> Session]
+exports.Session.prototype.SMListener = function (message) {
     switch (message.event) {
         // S-Worker 초기화 event
         case 'INIT':
-            workerName = 'S-Worker[' + message.data.session_id + ']'
-            port = '0.0.0.0' + ':' + message.data.port
             console.log('<--------------- [ ' + workerName + ' get message * INIT * ] --------------->')
             break;
 
@@ -100,27 +113,6 @@ parentPort.on('message', message => {
             // eventHandler 객체
             break;
     }
-})
+}
 
-// eventHandler.on('message', message => {
-//     switch (message.event) {
-//         //
-//         case 'CHANGE_DATAMAP':
-                // todo: sessionNegotiationOption 정보를 참조하여, sync_time or sync_cycle 에 맞춰 전송
-                // 데이터맵 변화 이벤트 받은 뒤, git DB 참조하여 데이터맵 받아와서, 마지막 전송한 데이터맵 버전 비교한 뒤, 전송
-                // 마지막으로 전송한 gRPC 메시지의 ack가 온 경우, 해당 데이터맵 버전은 로컬에 저장
-//             break;
-//
-// })
-
-
-// function ReceiveHealthCheck (call, callback) {
-//     console.log("RECEIVED SessionConfigRequest of " + call.request.transID)
-//     console.log("HERE FOR SAVING " + call.request.publishDatamap)
-//     callback(null ,{transID: call.request.transID,
-//         result: 0})
-// }
-//
-// function DisconnectSession (call, callback) {
-//
-// }
+const session = new sess.Session();
