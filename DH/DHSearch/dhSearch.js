@@ -40,7 +40,7 @@ exports.DHSearch = function(){
 };
 exports.DHSearch.prototype.run = function(){
     this._bootstrapProcess().then(r => {
-        this._closeConnection();
+        this._closeBootstrapServerConnection();
         this._discoverProcess();
     });
 };
@@ -69,17 +69,6 @@ exports.DHSearch.prototype._dmUpdateBucketList = function(){
 };
 
 /* gRPC methods */
-exports.DHSearch.prototype._setSeedNode = function(seedNode) {
-    dhSearch.bootstrapClient.SetSeedNode(seedNode, (error, response) => {
-        if (!error) {
-            console.log('Send node info to bootstrap server');
-            console.log(seedNode);
-            console.log(response.message);
-        } else {
-            console.error(error);
-        }
-    });
-}
 exports.DHSearch.prototype._getSeedNode = function(seedNode) {
     var promise = new Promise((resolve, reject) => dhSearch.bootstrapClient.GetSeedNodeList(seedNode, function(err, response) {
         if(err) {
@@ -88,10 +77,6 @@ exports.DHSearch.prototype._getSeedNode = function(seedNode) {
         resolve(response)
     }))
     return promise
-}
-exports.DHSearch.prototype._closeConnection = function() {
-    grpc.closeClient(this.bootstrapClient);
-    console.log('gRPC session closed with bootstrap server');
 }
 
 /* DHSearch methods */
@@ -108,6 +93,10 @@ exports.DHSearch.prototype._discoverProcess = async function() {
     }
     await this._dmUpdateBucketList();
     return null;
+}
+exports.DHSearch.prototype._closeBootstrapServerConnection = function() {
+    grpc.closeClient(this.bootstrapClient);
+    console.log('gRPC session closed with bootstrap server');
 }
 exports.DHSearch.prototype._setInterestTopic = function() {
     // todo: InterestTopic 정보 받아와서 노드 ID 반영 및 kademlia set/get 수행 로직

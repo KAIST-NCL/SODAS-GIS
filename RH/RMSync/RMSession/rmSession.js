@@ -28,12 +28,12 @@ exports.RMSession = function () {
 }
 
 exports.RMSession.prototype._referenceModelSync = function () {
-    var pubfileDir = __dirname+'/reference-model/domain'
+    let referenceModelDir = __dirname+'/reference-model/domain'
 
-    fs.readFile( pubfileDir + '/domain01.rdf' , (err, data) => {
+    fs.readFile( referenceModelDir + '/domain01.rdf' , (err, data) => {
         if (err) throw err
         rmSession.rmSyncClient.ReferenceModelSync({
-                commit_number: 'domain01.rdf',
+                id: 'domain01.rdf',
                 file: data
             }, (err, response) => {
                 console.log('Received Message:', response);
