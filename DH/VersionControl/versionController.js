@@ -10,7 +10,7 @@ class VC {
         this.git = new Git(this.vcRoot);
         this.dir_list = [];
         this.isInit = false;
-        this.rp = new ref_parser(this.vcRoot, refRootdir);
+        if(typeof refRootdir === 'string') this.rp = new ref_parser(this.vcRoot, refRootdir);
     }
 
     async init(){

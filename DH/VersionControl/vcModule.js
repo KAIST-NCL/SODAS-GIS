@@ -11,20 +11,25 @@ exports.vcModule = function(){
     this.smPort = workerData.sm_port;
     this.vc = new publishVC(gitDir, workerData.rmsync_root_dir);
     this.consumer = new vcConsumer(kafkaHost, options, this);
+    var self = this;
     parentPort.on('message', message => {
         switch(message.event) {
             case 'UPDATE_REFERENCE_MODEL':
-                
+                self.vc.addReferenceModel(message.RM);
         }
     });
 };
 
-// Todo: parentPort on 함수 작성
-
 
 exports.vcModule.prototype.init = async function(){
     await this.vc.init().then((commit_number) => {
-        if (typeof commit_number !== 'undefined') this.reportCommit("fisrtCommit", [], "firstCommit", commit_number);
+        if (typeof commit_number !== 'undefined') {
+            const msg = {
+                event: "FIRST_COMMIT",
+                first_commit_number: commit_number
+            };
+            this.smPort.postMessage(msg);
+        };
     });
 };
 
