@@ -15,14 +15,14 @@ message Void {} // Response or Reply Message 내용이 필요 없을 때를 위�
 // Asset 단위로 보낸다.
 message PublishDatamap {
   string transID = 1; // 트랜잭션 번호 {Timestamp} + {Datamap Filename} + 'SEND'
-  string related = 2; // Kafka 메시지에서 받은 내용 그대로
-  string filepath = 3; // /doamin/taxonomy/category/.../category/id.asset
-  bytes git_patch = 4; // git_patch 파일
-  string sender_id = 5;
+  // content - > json string. related, filepath
+  string content = 2; 
+  string git_patch = 3; // git_patch 파일
+  string receiver_id = 4;
 }
 
 // ACK 메시지
 message ACKMessage {
   string transID = 1; // 트랜잭션 번호 {Timestamp} + {Datamap Filename} + 'ACK'
-  int result = 2; // 0은 Success, 1은 Failed ... 다양한 오류 값   검출 가능하게 해 보기
+  int32 result = 2; // 0은 Success, 1은 Failed ... 다양한 오류 값   검출 가능하게 해 보기
 }
