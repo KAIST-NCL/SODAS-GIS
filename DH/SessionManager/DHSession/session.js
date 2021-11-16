@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const kafka = require('kafka-node');
 const {parentPort, workerData} = require('worker_threads');
 const { subscribeVC } = require('../../VersionControl/versionController')
 const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
@@ -26,6 +27,8 @@ exports.Session = function() {
     console.log("WorkerData: " + workerData);
     console.log("***************");
     this.count_msg = 0;
+    this.kafkaClient = new kafka.KafkaClient();
+    this.kafkaproducer = new kafka.Producer(this.kafkaClient);
     // 루트 폴더 생성
     this.id = workerData.my_session_id;
     this.rootDir = __dirname+'/'+this.id;
@@ -56,7 +59,7 @@ exports.Session = function() {
                 // 문제 없으면 0, 오류 사항은 차차 정의
                 callback(null, {transID: call.request.transID, result: result});
                 // 카프카 메시지 생성 및 전송
-                self.kafkaProducer(call.request);
+                self.kafkaProducer(call.request.content, self);
             }    
         }
     });
@@ -146,7 +149,7 @@ exports.Session.prototype.onMaxCount = async function() {
     }
     console.log(git_diff);
     // gRPC 전송 - kafka에 쓸 전체 related, git patch를 적용할 가장 큰 폴더 단위, git patch 파일 내용 
-    this.Publish(topublish.related, topublish.filepath, git_diff);
+    this.Publish(topublish.related, git_diff);
 }
 
 exports.Session.prototype._reset_count = function(last_commit) {
@@ -167,12 +170,11 @@ exports.Session.prototype._reset_count = function(last_commit) {
 // [5]: 외부 Session으로 Publish
 // gRPC 전송 전용 코드
 // target: Publish 받을 세션의 gRPC 서버 주소
-exports.Session.prototype.Publish = function(related, filepath, git_patch) {
+exports.Session.prototype.Publish = function(related, git_patch) {
     console.log("Publish");
     // content 만들기. related와 filepath를 json으로 만들어 넣는다.
     var temp = {
         related: related,
-        filepath: filepath
     };
 
     var content = JSON.stringify(temp);
@@ -215,8 +217,31 @@ exports.Session.prototype.gitPatch = function(git_patch, self) {
 }
 
 // (3): Producer:asset 메시지 생성 및 전송
-exports.Session.prototype.kafkaProducer = function(message) {
+exports.Session.prototype.kafkaProducer = function(message, self) {
     console.log(message);
+    // message.content에 related, filepath 정보가 담겨있기에 json 파싱을 해야한다.
+    var related_array = JSON.parse(message).related;
+    // 보낼 메시지 내용 - operation, id, related, content.interest, content.reference_model
+    var payloads = [];
+    related_array.forEach((element)=>{
+        payloads.push({
+            "operation": "UPDATE",
+            "id": "DH1",
+            "related": element,
+            "content": {
+                "interest": self.sn_options.datamap_desc.sync_interest_list
+            }
+        });
+    });
+    console.log(" =========  Kafka Message  ==========")
+    console.log(payloads)
+    console.log(" ====================================")
+
+    self.kafkaproducer.on('ready', function() {
+        self.kafkaproducer.send(payloads, function(err, result) {
+            console.log(result);
+        });
+    });
 }
 
 // Publish 조건 충족 여부 확인 함수
