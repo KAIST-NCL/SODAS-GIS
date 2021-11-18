@@ -29,9 +29,10 @@ exports.Session = function() {
     this.count_msg = 0;
     this.kafkaClient = new kafka.KafkaClient();
     this.kafkaproducer = new kafka.Producer(this.kafkaClient);
+    this.pubvc_root = workerData.pubvc_root;
     // 루트 폴더 생성
     this.id = workerData.my_session_id;
-    this.rootDir = __dirname+'/'+this.id;
+    this.rootDir = workerData.subvc_root+'/'+this.id;
     !fs.existsSync(this.rootDir) && fs.mkdirSync(this.rootDir);
 
     // 쓰레드 간 메시지 관련
@@ -40,6 +41,9 @@ exports.Session = function() {
     // gitDB 설정
     this.VC = new subscribeVC(this.rootDir+'/gitDB');
     this.VC.init();
+
+    // FirstCommit 반영
+    this._reset_count(this.VC.returnFirstCommit());
 
     // gRPC 서버 시작
     this.ip = workerData.my_ip;
@@ -86,21 +90,11 @@ exports.Session = function() {
                 break;
             // Publish할 내용을 받아온다.
             case 'UPDATE_PUB_ASSET':
-                if (message.filepath === "firstCommit") {
-                    const storedData = fs.readFileSync(this.msg_storepath).toString();
-                    var content = JSON.parse(storedData);
-                    content.previous_last_commit = message.commit_number;
-                    fs.writeFileSync(this.msg_storepath, content);
-                }
-                else {
-                    // asset_id, commit_number, related, filepath
-                    // 우선 메시지 수신 시 카운트를 센다.
-                    this.count_msg += 1;
-                    this.prePublish(message);
-                }
-                break;    
-            case 'FIRST_COMMIT':
-                this._reset_count(message.commnumber);
+                // asset_id, commit_number, related, filepath
+                // 우선 메시지 수신 시 카운트를 센다.
+                this.count_msg += 1;
+                this.prePublish(message);
+                break;
         }
     });
 }
@@ -136,20 +130,37 @@ exports.Session.prototype.onMaxCount = async function() {
     // 우선, 파일 내용을 읽어온 뒤 초기화를 진행한다.
     const topublish = this.__read_dict();
     this._reset_count(topublish.commit_number[topublish.commit_number.length - 1]);
-    // 파일 파싱
     // git diff 추출
-    var git_diff = '';
-    for (var i=0; i < topublish.stored; i++) {
-        // comID 넣는 순서는 어떻게 할 것인가? - 정의 필요. 아래는 현재 예시 코드
-        var comID1 = (i > 0) ? topublish.commit_number[i-1] : topublish.previous_last_commit;
-        var comID2 = topublish.commit_number[i];
-        var diff_dir = topublish.filepath[i];
-        // 테스트 결과 무조건 git init된 폴더 내에서 diff를 추출해야한다. 즉, diff를 추출하고자 하는 곳, publishVC의 root 디렉토리를 알아야한다.
-        git_diff = git_diff + execSync('cd ' + path.dirname(diff_dir) + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir).toString();
+    this.extractGitDiff(topublish).then((git_diff) => {
+        // gRPC 전송 - kafka에 쓸 전체 related, git patch를 적용할 가장 큰 폴더 단위, git patch 파일 내용 
+        this.Publish(topublish.related, topublish.filepath, git_diff);
+    });    
+}
+
+exports.Session.prototype.extractGitDiff = async function(topublish) {
+    // mutex 적용
+    if (this.VC.returnFlagStatus()) {
+        // retry diff
+        const timeOut = 100;
+        setTimeout(this.extractGitDiff.bind(this), timeOut, topublish);
     }
-    console.log(git_diff);
-    // gRPC 전송 - kafka에 쓸 전체 related, git patch를 적용할 가장 큰 폴더 단위, git patch 파일 내용 
-    this.Publish(topublish.related, topublish.filepath, git_diff);
+    else {
+        // mutex on
+        this.VC.setFlagStatus(true);
+        var git_diff = '';
+        for (var i=0; i < topublish.stored; i++) {
+            // comID 넣는 순서는 어떻게 할 것인가? - 정의 필요. 아래는 현재 예시 코드
+            var comID1 = (i > 0) ? topublish.commit_number[i-1] : topublish.previous_last_commit;
+            var comID2 = topublish.commit_number[i];
+            var diff_dir = this.pubvc_root + '/' + topublish.filepath[i];
+            // 테스트 결과 무조건 git init된 폴더 내에서 diff를 추출해야한다. 즉, diff를 추출하고자 하는 곳, publishVC의 root 디렉토리를 알아야한다.
+            git_diff = git_diff + execSync('cd ' + path.dirname(diff_dir) + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir).toString();
+        }
+        this.VC.setFlagStatus(false);
+        // mutex off
+        console.log(git_diff);
+        return git_diff;
+    }
 }
 
 exports.Session.prototype._reset_count = function(last_commit) {
