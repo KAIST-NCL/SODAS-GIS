@@ -69,10 +69,10 @@ exports.SessionListener.prototype._smListener = function (message) {
 }
 
 /* SessionManager methods */
-exports.SessionListener.prototype._smTransmitNegotiationResult = function (end_point, session_desc, negotiation_result) {
+exports.SessionListener.prototype._smTransmitNegotiationResult = function (end_point, session_desc, sn_result) {
     parentPort.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
-        data: { end_point: end_point, session_desc: session_desc, negotiation_result: negotiation_result }
+        data: { end_point: end_point, session_desc: session_desc, sn_result: sn_result }
     });
 }
 
@@ -82,14 +82,19 @@ exports.SessionListener.prototype._requestSN = function (call, callback) {
     let result = call.request;
     console.log(result);
     // todo: check_negotiation_options 이후, sn_options 정해야됨
-    if (policy.check_negotiation_options(sessionListener.sn_options, result.sn_options)) {
+    let sn_result = policy.checkNegotiationOptions(sessionListener.sn_options, result.sn_options);
+    console.log('세션 협상 결과는????')
+    console.log(sn_result)
+    console.log(sn_result.result.datamap_desc)
+    console.log(sn_result.result.sync_desc)
+    if (sn_result.status) {
         // todo: session 협상 결과 negotiation_result 값 반환해야함
-        sessionListener.session_result = sessionListener.sn_options;
+        sessionListener.session_result = sn_result.result;
         callback(null, {
             status: true,
             end_point: sessionListener.my_end_point,
             session_desc: sessionListener.my_session_desc,
-            sn_options: sessionListener.sn_options
+            sn_options: sessionListener.session_result
         })
         sessionListener.other_session_desc = result.session_desc;
     }
@@ -100,7 +105,7 @@ exports.SessionListener.prototype._ackSN = function (call, callback) {
     console.log(result);
     sessionListener.other_end_point = result.end_point;
 
-    sessionListener._smTransmitNegotiationResult(sessionListener.other_session_desc, sessionListener.other_end_point, sessionListener.session_result);
+    sessionListener._smTransmitNegotiationResult(sessionListener.other_end_point, sessionListener.other_session_desc, sessionListener.session_result);
     sessionListener.my_session_desc.session_id = null;
     console.log(sessionListener.my_session_desc.session_id)
 }

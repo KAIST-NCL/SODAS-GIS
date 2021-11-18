@@ -62,10 +62,10 @@ exports.SessionRequester.prototype._smListener = function (message) {
 }
 
 /* SessionManager methods */
-exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_point, session_desc, negotiation_result) {
+exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_point, session_desc, sn_result) {
     parentPort.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
-        data: { end_point: end_point, session_desc: session_desc, negotiation_result: negotiation_result }
+        data: { end_point: end_point, session_desc: session_desc, sn_result: sn_result }
     });
 }
 
@@ -101,6 +101,7 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                                 console.log('Request Session Negotiation to ' + node.port);
                                 if (response.status) {
                                     console.log('Session Negotiation Completed!!');
+                                    // todo: sn_result 로 수정해야됨
                                     sessionRequester._smTransmitNegotiationResult(response.end_point, response.session_desc, response.sn_options)
                                     sessionRequester.my_session_desc.session_id = null;
                                     console.log(sessionRequester.my_session_desc.session_id)

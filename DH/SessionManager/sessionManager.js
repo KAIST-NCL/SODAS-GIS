@@ -21,6 +21,8 @@ exports.SessionManager = function() {
     this.sl_addr = workerData.dm_ip + ':' + workerData.sl_portNum;
     this.sn_options = workerData.sn_options;
     this.session_list = {};
+    this.session_list_to_daemon = [];
+    this.first_commit_number = "INIT - first_commit_number";
 
     this.datahubInfo = {
         sodas_auth_key: crypto.randomBytes(20).toString('hex'),
@@ -79,9 +81,29 @@ exports.SessionManager.prototype._vcListener = function (message){
     switch (message.event) {
         // ETRI's KAFKA 에서 Asset 데이터맵 변화 이벤트 감지 시, 해당 데이터맵 및 git Commit 정보를 전달받아서
         // sessionList 정보 조회 후, 해당 session 에게 UPDATE_PUB_ASSET 이벤트 전달
+        case 'FIRST_COMMIT':
+            console.log('[ ' + workerName + ' get message * FIRST_COMMIT * ]')
+            console.log(message.data)
+            this.first_commit_number = message.data.first_commit_number;
+            break;
         case 'UPDATE_PUB_ASSET':
             console.log('[ ' + workerName + ' get message * UPDATE_PUB_ASSET * ]')
             console.log(message.data)
+            let sync_list = message.data.related.split("/").slice(1,-1);
+            let sync_target = null;
+            for (let i = 0; i < sync_list.length; i++) {
+                if (i == 0){
+                    sync_target = sync_list[i]
+                } else {
+                    sync_target += "/" + sync_list[i]
+                }
+                console.log(sync_target)
+                if (sessionManager.session_list[sync_target]) {
+                    for (let j = 0; j < sessionManager.session_list[sync_target].length; j++) {
+                        sessionManager._sessionUpdatePubAsset(sessionManager.session_list[sync_target][j].worker, message.data)
+                    }
+                }
+            }
             break;
     }
 }
@@ -90,17 +112,30 @@ exports.SessionManager.prototype._srListener = function (message){
         // SessionRequester 에서 세션 협상 완료된 Event 로, 타 데이터 허브의 Session의 end-point 전송 받음
         case 'TRANSMIT_NEGOTIATION_RESULT':
             console.log('[ ' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]')
-            sessionManager.srTempSession.negotiation_result = message.data.negotiation_result;
+            sessionManager.srTempSession.sn_result = message.data.sn_result;
+            sessionManager.srTempSession.other_ip = message.data.end_point.ip;
+            sessionManager.srTempSession.other_port = message.data.end_point.port;
+
+            // todo: daemon 에 GET_SESSION_LIST_INFO
+            let append_session = {};
+            append_session.session_id = sessionManager.srTempSession.session_id;
+            append_session.my_ip = sessionManager.srTempSession.my_ip;
+            append_session.my_port = sessionManager.srTempSession.my_port;
+            append_session.other_ip = sessionManager.srTempSession.other_ip;
+            append_session.other_port = sessionManager.srTempSession.other_port;
+            append_session.sn_result = sessionManager.srTempSession.sn_result;
+            sessionManager.session_list_to_daemon.push(append_session);
+            sessionManager._dmGetSessionListInfo();
 
             // todo: srTempSession, slTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
-            sessionManager._sessionTransmitNegotiationResult(sessionManager.srTempSession.worker, message.data.end_point, message.data.session_desc, message.data.negotiation_result);
+            sessionManager._sessionTransmitNegotiationResult(sessionManager.srTempSession.worker, message.data.end_point, message.data.session_desc, message.data.sn_result);
 
             // todo: sessionList 관리
-            if (message.data.negotiation_result.datamap_desc.sync_interest_list[0] in sessionManager.session_list) {
-                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]].push(sessionManager.srTempSession)
+            if (message.data.sn_result.datamap_desc.sync_interest_list[0] in sessionManager.session_list) {
+                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.srTempSession)
             } else {
-                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]] = [];
-                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]].push(sessionManager.srTempSession)
+                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]] = [];
+                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.srTempSession)
             }
 
             // todo: srTempSession, slTempSession 초기화
@@ -109,9 +144,8 @@ exports.SessionManager.prototype._srListener = function (message){
                 sessionManager.srTempSession = value;
                 sessionManager._sessionInit(sessionManager.srTempSession.worker);
                 sessionManager._srGetNewSessionInfo();
+                console.log(sessionManager.session_list)
             });
-
-            // todo: daemon 에 GET_SESSION_LIST_INFO
 
             break;
     }
@@ -121,17 +155,30 @@ exports.SessionManager.prototype._slListener = function (message){
         // 데이터 허브 간 세션 협상에 의해 세션 연동이 결정난 경우, 상대방 세션의 endpoint 전달받는 이벤트
         case 'TRANSMIT_NEGOTIATION_RESULT':
             console.log('[ ' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]');
-            sessionManager.slTempSession.negotiation_result = message.data.negotiation_result;
+            sessionManager.slTempSession.sn_result = message.data.sn_result;
+            sessionManager.slTempSession.other_ip = message.data.end_point.ip;
+            sessionManager.slTempSession.other_port = message.data.end_point.port;
+
+            // todo: daemon 에 GET_SESSION_LIST_INFO
+            let append_session = {};
+            append_session.session_id = sessionManager.slTempSession.session_id;
+            append_session.my_ip = sessionManager.slTempSession.my_ip;
+            append_session.my_port = sessionManager.slTempSession.my_port;
+            append_session.other_ip = sessionManager.slTempSession.other_ip;
+            append_session.other_port = sessionManager.slTempSession.other_port;
+            append_session.sn_result = sessionManager.slTempSession.sn_result;
+            sessionManager.session_list_to_daemon.push(append_session);
+            sessionManager._dmGetSessionListInfo();
 
             // todo: srTempSession, slTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
-            sessionManager._sessionTransmitNegotiationResult(sessionManager.slTempSession.worker, message.data.end_point, message.data.session_desc, message.data.negotiation_result);
+            sessionManager._sessionTransmitNegotiationResult(sessionManager.slTempSession.worker, message.data.end_point, message.data.session_desc, message.data.sn_result);
 
             // todo: sessionList 관리
-            if (message.data.negotiation_result.datamap_desc.sync_interest_list[0] in sessionManager.session_list) {
-                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]].push(sessionManager.slTempSession)
+            if (message.data.sn_result.datamap_desc.sync_interest_list[0] in sessionManager.session_list) {
+                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.slTempSession)
             } else {
-                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]] = [];
-                sessionManager.session_list[message.data.negotiation_result.datamap_desc.sync_interest_list[0]].push(sessionManager.slTempSession)
+                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]] = [];
+                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.slTempSession)
             }
 
             // todo: srTempSession, slTempSession 초기화
@@ -140,7 +187,9 @@ exports.SessionManager.prototype._slListener = function (message){
                 sessionManager.slTempSession = value;
                 sessionManager._sessionInit(sessionManager.slTempSession.worker);
                 sessionManager._slGetNewSessionInfo();
+                console.log(sessionManager.session_list)
             });
+
 
             break;
     }
@@ -156,9 +205,10 @@ exports.SessionManager.prototype._sessionListener = function (message){
 /* DHDaemon methods */
 exports.SessionManager.prototype._dmGetSessionListInfo = function () {
     // [SessionManager -> DHDaemon] [GET_SESSION_LIST_INFO]
+    console.log(sessionManager.session_list)
     parentPort.postMessage({
         event: "GET_SESSION_LIST_INFO",
-        data: this.sessionList
+        data: sessionManager.session_list_to_daemon
     });
 }
 
@@ -178,7 +228,7 @@ exports.SessionManager.prototype._srStartSessionConnection = function (bucketLis
 exports.SessionManager.prototype._srGetNewSessionInfo = function () {
     this.sessionRequester.postMessage({
         event: "GET_NEW_SESSION_INFO",
-        data: {'sess_id': sessionManager.srTempSession.session_id, 'sess_ip': sessionManager.srTempSession.ip, 'sess_portNum': sessionManager.srTempSession.port}
+        data: {'sess_id': sessionManager.srTempSession.session_id, 'sess_ip': sessionManager.srTempSession.my_ip, 'sess_portNum': sessionManager.srTempSession.my_port}
     });
 }
 exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
@@ -198,7 +248,7 @@ exports.SessionManager.prototype._slInit = function () {
 exports.SessionManager.prototype._slGetNewSessionInfo = function () {
     this.sessionListener.postMessage({
         event: "GET_NEW_SESSION_INFO",
-        data: {'sess_id': sessionManager.slTempSession.session_id, 'sess_ip': sessionManager.slTempSession.ip, 'sess_portNum': sessionManager.slTempSession.port}
+        data: {'sess_id': sessionManager.slTempSession.session_id, 'sess_ip': sessionManager.slTempSession.my_ip, 'sess_portNum': sessionManager.slTempSession.my_port}
     });
 }
 exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
@@ -212,7 +262,7 @@ exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
 exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
     sessionWorker.postMessage({
         event: "INIT",
-        data: null
+        data: {first_commit_number: sessionManager.first_commit_number}
     });
 }
 exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (sessionWorker, end_point, session_desc, sn_options) {
@@ -221,10 +271,10 @@ exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (s
         data: { end_point: end_point, session_desc: session_desc, sn_options: sn_options}
     });
 }
-exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorker) {
+exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorker, update_pub_asset) {
     sessionWorker.postMessage({
         event: "UPDATE_PUB_ASSET",
-        data: null
+        data: update_pub_asset
     });
 }
 
@@ -232,9 +282,9 @@ exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorke
 exports.SessionManager.prototype._createSession = async function () {
     var session = {};
     session.session_id = crypto.randomBytes(20).toString('hex');
-    session.ip = this.dm_ip
-    await this._setSessionPort().then(value => session.port = value);
-    session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'my_session_id': session.session_id, 'my_ip': session.ip, 'my_portNum': session.port} });
+    session.my_ip = this.dm_ip
+    await this._setSessionPort().then(value => session.my_port = value);
+    session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'my_session_id': session.session_id, 'my_ip': session.my_ip, 'my_portNum': session.my_port} });
     session.worker.on('message', this._sessionListener);
 
     return session
