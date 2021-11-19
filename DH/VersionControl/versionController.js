@@ -3,8 +3,9 @@ const { ref_parser } = require('../Lib/ref_parser');
 
 class VC {
 
-    // static class variable (mutex)
     static Flag = false;
+    static FirstCommit = 'asdfasdf';
+
     constructor(gitDir, refRootdir) {
         this.vcRoot = gitDir;
         this.git = new Git(this.vcRoot);
@@ -14,31 +15,49 @@ class VC {
     }
 
     async init(){
-        await this.git.init();
+        var value = '';
+        await this.git.init().then((commnum) => {
+            value = (' ' + commnum).slice(1);
+        });
         this.isInit = true;
+        return value;
     }
 
     addReferenceModel(ReferenceModel) {
         this.rp.addReferenceModel(ReferenceModel);
     }
+
+    returnFirstCommit(dir) {
+        return this.git.getInitCommit(dir);
+    }
+
+    setFlagStatus(status) {
+        VC.Flag = status;
+    }
+
+    returnFlagStatus() {
+        console.log("^^^^^^^^ Update VC Flag")
+        return VC.Flag;
+    }
 }
 
 class publishVC extends VC{
+    // static class variable (mutex)
     constructor(gitDir, referenceModel) {
         super(gitDir, referenceModel);
     }
     async commit(filepath, message){
-        if(this.constructor.name.Flag){
+        if(VC.Flag){
             // retry commit
             const timeOut = 100;
             setTimeout(this.commit.bind(this), timeOut, filepath, message);
         }else{
             // MUTEX ON
-            this.constructor.name.Flag = true;
+            this.setFlagStatus(true);
             let commitNum = '';
             await this.git.commit(filepath, message).then((commit_number) => commitNum = (' ' + commit_number).slice(1));
             // MUTEX OFF
-            this.constructor.name.Flag = false;
+            this.setFlagStatus(false);
             return commitNum;
         }
     }

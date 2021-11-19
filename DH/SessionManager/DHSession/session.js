@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const kafka = require('kafka-node');
 const {parentPort, workerData} = require('worker_threads');
-const { subscribeVC } = require('../../VersionControl/versionController')
+const { publishVC, subscribeVC } = require('../../VersionControl/versionController')
 const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
@@ -43,7 +43,7 @@ exports.Session = function() {
     this.VC.init();
 
     // FirstCommit 반영
-    this._reset_count(this.VC.returnFirstCommit());
+    this._reset_count(this.VC.returnFirstCommit(this.pubvc_root));
 
     // gRPC 서버 시작
     this.ip = workerData.my_ip;
@@ -93,7 +93,7 @@ exports.Session = function() {
                 // asset_id, commit_number, related, filepath
                 // 우선 메시지 수신 시 카운트를 센다.
                 this.count_msg += 1;
-                this.prePublish(message);
+                this.prePublish(message.data);
                 break;
         }
     });
@@ -237,11 +237,15 @@ exports.Session.prototype.kafkaProducer = function(json_string, self) {
     // 보낼 메시지 내용 - operation, id, related, content.interest, content.reference_model
     var payloads = [];
     for (var i = 0; i < related_array.length; i++) {
-        payloads.push({
+        var temp = {
             "operation": "UPDATE",
             "id": path.basename(filepath_array[i], '.asset'),
             "related": related_array[i],
             "content": fs.readFileSync(filepath_array[i]).toString()
+        }
+        payloads.push({
+            "topic": 'send.asset',
+            "message": JSON.stringify(temp)
         });
     }
     console.log(" =========  Kafka Message  ==========")

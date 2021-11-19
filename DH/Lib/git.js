@@ -63,8 +63,8 @@ class Git {
         }
     }
 
-    getInitCommit(){
-        const stdout  = execSync('cd ' + this.gitDIR_ + ' && git rev-list --max-parents=0 HEAD');
+    getInitCommit(dir){
+        const stdout  = execSync('cd ' + dir + ' && git rev-list --max-parents=0 HEAD');
         let initCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");
         return initCommitID;
     }
@@ -77,7 +77,7 @@ class Git {
 
     editFile(filepath, content) {
         fs.writeFile(filepath, content, 'utf8', function (error) {
-            if (error) console.log("Error: ", err);
+            if (error) console.log("Error: ", error);
         });
     }
 

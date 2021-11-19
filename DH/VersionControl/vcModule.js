@@ -1,3 +1,4 @@
+const { fstat } = require('fs');
 const { parentPort, workerData } = require('worker_threads');
 const { publishVC } = require(__dirname + '/versionController');
 const { vcConsumer } = require(__dirname+'/vcConsumer');
@@ -5,7 +6,13 @@ const vcModule = require(__dirname+'/vcModule');
 
 //
 exports.vcModule = function(){
-    const gitDir = __dirname + '/gitDB';
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    console.log("vcModule created");
+    console.log("vcModule - workerData: " + workerData);
+    console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    const gitDir = workerData.pubvc_root;
     const kafkaHost = workerData.kafkaHost; // update
     const options = workerData.kafka; // update
     this.smPort = workerData.sm_port;
@@ -13,6 +20,9 @@ exports.vcModule = function(){
     this.consumer = new vcConsumer(kafkaHost, options, this);
     var self = this;
     parentPort.on('message', message => {
+        console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+        console.log("vcModule Received message: " + message);
+        console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
         switch(message.event) {
             case 'UPDATE_REFERENCE_MODEL':
                 self.vc.addReferenceModel(message.RM);
@@ -22,13 +32,12 @@ exports.vcModule = function(){
 
 
 exports.vcModule.prototype.init = async function(){
+    var self = this;
     await this.vc.init().then((commit_number) => {
+        console.log("initiation done ()()()()()()()");
+        console.log(commit_number);
         if (typeof commit_number !== 'undefined') {
-            const msg = {
-                event: "FIRST_COMMIT",
-                first_commit_number: commit_number
-            };
-            this.smPort.postMessage(msg);
+            // fs.writeFileSync(self.)
         };
     });
 };
@@ -38,9 +47,10 @@ exports.vcModule.prototype.run = function(){
 
 };
 
-exports.vcModule.prototype.commit = async function(filepath, message){
+exports.vcModule.prototype.commit = async function(self, filepath, commitmessage, message){
     // message양식 확인
-    await this.vc.commit(filepath, message).then((commNum) => this.reportCommit(filepath, message.related, message.id, commNum));
+    var fp = self.vc.vcRoot + '/' + filepath;
+    await self.vc.commit(fp, commitmessage).then((commNum) => self.reportCommit(filepath, message.related, message.id, commNum));
 };
 
 exports.vcModule.prototype.reportCommit = function(filepath, related, assetID, commitNumber){
@@ -56,6 +66,18 @@ exports.vcModule.prototype.reportCommit = function(filepath, related, assetID, c
     };
     this.smPort.postMessage(msg);
 };
+
+exports.vcModule.prototype.editFile = async function(option, filepath, content) {
+    var fp = this.vc.vcRoot + '/' + filepath;
+    switch (option) {
+        case 'UPDATE':
+            this.vc.git.editFile(fp, content);
+            break;
+        case 'DELETE':
+            this.vc.git.deleteFile(fp);
+            break;
+    }
+}
 
 
 const VC = new vcModule.vcModule();
