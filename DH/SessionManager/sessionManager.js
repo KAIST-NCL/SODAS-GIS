@@ -14,12 +14,14 @@ exports.SessionManager = function() {
     self = this;
     parentPort.on('message', function(message) {self._dhDaemonListener(message)});
 
-    // this.VC = workerData.vc_port;
-    // this.VC.on('message', this._vcListener);
+    this.VC = workerData.vc_port;
+    this.VC.on('message', this._vcListener);
 
     this.dm_ip = workerData.dm_ip;
     this.sl_addr = workerData.dm_ip + ':' + workerData.sl_portNum;
     this.sn_options = workerData.sn_options;
+    this.pubvc_root = workerData.pubvc_root;
+    this.subvc_root = workerData.subvc_root;
     this.session_list = {};
     this.session_list_to_daemon = [];
     this.first_commit_number = "INIT - first_commit_number";
@@ -81,15 +83,10 @@ exports.SessionManager.prototype._vcListener = function (message){
     switch (message.event) {
         // ETRI's KAFKA 에서 Asset 데이터맵 변화 이벤트 감지 시, 해당 데이터맵 및 git Commit 정보를 전달받아서
         // sessionList 정보 조회 후, 해당 session 에게 UPDATE_PUB_ASSET 이벤트 전달
-        case 'FIRST_COMMIT':
-            console.log('[ ' + workerName + ' get message * FIRST_COMMIT * ]')
-            console.log(message.data)
-            this.first_commit_number = message.data.first_commit_number;
-            break;
         case 'UPDATE_PUB_ASSET':
             console.log('[ ' + workerName + ' get message * UPDATE_PUB_ASSET * ]')
             console.log(message.data)
-            let sync_list = message.data.related.split("/").slice(1,-1);
+            let sync_list = message.data.filepath.split("/").slice(0,-1);
             let sync_target = null;
             for (let i = 0; i < sync_list.length; i++) {
                 if (i == 0){
@@ -284,7 +281,7 @@ exports.SessionManager.prototype._createSession = async function () {
     session.session_id = crypto.randomBytes(20).toString('hex');
     session.my_ip = this.dm_ip
     await this._setSessionPort().then(value => session.my_port = value);
-    session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'my_session_id': session.session_id, 'my_ip': session.my_ip, 'my_portNum': session.my_port} });
+    session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'my_session_id': session.session_id, 'my_ip': session.my_ip, 'my_portNum': session.my_port, 'pubvc_root': sessionManager.pubvc_root, 'subvc_root': sessionManager.subvc_root} });
     session.worker.on('message', this._sessionListener);
 
     return session

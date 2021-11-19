@@ -58,16 +58,16 @@ exports.Session = function() {
             if (call.request.receiver_id == self.id) {
                 console.log("Git Patch Start");
                 // git Patch 적용
-                var result = self.gitPatch(call.request.git_patch, self);            
+                var result = self.gitPatch(call.request.git_patch, self);
                 // ACK 전송
                 // 문제 없으면 0, 오류 사항은 차차 정의
                 callback(null, {transID: call.request.transID, result: result});
                 // 카프카 메시지 생성 및 전송
                 self.kafkaProducer(call.request.content, self);
-            }    
+            }
         }
     });
-    
+
     // parentPort, 즉 자신을 생성한 SM으로부터 메시지를 받아 처리하는 함수.
     parentPort.on('message', message => {
         console.log("**** Session ID: " + this.id + " Received Thread Msg ###");
@@ -81,12 +81,12 @@ exports.Session = function() {
             // 연결될 상대방 Session 정보
             case 'TRANSMIT_NEGOTIATION_RESULT':
                 // 처음 연동일 때에 sync_interest_list를 참조해서 상대방에 gitDB Publish를 한다.
-                this.target = message.end_point.ip + ':' + message.end_point.port;
+                this.target = message.data.end_point.ip + ':' + message.data.end_point.port;
                 console.log('Target:' + this.target);
                 // gRPC 클라이언트 생성
                 this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
-                this.session_desc = message.session_desc;
-                this.sn_options = message.sn_options; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
+                this.session_desc = message.data.session_desc;
+                this.sn_options = message.data.sn_options; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
                 break;
             // Publish할 내용을 받아온다.
             case 'UPDATE_PUB_ASSET':
@@ -132,9 +132,9 @@ exports.Session.prototype.onMaxCount = async function() {
     this._reset_count(topublish.commit_number[topublish.commit_number.length - 1]);
     // git diff 추출
     this.extractGitDiff(topublish).then((git_diff) => {
-        // gRPC 전송 - kafka에 쓸 전체 related, git patch를 적용할 가장 큰 폴더 단위, git patch 파일 내용 
+        // gRPC 전송 - kafka에 쓸 전체 related, git patch를 적용할 가장 큰 폴더 단위, git patch 파일 내용
         this.Publish(topublish.related, topublish.filepath, git_diff);
-    });    
+    });
 }
 
 exports.Session.prototype.extractGitDiff = async function(topublish) {
@@ -193,7 +193,7 @@ exports.Session.prototype.Publish = function(related, filepath, git_patch) {
 
     // 보낼 내용 작성
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
-                  'content': content, 
+                  'content': content,
                   'git_patch': git_patch,
                   'receiver_id': this.session_desc.session_id
                 };
