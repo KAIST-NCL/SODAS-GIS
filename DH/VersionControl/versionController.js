@@ -1,52 +1,65 @@
 const { Git } = require(__dirname + '/../Lib/git');
-
+const { ref_parser } = require('../Lib/ref_parser');
 
 class VC {
 
-    // static class variable (mutex)
     static Flag = false;
-    constructor(gitDir, referenceModel) {
+    static FirstCommit = 'asdfasdf';
+
+    constructor(gitDir, refRootdir) {
         this.vcRoot = gitDir;
         this.git = new Git(this.vcRoot);
-        if(typeof(referenceModel) != null){
-            this.setReferenceModel(referenceModel);
-        }
+        this.dir_list = [];
         this.isInit = false;
+        if(typeof refRootdir === 'string') this.rp = new ref_parser(this.vcRoot, refRootdir);
     }
 
     async init(){
-        await this.git.init();
+        var value = '';
+        await this.git.init().then((commnum) => {
+            value = (' ' + commnum).slice(1);
+        });
         this.isInit = true;
+        return value;
     }
 
-    setReferenceModel(referenceModel){
-        this.RM = referenceModel;
-        this._createReferenceDir();
+    addReferenceModel(ReferenceModel) {
+        this.rp.addReferenceModel(ReferenceModel);
     }
 
+    returnFirstCommit(dir) {
+        return this.git.getInitCommit(dir);
+    }
+
+    setFlagStatus(status) {
+        VC.Flag = status;
+    }
+
+    returnFlagStatus() {
+        console.log("^^^^^^^^ Update VC Flag")
+        return VC.Flag;
+    }
+}
+
+class publishVC extends VC{
+    // static class variable (mutex)
+    constructor(gitDir, referenceModel) {
+        super(gitDir, referenceModel);
+    }
     async commit(filepath, message){
-        if(this.constructor.name.Flag){
+        if(VC.Flag){
             // retry commit
             const timeOut = 100;
             setTimeout(this.commit.bind(this), timeOut, filepath, message);
         }else{
             // MUTEX ON
-            this.constructor.name.Flag = true;
-            const commitNum = await this.git.commit(filepath, message);
+            this.setFlagStatus(true);
+            let commitNum = '';
+            await this.git.commit(filepath, message).then((commit_number) => commitNum = (' ' + commit_number).slice(1));
             // MUTEX OFF
-            this.constructor.name.Flag = false;
+            this.setFlagStatus(false);
             return commitNum;
         }
-    }
-
-    _createReferenceDir(){
-        // TODO: this.RM을 파싱하고 디렉토리 구조를 생성
-    }
-}
-
-class publishVC extends VC{
-    constructor(gitDir, referenceModel) {
-        super(gitDir, referenceModel);
     }
 }
 
@@ -54,8 +67,14 @@ class subscribeVC extends VC{
     constructor(gitDir, referenceModel) {
         super(gitDir, referenceModel);
     }
+    
     async commit(filepath, message){
+        // commit 처리할 때 mutex 없게 수정해야함
         await this.git.commit(filepath, message);
+    }
+
+    async apply(gitPatch) {
+        this.git.apply(gitPatch);
     }
 }
 

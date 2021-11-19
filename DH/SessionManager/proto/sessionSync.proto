@@ -1,32 +1,28 @@
 syntax = 'proto3';
 
-package SessionSync;
+package SessionSyncModule;
 
-service SessionSyncBroker {
-
-  // (b) 세션을 개시하며 자신이 Publish하는 데이터맵을 전송하는 과정  //추후 stream 형태로 구현
-  rpc SessionInit (PublishDatamap) returns (ACKMessage);
-
-  // (e) 데이터맵 변화를 감지하여 데이터맵을 재전송 (또는 변화된 부분만 전송-추후 ETRI 협의 후 맞게 구현)
-  rpc ChangeSession (PublishDatamap) returns (ACKMessage);
+service SessionSync {
+  // [5]에 해당. 세션들 간 통신
+  rpc SessionComm (PublishDatamap) returns (ACKMessage);
 
 }
 
-message Void {}
+message Void {} // Response or Reply Message 내용이 필요 없을 때를 위한 메시지 타입 정의
 
-message PublishDatamap { // key header 인증 절차 필요함
+// [5]에서 Publish 하는데 사용하는 메시지.
+// 필수 내용: git diff 패치 파일, related 정보, 파일 경로
+// Asset 단위로 보낸다.
+message PublishDatamap {
   string transID = 1; // 트랜잭션 번호 {Timestamp} + {Datamap Filename} + 'SEND'
-  string filedir = 2; // 디렉토리 지정
-  bytes publishDatamap = 3; // 실제 데이터맵 파일 (Rdf 파일) 전송
+  // content - > json string. related, filepath
+  string content = 2; 
+  string git_patch = 3; // git_patch 파일
+  string receiver_id = 4;
 }
 
+// ACK 메시지
 message ACKMessage {
   string transID = 1; // 트랜잭션 번호 {Timestamp} + {Datamap Filename} + 'ACK'
-  string result = 2; // 0은 Success, 1은 Failed ... 다양한 오류 값   검출 가능하게 해 보기
-}
-
-message DataChangeMessage {
-  string changeID = 1; // 데이터맵 변화 트랜잭션 번호
-  string versionID = 2;
-  bytes changeDatamap = 3; // 데이터맵 변화한 내역 전송
+  int32 result = 2; // 0은 Success, 1은 Failed ... 다양한 오류 값   검출 가능하게 해 보기
 }
