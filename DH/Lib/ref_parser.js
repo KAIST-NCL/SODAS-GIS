@@ -71,7 +71,7 @@ class ref_parser {
         filePathArray.forEach((element) => {
             filePath = filePath + '/' + element;
         });
-        return filePath;
+        return filePath.slice(1);
     }
 
     // ---------------------  내부 동작용 함수 ----------------------- //
@@ -206,7 +206,7 @@ class ref_parser {
         }
         else {
             // broader가 상위
-            LL._setPrev({type: "cat", id: i_partition[line_bro[0]].split('/category/')[1].split('"')[0]});               
+            LL._setPrev({type: "cat", id: i_partition[line_bro[0]].split('/category/')[1].split('"')[0]});
         }
         // narrower가 하위
         line_nar.forEach((element) => {
@@ -296,7 +296,7 @@ class ref_parser {
                 LL.prev = temp_tax.find((element) => {
                     if (element.id === LL.prev.id) return true;
                 });
-                LL.dv = LL.prev.dv;                
+                LL.dv = LL.prev.dv;
             }
         }
         // 문제 여부 확인 - 상위 분류가 먼저 전부 correction이 끝났다고 가정한다.
@@ -343,7 +343,7 @@ class ref_parser {
                 this._folder_create(folder_dir);
             });
         });
-    }    
+    }
 }
 
 // Linked list의 원본 클래스
@@ -351,12 +351,12 @@ class linked_list {
     // prev는 반드시 하나의 class 객체야 한다.
     constructor(id, type, dv=null) {
         this.id = id; // Domain/Taxonomy/Category 의 id
-        this.type = type; 
+        this.type = type;
         this.dv = dv; // Domain과 Taxonomy에서만 사용된다. root에 해당하는 Domain의 Version을 뜻한다.
         this.prev = null;
         this.next = [];
     }
-    
+
     // prev 세팅
     _setPrev(prev) {
         this.prev = prev;
@@ -371,7 +371,7 @@ class linked_list {
     _checkRelation() {
         if (typeof(this.prev) === 'string') return false;
         if (this.prev.next.indexOf(this) < 0) return false;
-        else return true;         
+        else return true;
     }
 }
 

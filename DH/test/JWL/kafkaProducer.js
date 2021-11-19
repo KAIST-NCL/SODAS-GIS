@@ -10,7 +10,7 @@ var eventCount = parseInt(process.argv[2])
 
 var topic = 'recv.asset'
 var eventMessage = {
-    "id":"A1",
+    "id":"A4",
     "operation": "UPDATE",
     "type": "asset",
     "related": [
@@ -37,7 +37,7 @@ var eventMessage = {
     ],
     "contents": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<rdf:RDF\nxmlns:skos=\"http://www.w3.org/2004/02/skos/core#\"\nxmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"\nxmlns:dct=\"http://purl.org/dc/terms/\"\nxmlns:dcat=\"http://www.w3.org/ns/dcat#\"\nxmlns:sodas=\"http://purl.org/etri/sodas#\"\n>\n\n</rdf:RDF>"
 };
-  
+
 
 producer.on('error', function(err) {})
 
