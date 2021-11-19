@@ -5,7 +5,7 @@ const KeyedMessage = kafka.KeyedMessage;
 
 class ctrlConsumer extends Consumer{
     constructor(kafkaHost, options, dhDaemon, conf){
-        const topics = [ {topic:'send.control', partitions:0 } ];
+        const topics = [ {topic:'send.datahub', partitions:0 } ];
         super(kafkaHost, topics, options);
         this.daemon = dhDaemon;
         this.conf = conf;
@@ -16,21 +16,32 @@ class ctrlConsumer extends Consumer{
         console.log('[RUNNING] Kafka consumer for control signal is running ');
         const that = this;
         this.consumer.on('message', function(message){
-            const event = message.event;
-            const msg = message.value;
-            that.eventSwitch(event, msg);
+
+            // JSON parsing error
+            try {
+                const message_ = JSON.parse(message.value);
+                const event = message_.operation;
+                const msg = message_.content;
+                that.eventSwitch(event, msg);
+            } catch (e){
+                console.log(e);
+                return;
+            }
         });
     };
     eventSwitch = function(event, msg){
         switch(event){
             case 'START':
-                this.daemon.rmSync.postMessage({'type':'INIT', 'referenceHub_ip': this.referenceHubIP, 'referenceHub_port': this.referenceHubPort});
+                this.daemon._rmSyncInit();
                 break;
             case 'UPDATE':
-                this.daemon.dhSearch.postMessage({});
+                this.daemon._dhSearchUpdateInterestTopic(msg.interest);
+                this.daemon._vcUpdateReferenceModel(msg.reference_model);
+                this.daemon._smUpdateNegotiation(msg.negotiation_option);
                 break;
             case 'SYNC_ON':
-                this.daemon.sessionManager.postMessage({});
+                if (this.daemon._smSyncOn() === -1)
+                    this.daemon._raiseError('UPDATE IS NOT YET COMPLETED');
                 break;
             default:
                 break;
@@ -39,17 +50,35 @@ class ctrlConsumer extends Consumer{
 }
 
 
-exports.ctrlProducer = function(topic){
-    this.client = new kafka.KafkaClient();
+exports.ctrlProducer = function(kafkaHost){
+    this.client = new kafka.KafkaClient({kafkaHost: kafkaHost});
     this.producer = new Producer(this.client);
-    this.topic = topic;
+    this.topic = 'recv.datahub';
 };
 
-exports.ctrlProducer.produce = function(msg){
-    const payloads = [{ topic: this.topic, messages: msg }];
+exports.ctrlProducer.prototype.createCtrlTopics = async function(){
+    // create topics for DHDaemon
+    await this.client.createTopics([
+        { topic: 'recv.datahub', partitions: 1 , replicationFactor: 1},
+        { topic: 'send.datahub', partitions: 1, replicationFactor: 1},
+        { topic: 'recv.asset', partitions: 1 , replicationFactor: 1},
+        { topic: 'send.asset', partitions: 1, replicationFactor: 1}], function (err, data) {
+    });
+};
+
+exports.ctrlProducer.prototype._produce = function(msg){
+    const payloads = [{ topic: this.topic, value: msg }];
     this.producer.send(payloads, function(err, data){
         if(err) console.log(err);
     });
+};
+
+exports.ctrlProducer.prototype.sendError = function(errorCode){
+    this._produce({'operation':'ERROR', 'error_code': errorCode});
+};
+
+exports.ctrlProducer.prototype.sendUpdate = function(id, data){
+    this._produce({'operateion':'UPDATE', 'content':{'id':id, 'data':data}});
 };
 
 exports.ctrlConsumer = ctrlConsumer;

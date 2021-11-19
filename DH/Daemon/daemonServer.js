@@ -75,19 +75,20 @@ dServer.prototype.getDaemonServer = function(){
     return this.server;
 };
 dServer.prototype.start = function(){
+    self = this;
     this.daemonServer = this.getDaemonServer();
     this.daemonServer.bindAsync('0.0.0.0:'+ this.port,
         grpc.ServerCredentials.createInsecure(), () => {
             console.log('[RUNNING] DataHub daemon is running with '+ this.ip +':'+ this.port);
             this.daemonServer.start();
         });
-    parentPort.on('message',this._parentSwitch);
+    parentPort.on('message', function(message) {self._parentSwitch(message)});
 };
 // dServer methods
 dServer.prototype._dmSetInterest = function(interestList){
     parentPort.postMessage({
         event: 'UPDATE_INTEREST_TOPIC',
-        data: {interest_topic: interestList}
+        data: {interest: interestList}
     });
 };
 dServer.prototype._dmStart = function(){
@@ -105,6 +106,7 @@ dServer.prototype._dmSyncOn = function(){
 dServer.prototype._parentSwitch = function(message){
     switch(message.event){
         case 'UPDATE_BUCKET_LIST':
+            // TODO : parsing & fit the configuration
             this.dhList = message.data;
             break;
         case 'UPDATE_REFERENCE_MODEL':

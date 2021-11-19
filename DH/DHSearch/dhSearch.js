@@ -1,47 +1,105 @@
+
+const PROTO_PATH = __dirname+'/proto/bootstrap.proto';
+const { parentPort, workerData } = require('worker_threads');
 const dh = require(__dirname+'/api/dhnode');
-const bootstrap = require(__dirname+'/proto/bootstrap');
 const knode = require(__dirname+'/kademlia/knode');
-const { parentPort, MessagePort, getEnvironmentData, workerData } = require('worker_threads');
+const dhsearch = require(__dirname+'/dhSearch');
+const grpc = require('@grpc/grpc-js');
+const protoLoader = require('@grpc/proto-loader');
 
-const bootstrapServerIP = workerData.bootstrap_ip + ':' + workerData.bootstrap_portNum;
-const desc = {
-    address: null,
-    port: null
+exports.DHSearch = function(){
+
+    self = this;
+    parentPort.on('message', function(message) {self._dhDaemonListener(message)});
+
+    this.ip = workerData.dm_ip;
+    this.ds_portNum = workerData.ds_portNum;
+    this.sl_portNum = workerData.sl_portNum;
+    this.bootstrap_server_ip = workerData.bootstrap_ip + ':' + workerData.bootstrap_portNum;
+
+    this.seedNode = dh.seedNodeInfo({address: this.ip, port: parseInt(workerData.ds_portNum)});
+    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.ds_portNum)});
+    this.node._updateContactEvent.on('update_contact', () => {
+        this._dmUpdateBucketList()
+    });
+    this.seedNodeList = [];
+
+    const packageDefinition = protoLoader.loadSync(
+        PROTO_PATH,{
+            keepCase: true,
+            longs: String,
+            enums: String,
+            defaults: true,
+            oneofs: true
+        });
+    this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
+    this.BSproto = this.protoDescriptor.bootstrap.BootstrapBroker;
+    this.bootstrapClient = new this.BSproto(this.bootstrap_server_ip, grpc.credentials.createInsecure());
+    console.log('[SETTING] DHSearch is running with %s:%s', dh.getIpAddress(), this.ds_portNum);
+
 };
-desc.address = dh.getIpAddress();
-desc.port =  parseInt(workerData.ds_portNum);
-const seedNode = dh.seedNodeInfo(desc);
+exports.DHSearch.prototype.run = function(){
+    this._bootstrapProcess().then(r => {
+        this._closeBootstrapServerConnection();
+        this._discoverProcess();
+    });
+};
 
-//dhSearch
-var node = new knode.KNode(desc);
-var seedNodeList;
-
-async function bootstrap_process() {
-
-    let init = await bootstrap.Init(bootstrapServerIP);
-    await new Promise((resolve, reject) => setTimeout(resolve, 2000));
-
-    seedNodeList = await bootstrap.GetSeedNodeList(seedNode);
-    await new Promise((resolve, reject) => setTimeout(resolve, 2000));
-
-    let close = await bootstrap.Close();
-    let DP = discover_process(seedNodeList);
-
-    return null;
-}
-
-async function discover_process(seedNodeList) {
-
-    // console.log("self is:");
-    // console.log(node.self);
-    // console.log(seedNodeList);
-
-    for (const seedNodeIndex of seedNodeList) {
-        var connect = await node.connect(seedNodeIndex.address, seedNodeIndex.port);
-        await new Promise((resolve, reject) => setTimeout(resolve, 2000));
+/* Worker threads Listener */
+exports.DHSearch.prototype._dhDaemonListener = function(message){
+    switch (message.event) {
+        case 'UPDATE_INTEREST_TOPIC':
+            this.run()
+            this.sync_interest_list = message.data.sync_interest_list;
+            console.log(this.sync_interest_list);
+            // this._setInterestTopic()
+            break;
+        default:
+            console.log('[ERROR] DH Daemon Listener Error ! event:', message.event);
+            break;
     }
+};
 
-    return null;
+/* DHDaemon methods */
+exports.DHSearch.prototype._dmUpdateBucketList = function(){
+    parentPort.postMessage({
+        event: 'UPDATE_BUCKET_LIST',
+        data: this.node._buckets
+    });
+};
+
+/* gRPC methods */
+exports.DHSearch.prototype._getSeedNode = function(seedNode) {
+    var promise = new Promise((resolve, reject) => dhSearch.bootstrapClient.GetSeedNodeList(seedNode, function(err, response) {
+        if(err) {
+            return reject(err)
+        }
+        resolve(response)
+    }))
+    return promise
 }
 
-bootstrap_process();
+/* DHSearch methods */
+exports.DHSearch.prototype._bootstrapProcess = async function() {
+    await this._getSeedNode(this.seedNode).then((value => {
+        dhSearch.seedNodeList = JSON.parse(JSON.stringify( value.nodes ));
+    }));
+    return null;
+}
+exports.DHSearch.prototype._discoverProcess = async function() {
+    for (var seedNodeIndex of this.seedNodeList) {
+        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port);
+        // await new Promise((resolve, reject) => setTimeout(resolve, 2000));
+    }
+    await this._dmUpdateBucketList();
+    return null;
+}
+exports.DHSearch.prototype._closeBootstrapServerConnection = function() {
+    grpc.closeClient(this.bootstrapClient);
+    console.log('gRPC session closed with bootstrap server');
+}
+exports.DHSearch.prototype._setInterestTopic = function() {
+    // todo: InterestTopic 정보 받아와서 노드 ID 반영 및 kademlia set/get 수행 로직
+}
+
+const dhSearch = new dhsearch.DHSearch()
