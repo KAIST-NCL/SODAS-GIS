@@ -18,6 +18,7 @@ exports.vcModule = function(){
     this.smPort = workerData.sm_port;
     this.vc = new publishVC(gitDir, workerData.rmsync_root_dir);
     this.consumer = new vcConsumer(kafkaHost, options, this);
+    this.flag = workerData.flag; // mutex flag
     var self = this;
     parentPort.on('message', message => {
         console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
@@ -50,7 +51,7 @@ exports.vcModule.prototype.run = function(){
 exports.vcModule.prototype.commit = async function(self, filepath, commitmessage, message){
     // message양식 확인
     var fp = self.vc.vcRoot + '/' + filepath;
-    await self.vc.commit(fp, commitmessage).then((commNum) => self.reportCommit(filepath, message.related, message.id, commNum));
+    await self.vc.commit(fp, commitmessage, self).then((commNum) => self.reportCommit(filepath, message.related, message.id, commNum));
 };
 
 exports.vcModule.prototype.reportCommit = function(filepath, related, assetID, commitNumber){
@@ -77,6 +78,14 @@ exports.vcModule.prototype.editFile = async function(option, filepath, content) 
             this.vc.git.deleteFile(fp);
             break;
     }
+}
+
+exports.vcModule.prototype.lockMutex = function (self) {
+    self.flag[0] = 1;
+}
+
+exports.vcModule.prototype.unlockMutex = function (self) {
+    self.flag[0] = 0;
 }
 
 

@@ -30,42 +30,34 @@ class VC {
     returnFirstCommit(dir) {
         return this.git.getInitCommit(dir);
     }
-
-    setFlagStatus(status) {
-        VC.Flag = status;
-    }
-
-    returnFlagStatus() {
-        console.log("^^^^^^^^ Update VC Flag")
-        return VC.Flag;
-    }
 }
 
 class publishVC extends VC{
     // static class variable (mutex)
-    constructor(gitDir, referenceModel) {
-        super(gitDir, referenceModel);
+    constructor(gitDir, refRootdir) {
+        super(gitDir, refRootdir);
     }
-    async commit(filepath, message){
-        if(VC.Flag){
+    async commit(filepath, message, vm){
+        // Flag가 0이면 열린 상태, 1이면 잠긴 상태
+        if(vm.flag[0] == 1){
             // retry commit
             const timeOut = 100;
             setTimeout(this.commit.bind(this), timeOut, filepath, message);
         }else{
             // MUTEX ON
-            this.setFlagStatus(true);
+            vm.lockMutex(vm);
             let commitNum = '';
             await this.git.commit(filepath, message).then((commit_number) => commitNum = (' ' + commit_number).slice(1));
             // MUTEX OFF
-            this.setFlagStatus(false);
+            vm.unlockMutex(vm);
             return commitNum;
         }
     }
 }
 
 class subscribeVC extends VC{
-    constructor(gitDir, referenceModel) {
-        super(gitDir, referenceModel);
+    constructor(gitDir, refRootdir) {
+        super(gitDir, refRootdir);
     }
     
     async commit(filepath, message){

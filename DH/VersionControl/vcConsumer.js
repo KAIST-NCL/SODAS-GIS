@@ -16,10 +16,11 @@ class vcConsumer extends Consumer{
     }
     handler(message, self){
         // TODO
-        console.log(message);
-        // 은주 누나의 지적: message를 바로 파싱했었는데 json 파싱을 하고 난 뒤 써야한다.
+        
+        console.log('---- vcConsumer: Kafka Message Received ----');
         const message_ = JSON.parse(message.value);
         console.log(message_);
+        console.log('---------------------------------------------');
         const event = message_.operation;
         const filepath = self.VC.vc.rp.related_to_filepath(message_.related) + '/' + message_.id + '.asset';
         self.VC.editFile(event, filepath, message_.content).then(() => {

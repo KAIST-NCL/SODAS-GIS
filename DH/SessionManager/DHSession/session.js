@@ -41,6 +41,7 @@ exports.Session = function() {
     // gitDB 설정
     this.VC = new subscribeVC(this.rootDir+'/gitDB');
     this.VC.init();
+    this.flag = workerData.flag; // mutex flag
 
     // FirstCommit 반영
     this._reset_count(this.VC.returnFirstCommit(this.pubvc_root));
@@ -115,10 +116,12 @@ exports.Session.prototype.prePublish = function(message) {
     // message로 전달받은 내용을 갖고 파일 작성 및 저장
     var content = this.__read_dict();
     content.stored = content.stored + 1;
-    content.asset_id.push(message.asset_id);
     content.commit_number.push(message.commit_number);
-    content.related.push(message.related);
-    content.filepath.push(message.filepath);
+    // 중복 확인 - filepath가 같으면 중복이다.
+    if (content.filepath.indexOf(message.filepath) == -1) {
+        content.related.push(message.related);
+        content.filepath.push(message.filepath);
+    }
     this.__save_dict(content);
     // 아래 조건 충족 시 Publsih를 실행한다.
     if (this.__check_MaxCount()) this.onMaxCount();
@@ -139,24 +142,20 @@ exports.Session.prototype.onMaxCount = async function() {
 
 exports.Session.prototype.extractGitDiff = async function(topublish) {
     // mutex 적용
-    if (this.VC.returnFlagStatus()) {
+    if (this.flag == 1) {
         // retry diff
         const timeOut = 100;
         setTimeout(this.extractGitDiff.bind(this), timeOut, topublish);
     }
     else {
         // mutex on
-        this.VC.setFlagStatus(true);
-        var git_diff = '';
-        for (var i=0; i < topublish.stored; i++) {
-            // comID 넣는 순서는 어떻게 할 것인가? - 정의 필요. 아래는 현재 예시 코드
-            var comID1 = (i > 0) ? topublish.commit_number[i-1] : topublish.previous_last_commit;
-            var comID2 = topublish.commit_number[i];
-            var diff_dir = this.pubvc_root + '/' + topublish.filepath[i];
-            // 테스트 결과 무조건 git init된 폴더 내에서 diff를 추출해야한다. 즉, diff를 추출하고자 하는 곳, publishVC의 root 디렉토리를 알아야한다.
-            git_diff = git_diff + execSync('cd ' + path.dirname(diff_dir) + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir).toString();
+        this.flag = 1;
+        var diff_directories = ' --';
+        for (var i = 0; i < this.sn_options.datamap_desc.sync_interest_list.length; i++) {
+            diff_directories = diff_directories + ' ' + this.sn_options.datamap_desc.sync_interest_list[i];
         }
-        this.VC.setFlagStatus(false);
+        var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
+        this.flag = 0;
         // mutex off
         console.log(git_diff);
         return git_diff;
@@ -169,7 +168,6 @@ exports.Session.prototype._reset_count = function(last_commit) {
     // 파일 초기화
     const content = {
         stored: 0,
-        asset_id: [],
         commit_number: [],
         related: [],
         filepath: [],
@@ -252,11 +250,11 @@ exports.Session.prototype.kafkaProducer = function(json_string, self) {
     console.log(payloads)
     console.log(" ====================================")
 
-    // self.kafkaproducer.on('ready', function() {
-    //     self.kafkaproducer.send(payloads, function(err, result) {
-    //         console.log(result);
-    //     });
-    // });
+    self.kafkaproducer.on('ready', function() {
+        self.kafkaproducer.send(payloads, function(err, result) {
+            console.log(result);
+        });
+    });
 }
 
 // Publish 조건 충족 여부 확인 함수
