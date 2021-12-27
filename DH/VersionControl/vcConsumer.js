@@ -16,15 +16,14 @@ class vcConsumer extends Consumer{
     }
     handler(message, self){
         // TODO
-        
         console.log('---- vcConsumer: Kafka Message Received ----');
         const message_ = JSON.parse(message.value);
-        console.log(message_);
-        console.log('---------------------------------------------');
+        //console.log(message_);
+        //console.log('---------------------------------------------');
         const event = message_.operation;
         const filepath = self.VC.vc.rp.related_to_filepath(message_.related) + '/' + message_.id + '.asset';
-        self.VC.editFile(event, filepath, message_.content).then(() => {
-            const commitMessage = 'a';
+        self.VC.editFile(event, filepath, message_.contents).then(() => {
+            const commitMessage = message_.id;
             self.VC.commit(self.VC, filepath, commitMessage, message_);
         });
     }
