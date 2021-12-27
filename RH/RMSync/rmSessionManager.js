@@ -20,7 +20,7 @@ exports.RMSessionManager = function () {
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.rmSessionproto = this.protoDescriptor.RMSession.RMSessionBroker;
     this.rmSessionDict = {};
-
+    console.log('RMSessionManager thread is running')
 }
 
 exports.RMSessionManager.prototype._requestRMSession = function (call, callback) {
@@ -29,7 +29,7 @@ exports.RMSessionManager.prototype._requestRMSession = function (call, callback)
     console.log("Request RMSession Connection from DH-RMSync")
     console.log(dhNode)
     rmSessionManager._createNewRMSession(dhNode)
-    callback(null, {result: 'OK', rm_session_id: 'fewfewfwe'})
+    callback(null, {result: 'OK', rm_session_id: rmSessionManager.session_id})
 }
 
 exports.RMSessionManager.prototype._setRMSessionManager = function () {
@@ -50,12 +50,13 @@ exports.RMSessionManager.prototype.run = function () {
 }
 
 exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
-    var session_id = crypto.randomBytes(20).toString('hex')
+    this.session_id = crypto.randomBytes(20).toString('hex')
     var rmSessParam = {
         ip: dhNode.dh_ip,
         port: dhNode.dh_port,
-        session_id: session_id
+        session_id: this.session_id
     }
+    console.log('Create New RMSession')
     console.log(rmSessParam)
     var rmSession = new Worker(__dirname+'/RMSession/rmSession.js', {workerData: rmSessParam});
     this.rmSessionDict[dhNode.dh_id] = rmSession;

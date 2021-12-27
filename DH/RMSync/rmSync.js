@@ -7,6 +7,8 @@ const grpc = require("@grpc/grpc-js");
 const protoLoader = require("@grpc/proto-loader");
 const fs = require("fs");
 const execSync = require('child_process').execSync;
+const crypto = require("crypto");
+
 
 exports.RMSync = function () {
 
@@ -43,6 +45,7 @@ exports.RMSync = function () {
         });
     this.rmSyncprotoDescriptor = grpc.loadPackageDefinition(rmSyncPackageDefinition);
     this.rmSyncproto = this.rmSyncprotoDescriptor.RMSync.RMSyncBroker;
+    console.log('RMSync thread is creating')
 };
 exports.RMSync.prototype.run = function() {
     this.rmSyncServer = this._setRMSyncServer();
@@ -58,6 +61,7 @@ exports.RMSync.prototype.run = function() {
 exports.RMSync.prototype._dhDaemonListener = function(message) {
     switch (message.event) {
         case 'INIT':
+            console.log('RMSync thread receive [INIT] event from DHDaemon')
             this.run();
             break;
         default:
@@ -70,7 +74,7 @@ exports.RMSync.prototype._dhDaemonListener = function(message) {
 exports.RMSync.prototype._dmUpdateReferenceModel = function(id, path) {
     parentPort.postMessage({
         event: 'UPDATE_REFERENCE_MODEL',
-        data: {id: id, path: path}
+        data: {path: path}
     });
 };
 
@@ -79,16 +83,18 @@ exports.RMSync.prototype._referenceModelSync = function(call, callback) {
     !fs.existsSync(__dirname+'/gitDB/') && fs.mkdirSync(__dirname+'/gitDB/');
     var targetFilePath = __dirname+'/gitDB/' + call.request.id;
     console.log("Server Side Received:" , call.request.id);
+    console.log('RMSync thread send [UPDATE_REFERENCE_MODEL] event to DHDaemon')
     fs.writeFile(targetFilePath, call.request.file, 'binary', function(err){
         if (err) throw err
         console.log('write end') });
-    callback(null, {result: call.request.id + 'Success'});
+    callback(null, {result: 'File Name [' + call.request.id + '] is succeed synchronization.'});
     rmSync._dmUpdateReferenceModel(call.request.id, targetFilePath)
 }
 exports.RMSync.prototype._requestRMSession = function() {
-    rmSync.rmSessionClient.RequestRMSession({'dh_id': 'fdfds', dh_ip: rmSync.dh_ip, dh_port: rmSync.rm_port}, (error, response) => {
+    rmSync.rmSessionClient.RequestRMSession({'dh_id': crypto.randomBytes(20).toString('hex'), dh_ip: rmSync.dh_ip, dh_port: rmSync.rm_port}, (error, response) => {
         if (!error) {
             console.log('Request RMSession Connection to RH-RMSessionManager');
+            console.log('Get response from RH-RMSessionManager');
             console.log(response);
         } else {
             console.error(error);

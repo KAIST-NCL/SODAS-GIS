@@ -44,7 +44,10 @@ exports.SessionRequester.prototype._smListener = function (message) {
             this.run();
             break;
         case 'START_SESSION_CONNECTION':
+            console.log('SessionRequester thread receive [START_SESSION_CONNECTION] event from SessionManager')
             console.log('[ ' + workerName + ' get message * START_SESSION_CONNECTION * ]');
+            console.log(message.data);
+
             this._snProcess(message.data);
             break;
         case 'GET_NEW_SESSION_INFO':
@@ -98,16 +101,17 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                     await sessionRequester.sessionNegotiationClient.RequestSessionNegotiation(
                         {session_desc: sessionRequester.my_session_desc, sn_options: sessionRequester.sn_options}, (error, response) => {
                             if (!error) {
-                                console.log('Request Session Negotiation to ' + node.port);
+                                console.log('SessionRequester send RequestSessionNegotiation to SessionListener with ' + node.port);
                                 if (response.status) {
                                     console.log('Session Negotiation Completed!!');
-                                    // todo: sn_result 로 수정해야됨
+                                    console.log('SessionRequester thread send [TRANSMIT_NEGOTIATION_RESULT] event to SessionManager')
                                     sessionRequester._smTransmitNegotiationResult(response.end_point, response.session_desc, response.sn_options)
                                     sessionRequester.my_session_desc.session_id = null;
                                     console.log(sessionRequester.my_session_desc.session_id)
+                                    console.log('SessionRequester send CheckNegotiation to SessionListener with ' + node.port);
                                     sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, end_point: sessionRequester.my_end_point}, (error, response) => {
                                         if (!error) {
-                                            console.log('Ack Session Negotiation to ' + node.port);
+                                            console.log('SessionRequester send AckSessionNegotiation to SessionListener with ' + node.port);
                                         } else {
                                             console.error(error);
                                         }

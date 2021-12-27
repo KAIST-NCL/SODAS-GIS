@@ -1,15 +1,9 @@
 syntax="proto3";
 package sessionNegotiation;
 
-// session_negotiation broker
 service SessionNegotiationBroker{
-
-  // request session negotiation to other data hub's session listener
   rpc RequestSessionNegotiation(RequestSN) returns (ResultSN) {}
-
-  // check negotiation info & send result to other data hub's session listener
   rpc AckSessionNegotiation(Ack) returns (Null) {}
-
 }
 
 message EndPoint {

@@ -35,7 +35,7 @@ exports.DHSearch = function(){
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.BSproto = this.protoDescriptor.bootstrap.BootstrapBroker;
     this.bootstrapClient = new this.BSproto(this.bootstrap_server_ip, grpc.credentials.createInsecure());
-    console.log('[SETTING] DHSearch is running with %s:%s', dh.getIpAddress(), this.ds_portNum);
+    console.log('[SETTING] DHSearch is running with %s:%s', this.ip, this.ds_portNum);
 
 };
 exports.DHSearch.prototype.run = function(){
@@ -51,8 +51,8 @@ exports.DHSearch.prototype._dhDaemonListener = function(message){
         case 'UPDATE_INTEREST_TOPIC':
             this.run()
             this.sync_interest_list = message.data.sync_interest_list;
+            console.log('DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DHDaemon');
             console.log(this.sync_interest_list);
-            // this._setInterestTopic()
             break;
         default:
             console.log('[ERROR] DH Daemon Listener Error ! event:', message.event);
@@ -83,10 +83,13 @@ exports.DHSearch.prototype._getSeedNode = function(seedNode) {
 exports.DHSearch.prototype._bootstrapProcess = async function() {
     await this._getSeedNode(this.seedNode).then((value => {
         dhSearch.seedNodeList = JSON.parse(JSON.stringify( value.nodes ));
+        console.log('DHSearch request seed node list info to bootstrap server')
+        console.log(value.nodes)
     }));
     return null;
 }
 exports.DHSearch.prototype._discoverProcess = async function() {
+    console.log('Start distributed search')
     for (var seedNodeIndex of this.seedNodeList) {
         var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port);
         // await new Promise((resolve, reject) => setTimeout(resolve, 2000));
