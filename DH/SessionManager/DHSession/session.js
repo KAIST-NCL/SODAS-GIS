@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const kafka = require('kafka-node');
+var kafka = require('kafka-node');
 const {parentPort, workerData} = require('worker_threads');
 const { publishVC, subscribeVC } = require('../../VersionControl/versionController')
 const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
@@ -15,7 +15,6 @@ const packageDefinition = protoLoader.loadSync(
         defaults: true,
         oneofs: true
     })
-
 const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
 const session = require(__dirname + '/session');
 
@@ -24,11 +23,11 @@ const session = require(__dirname + '/session');
 // workerData -> my_session_id, my_ip, my_portNum
 exports.Session = function() {
     console.log("*** Session Created");
-    console.log("WorkerData: " + workerData);
+    console.log("WorkerData: ");
+    console.log(workerData);
     console.log("***************");
     this.count_msg = 0;
-    this.kafkaClient = new kafka.KafkaClient();
-    this.kafkaproducer = new kafka.Producer(this.kafkaClient);
+
     this.pubvc_root = workerData.pubvc_root;
     // 루트 폴더 생성
     this.id = workerData.my_session_id;
@@ -41,7 +40,9 @@ exports.Session = function() {
     // gitDB 설정
     this.VC = new subscribeVC(this.rootDir+'/gitDB');
     this.VC.init();
-    this.flag = workerData.flag; // mutex flag
+    
+    // Mutex_Flag 준비 되면 주석 해제
+    this.flag = workerData.mutex_flag; // mutex flag
 
     // FirstCommit 반영
     this._reset_count(this.VC.returnFirstCommit(this.pubvc_root));
@@ -142,24 +143,32 @@ exports.Session.prototype.onMaxCount = async function() {
 
 exports.Session.prototype.extractGitDiff = async function(topublish) {
     // mutex 적용
-    if (this.flag == 1) {
+    if (this.flag[0] == 1) {
         // retry diff
         const timeOut = 100;
         setTimeout(this.extractGitDiff.bind(this), timeOut, topublish);
     }
     else {
         // mutex on
-        this.flag = 1;
+        this.flag[0] = 1;
         var diff_directories = ' --';
         for (var i = 0; i < this.sn_options.datamap_desc.sync_interest_list.length; i++) {
             diff_directories = diff_directories + ' ' + this.sn_options.datamap_desc.sync_interest_list[i];
         }
         var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
-        this.flag = 0;
+        this.flag[0] = 0;
         // mutex off
         console.log(git_diff);
         return git_diff;
     }
+    // var diff_directories = ' --';
+    // for (var i = 0; i < this.sn_options.datamap_desc.sync_interest_list.length; i++) {
+    //     diff_directories = diff_directories + ' ' + this.sn_options.datamap_desc.sync_interest_list[i];
+    // }
+    // var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
+    // // mutex off
+    // console.log(git_diff);
+    // return git_diff;
 }
 
 exports.Session.prototype._reset_count = function(last_commit) {
@@ -212,18 +221,20 @@ exports.Session.prototype.Publish = function(related, filepath, git_patch) {
 exports.Session.prototype.gitPatch = function(git_patch, self) {
     // git_pacth를 임시로 파일로 저장한다.
     var temp = self.rootDir + "/" + Math.random().toString(10).slice(2,3) + '.patch';
-    fs.writeFile(temp, git_patch, 'utf8', function(err) {
-        if (err) console.log("Error: ", err);
-        else {
-            self.VC.apply(temp);
-            // temp 파일 삭제
-            fs.existsSync(temp) && fs.unlink(temp, function (err) {
-                if (err) {
-                console.log("Error: ", err);
-                }
-            });
+    try {
+        fs.writeFileSync(temp, git_patch);
+    } catch (err) {
+        console.log("Error: ", err);
+        return 1;
+    }
+    self.VC.apply(temp);
+    // temp 파일 삭제
+    fs.existsSync(temp) && fs.unlink(temp, function (err) {
+        if (err) {
+            console.log("Error: ", err);
         }
     });
+    return 0;
 }
 
 // (3): Producer:asset 메시지 생성 및 전송
@@ -233,28 +244,41 @@ exports.Session.prototype.kafkaProducer = function(json_string, self) {
     var related_array = JSON.parse(json_string).related;
     var filepath_array = JSON.parse(json_string).filepath;
     // 보낼 메시지 내용 - operation, id, related, content.interest, content.reference_model
-    var payloads = [];
+    var payload_list = [];
     for (var i = 0; i < related_array.length; i++) {
         var temp = {
-            "operation": "UPDATE",
             "id": path.basename(filepath_array[i], '.asset'),
+            "operation": "UPDATE",
+            "type": "asset",
             "related": related_array[i],
-            "content": fs.readFileSync(filepath_array[i]).toString()
+            "content": fs.readFileSync(self.VC.vcRoot + '/' + filepath_array[i]).toString()
         }
-        payloads.push({
-            "topic": 'send.asset',
-            "message": JSON.stringify(temp)
-        });
+        payload_list.push(temp);
+        console.log("Payload added " + temp.id);
     }
-    console.log(" =========  Kafka Message  ==========")
-    console.log(payloads)
-    console.log(" ====================================")
+    
+    console.log('kafka Producer start');
 
-    self.kafkaproducer.on('ready', function() {
-        self.kafkaproducer.send(payloads, function(err, result) {
-            console.log(result);
-        });
+    var Producer = kafka.Producer;
+    var client = new kafka.KafkaClient();
+    var producer = new Producer(client);
+
+    producer.on('error', function(err) {
+        console.log("kafkaproducer error");
+        console.log(err);
+    })
+
+    producer.on('ready', function() {
+        for (var i=0; i < payload_list.length; i++) {
+            var payloads = [
+                { topic: 'send.asset', messages:JSON.stringify(payload_list[i])}
+            ];
+            producer.send(payloads, function(err, result) {
+                console.log(result);
+            });
+        }
     });
+    console.log('kafka Producer done');
 }
 
 // Publish 조건 충족 여부 확인 함수
