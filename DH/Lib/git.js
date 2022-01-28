@@ -42,13 +42,13 @@ class Git {
     }
 
     diff(comID1, comID2, diff_dir){
-        execSync('cd ' + this.gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir + ' >>  ../' + comID2 + '.patch', { stdio: 'ignore'});
+        execSync('cd ' + this.gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir + ' >>  ../' + comID2 + '.patch', { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 });
     }
 
     // 인자로 반드시 patch 파일의 이름, 패치할 대상을 넣는다.
     // 오버로딩 1. patch 파일의 이름만 들어온 경우 전체 패치를 진행한다.
     // 오버로딩 2. patch 파일 이름과 대상으 들어온 경우 해당 대상만 패치한다.
-    apply(patch_name, target){
+    apply(patch_name){
         // 적용 가능 여부 체크하고 싶을 시엔
         // var result = execSync('cd' + this.gitDIR_ + ' && git apply --check ' + patch_name).toString()
         // 위 코드 실행 후 result가 빈 string인지 확인하면 된다.
@@ -56,7 +56,7 @@ class Git {
             execSync('cd ' + this.gitDIR_ + ' && git apply '+ patch_name);
         }
         else if (arguments.length == 2) {
-            execSync('cd ' + this.gitDIR_ + ' && git apply --include ' + target + patch_name);
+            execSync('cd ' + this.gitDIR_ + ' && git apply --reject --whitespace=fix --3way ' + patch_name);
         }
         else {
             console.log("Error: # of Arguments must be either 1 or 2");
@@ -76,9 +76,7 @@ class Git {
     }
 
     editFile(filepath, content) {
-        fs.writeFile(filepath, content, 'utf8', function (error) {
-            if (error) console.log("Error: ", error);
-        });
+        fs.writeFileSync(filepath, content);
     }
 
     deleteFile(filepath) {
