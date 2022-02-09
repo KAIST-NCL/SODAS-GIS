@@ -16,10 +16,17 @@ exports.vcModule = function(){
     const gitDir = workerData.pubvc_root;
     const kafkaHost = workerData.kafkaHost; // update
     const options = workerData.kafka; // update
+
     this.smPort = workerData.sm_port;
     this.vc = new publishVC(gitDir, workerData.rmsync_root_dir);
     this.consumer = new vcConsumer(kafkaHost, options, this);
     this.flag = workerData.mutex_flag; // mutex flag
+
+    this.sync_time = 10;
+    this.last_commit_time = new Date().getTime();
+    this.count = 0; // kafka message receive count
+    this.timeOut = 1;
+
     var self = this;
     parentPort.on('message', message => {
         console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
@@ -50,21 +57,18 @@ exports.vcModule.prototype.run = function(){
 
 };
 
-exports.vcModule.prototype.commit = async function(self, filepath, commitmessage, message){
+exports.vcModule.prototype.commit = async function(self, commitmessage){
     // message양식 확인
-    var fp = self.vc.vcRoot + '/' + filepath;
-    await self.vc.commit(fp, commitmessage, self).then((commNum) => self.reportCommit(filepath, message.related, message.id, commNum));
+    var fp = self.vc.vcRoot + '/';
+    await self.vc.commit(fp, commitmessage, self).then((commNum) => self.reportCommit(commNum));
 };
 
-exports.vcModule.prototype.reportCommit = function(filepath, related, assetID, commitNumber){
+exports.vcModule.prototype.reportCommit = function(commitNumber){
     // TODO
     const msg = {
         event: 'UPDATE_PUB_ASSET',
         data: {
-            asset_id: assetID,
-            commit_number: commitNumber,
-            related: related,
-            filepath: filepath
+            commit_number: commitNumber
         }
     };
     this.smPort.postMessage(msg);
@@ -90,7 +94,17 @@ exports.vcModule.prototype.unlockMutex = function (self) {
     self.flag[0] = 0;
 }
 
+exports.vcModule.prototype.git_run = function (self) {
+    now = new Date().getTime();
+    if (self.count >= 1 && now - self.last_commit_time >= sync_time) {
+        self.count = 0;
+        self.commit(self, '', now.toString());
+        self.last_commit_time = now;
+    }
+    setTimeout(self.git_run, self.timeOut);
+}
 
 const VC = new vcModule.vcModule();
 VC.init();
 VC.run();
+setTimeout(VC.git_run, VC.timeOut);

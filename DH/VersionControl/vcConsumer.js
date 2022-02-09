@@ -22,10 +22,7 @@ class vcConsumer extends Consumer{
         //console.log('---------------------------------------------');
         const event = message_.operation;
         const filepath = self.VC.vc.rp.related_to_filepath(message_.related) + '/' + message_.id + '.asset';
-        self.VC.editFile(event, filepath, message_.contents).then(() => {
-            const commitMessage = message_.id;
-            self.VC.commit(self.VC, filepath, commitMessage, message_);
-        });
+        self.VC.editFile(event, filepath, message_.contents);
     }
 }
 

@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const diff_parser = require('../../Lib/diff_parser');
 var kafka = require('kafka-node');
 const {parentPort, workerData} = require('worker_threads');
-const { publishVC, subscribeVC } = require('../../VersionControl/versionController')
+const {subscribeVC } = require('../../VersionControl/versionController')
 const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
@@ -55,18 +56,7 @@ exports.Session = function() {
     this.server.addService(session_sync.SessionSync.service, {
         // (1): 외부 Session으로부터 Subscribe - 상대방이 자신의 id를 건네줄 것인데, 이를 자신이 갖고 있는 상대방의 id와 비교해서 맞을 때만 처리
         SessionComm: (call, callback) => {
-            console.log('Server: ' + self.id + ' gRPC Received: to ' + call.request.receiver_id);
-            // 상대가 보낸 session_id가 나의 일치할 때만 처리
-            if (call.request.receiver_id == self.id) {
-                console.log("Git Patch Start");
-                // git Patch 적용
-                var result = self.gitPatch(call.request.git_patch, self);
-                // ACK 전송
-                // 문제 없으면 0, 오류 사항은 차차 정의
-                callback(null, {transID: call.request.transID, result: result});
-                // 카프카 메시지 생성 및 전송
-                self.kafkaProducer(call.request.content, self);
-            }
+            self.Subscribe(self, call, callback);
         }
     });
 
@@ -118,11 +108,6 @@ exports.Session.prototype.prePublish = function(message) {
     var content = this.__read_dict();
     content.stored = content.stored + 1;
     content.commit_number.push(message.commit_number);
-    // 중복 확인 - filepath가 같으면 중복이다.
-    if (content.filepath.indexOf(message.filepath) == -1) {
-        content.related.push(message.related);
-        content.filepath.push(message.filepath);
-    }
     this.__save_dict(content);
     // 아래 조건 충족 시 Publsih를 실행한다.
     if (this.__check_MaxCount()) this.onMaxCount();
@@ -137,7 +122,7 @@ exports.Session.prototype.onMaxCount = async function() {
     // git diff 추출
     this.extractGitDiff(topublish).then((git_diff) => {
         // gRPC 전송 - kafka에 쓸 전체 related, git patch를 적용할 가장 큰 폴더 단위, git patch 파일 내용
-        this.Publish(topublish.related, topublish.filepath, git_diff);
+        this.Publish(git_diff);
     });
 }
 
@@ -161,14 +146,6 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
         console.log(git_diff);
         return git_diff;
     }
-    // var diff_directories = ' --';
-    // for (var i = 0; i < this.sn_options.datamap_desc.sync_interest_list.length; i++) {
-    //     diff_directories = diff_directories + ' ' + this.sn_options.datamap_desc.sync_interest_list[i];
-    // }
-    // var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
-    // // mutex off
-    // console.log(git_diff);
-    // return git_diff;
 }
 
 exports.Session.prototype._reset_count = function(last_commit) {
@@ -178,8 +155,6 @@ exports.Session.prototype._reset_count = function(last_commit) {
     const content = {
         stored: 0,
         commit_number: [],
-        related: [],
-        filepath: [],
         previous_last_commit: lc
     }
     this.__save_dict(content);
@@ -188,19 +163,11 @@ exports.Session.prototype._reset_count = function(last_commit) {
 // [5]: 외부 Session으로 Publish
 // gRPC 전송 전용 코드
 // target: Publish 받을 세션의 gRPC 서버 주소
-exports.Session.prototype.Publish = function(related, filepath, git_patch) {
+exports.Session.prototype.Publish = function(git_patch) {
     console.log("Publish");
-    // content 만들기. related와 filepath를 json으로 만들어 넣는다.
-    var temp = {
-        related: related,
-        filepath: filepath
-    };
-
-    var content = JSON.stringify(temp);
 
     // 보낼 내용 작성
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
-                  'content': content,
                   'git_patch': git_patch,
                   'receiver_id': this.session_desc.session_id
                 };
@@ -217,8 +184,23 @@ exports.Session.prototype.Publish = function(related, filepath, git_patch) {
     });
 }
 
+exports.Session.prototype.Subscribe = function(self, call, callback) {
+    console.log('Server: ' + self.id + ' gRPC Received: to ' + call.request.receiver_id);
+    // 상대가 보낸 session_id가 나의 일치할 때만 처리
+    if (call.request.receiver_id == self.id) {
+        console.log("Git Patch Start");
+        // git Patch 적용
+        var result = self.gitPatch(call.request.git_patch, self);
+        // ACK 전송
+        // 문제 없으면 0, 오류 사항은 차차 정의
+        callback(null, {transID: call.request.transID, result: result});
+        // 카프카 메시지 생성 및 전송
+        self.kafkaProducer(call.request.git_patch, self);
+    }
+}
+
 // (2): 받은 gRPC 메시지를 갖고 자체 gitDB에 패치 적용
-exports.Session.prototype.gitPatch = function(git_patch, self) {
+exports.Session.prototype.git = function(git_patch, self) {
     // git_pacth를 임시로 파일로 저장한다.
     var temp = self.rootDir + "/" + Math.random().toString(10).slice(2,3) + '.patch';
     try {
@@ -238,20 +220,22 @@ exports.Session.prototype.gitPatch = function(git_patch, self) {
 }
 
 // (3): Producer:asset 메시지 생성 및 전송
-exports.Session.prototype.kafkaProducer = function(json_string, self) {
-    console.log(json_string);
-    // message.content에 related, filepath 정보가 담겨있기에 json 파싱을 해야한다.
-    var related_array = JSON.parse(json_string).related;
-    var filepath_array = JSON.parse(json_string).filepath;
+exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
+    // get filepaths from the git_pacth
+    var filepath_list = diff_parser.parse_git_patch(git_pacth);
+
     // 보낼 메시지 내용 - operation, id, related, content.interest, content.reference_model
     var payload_list = [];
     for (var i = 0; i < related_array.length; i++) {
+        var filepath = filepath_list[i];
+        var related = diff_parser.file_path_to_related(filepath);
+
         var temp = {
-            "id": path.basename(filepath_array[i], '.asset'),
+            "id": path.basename(filepath, '.asset'),
             "operation": "UPDATE",
             "type": "asset",
-            "related": related_array[i],
-            "content": fs.readFileSync(self.VC.vcRoot + '/' + filepath_array[i]).toString()
+            "related": related,
+            "content": fs.readFileSync(self.VC.vcRoot + '/' + filepath).toString()
         }
         payload_list.push(temp);
         console.log("Payload added " + temp.id);
@@ -292,6 +276,9 @@ exports.Session.prototype.__check_MaxCount = function() {
     return false;
 }
 
+
+
+// Data Storing
 exports.Session.prototype.__save_dict = function(content) {
     const contentJSON = JSON.stringify(content);
     fs.writeFileSync(this.msg_storepath, contentJSON);

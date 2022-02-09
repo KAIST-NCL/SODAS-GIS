@@ -17,7 +17,7 @@ class Git {
             var commnum;
             await this._first_commit().then((commit_number)=> {
                 commnum = (' '+commit_number).slice(1);
-                console.log('Git repository is initialized & first commit is added')});
+            });
             return commnum;
         }
     }
@@ -37,7 +37,7 @@ class Git {
 
     async commit(filepath, message){
         await this.git.add([filepath]);
-        const comm =await this.git.commit(message);
+        const comm = await this.git.commit(message);
         return comm.commit;
     }
 
@@ -48,7 +48,7 @@ class Git {
     // 인자로 반드시 patch 파일의 이름, 패치할 대상을 넣는다.
     // 오버로딩 1. patch 파일의 이름만 들어온 경우 전체 패치를 진행한다.
     // 오버로딩 2. patch 파일 이름과 대상으 들어온 경우 해당 대상만 패치한다.
-    apply(patch_name){
+    apply(patch_name) {
         // 적용 가능 여부 체크하고 싶을 시엔
         // var result = execSync('cd' + this.gitDIR_ + ' && git apply --check ' + patch_name).toString()
         // 위 코드 실행 후 result가 빈 string인지 확인하면 된다.
