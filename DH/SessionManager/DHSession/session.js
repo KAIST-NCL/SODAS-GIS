@@ -23,10 +23,11 @@ exports.Session = function () {
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.sessSyncproto = this.protoDescriptor.SessionSync.SessionSyncBroker;
-    console.log('[SETTING] SessionManager Created');
+    console.log('[SETTING] Session Created');
     this.my_end_point = {}
     this.my_end_point.ip = workerData.my_ip;
     this.my_end_point.port = workerData.my_portNum;
+    this.session_id = workerData.my_session_id;
     console.log(workerData.my_session_id + ' / ' + workerData.my_portNum)
 }
 
@@ -86,12 +87,12 @@ exports.Session.prototype.SMListener = function (message) {
     switch (message.event) {
         // S-Worker 초기화 event
         case 'INIT':
-            console.log('<--------------- [ ' + workerName + ' get message * INIT * ] --------------->')
+            console.log('[ ' + session.session_id + ' get message * INIT * ]')
             break;
 
         //
         case 'START_GRPC_SERVER':
-            console.log('<--------------- [ ' + workerName + ' get message * START_GRPC_SERVER * ] --------------->')
+            console.log('[ ' + session.session_id + ' get message * START_GRPC_SERVER * ]')
             server.bindAsync(port, grpc.ServerCredentials.createInsecure(), () => {
                 console.log(workerName + '`s gRPC server is now working on ' + port + '!!!')
                 server.start();
@@ -100,16 +101,11 @@ exports.Session.prototype.SMListener = function (message) {
 
         //
         case 'TRANSMIT_NEGOTIATION_RESULT':
-            console.log('<--------------- [ ' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ] --------------->')
+            console.log('Session thread receive [TRANSMIT_NEGOTIATION_RESULT] event from SessionManager')
+            console.log('[ ' + session.session_id + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]')
             console.log(message.data)
-            console.log(session.my_end_point)
             break;
 
-
-        // event handler messageChannel port 전송 받아서, 객체 저장
-        case 'GET_EVENT_HANDLER_MESSAGECHANNEL_PORT':
-            // eventHandler 객체
-            break;
     }
 }
 

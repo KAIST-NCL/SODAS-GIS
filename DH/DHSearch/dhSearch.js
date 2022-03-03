@@ -69,7 +69,7 @@ exports.DHSearch.prototype._dmUpdateBucketList = function(){
 };
 
 /* gRPC methods */
-exports.DHSearch.prototype._getSeedNode = function(seedNode) {
+exports.DHSearch.prototype.getSeedNode = function(seedNode) {
     var promise = new Promise((resolve, reject) => dhSearch.bootstrapClient.GetSeedNodeList(seedNode, function(err, response) {
         if(err) {
             return reject(err)
@@ -81,7 +81,7 @@ exports.DHSearch.prototype._getSeedNode = function(seedNode) {
 
 /* DHSearch methods */
 exports.DHSearch.prototype._bootstrapProcess = async function() {
-    await this._getSeedNode(this.seedNode).then((value => {
+    await this.getSeedNode(this.seedNode).then((value => {
         dhSearch.seedNodeList = JSON.parse(JSON.stringify( value.nodes ));
         console.log('DHSearch request seed node list info to bootstrap server')
         console.log(value.nodes)
