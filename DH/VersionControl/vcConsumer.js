@@ -1,30 +1,28 @@
 const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
 
+// NodeJS에서 extends는 상속하는데 사용한다
 class vcConsumer extends Consumer{
     constructor(kafkaHost, options, VC) {
-        const topics = [ {topic:'recv.dmap', partitions:0} ];
-        super(kafkaHost, topics, options);
-        this.VC = VC;
+        const topics = [ {topic:'recv.asset', partitions:0} ];
+        super(kafkaHost, topics, options); // 부모 생성자 호출
+        this.VC = VC; // vcModule
     }
     run(){
         console.log('[RUNNING] kafka consumer for VC is running');
         const that = this;
-        this.consumer.on('message', this.handler);
-
+        this.consumer.on('message', function(message) {
+            that.handler(message, that);
+        });
     }
-    handler(message){
+    handler(message, self){
         // TODO
-        const event = message.event;
-        switch(event){
-            case 'UPDATE':
-                // file write
-                const commitNum = this.VC.commit(filepath, message);
-                this.VC.reportCommit(filepath, assetID, commitNum);
-                break;
-            case 'DELETE':
-                break;
-
-        }
+        console.log('---- vcConsumer: Kafka Message Received ----');
+        const message_ = JSON.parse(message.value);
+        //console.log(message_);
+        //console.log('---------------------------------------------');
+        const event = message_.operation;
+        const filepath = self.VC.vc.rp.related_to_filepath(message_.related) + '/' + message_.id + '.asset';
+        self.VC.editFile(event, filepath, message_.contents);
     }
 }
 

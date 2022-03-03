@@ -3,8 +3,8 @@
   "operation": "UPDATE",
   "type": "asset",
   "related": {
-    "domain": "DO1",
-    "taxonomy": "TX1",
+    "domain": "domain01",
+    "taxonomy": "taxonomy001",
     "category": [
       "CA1"
     ]
