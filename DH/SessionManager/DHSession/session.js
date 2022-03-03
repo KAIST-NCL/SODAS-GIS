@@ -91,8 +91,6 @@ exports.Session = function() {
     });
 }
 
-}
-
 /// [4]: hanldes the msg from Session Manager
 exports.Session.prototype.prePublish = function(message) {
     // message로 전달받은 내용을 갖고 파일 작성 및 저장
