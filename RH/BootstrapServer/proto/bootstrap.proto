@@ -1,15 +1,9 @@
 syntax="proto3";
 package bootstrap;
 
-// bootstrap broker
 service BootstrapBroker{
-
-  // enroll node info.
   rpc SetSeedNode(Node) returns (Reply) {}
-
-  // return seed node list
   rpc GetSeedNodeList(Node) returns (SeedNodeList) {}
-
 }
 
 message Node {
@@ -25,7 +19,4 @@ message SeedNodeList {
 message Reply {
   bool status = 1;
   string message = 2;
-}
-
-message Null {
 }

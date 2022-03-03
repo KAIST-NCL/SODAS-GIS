@@ -91,12 +91,6 @@ exports.Session = function() {
     });
 }
 
-// Initiate Session
-exports.Session.prototype._init = function() {
-    const addr = this.ip+':'+this.my_port;
-    this.server.bindAsync(addr, grpc.ServerCredentials.createInsecure(), ()=> {
-        this.server.start();
-    });
 }
 
 /// [4]: hanldes the msg from Session Manager
@@ -201,18 +195,6 @@ exports.Session.prototype.Subscribe = function(self, call, callback) {
         callback(null, {transID: call.request.transID, result: result});
         // 카프카 메시지 생성 및 전송
         self.kafkaProducer(call.request.git_patch, self);
-    }
-}
-
-// (2): 받은 gRPC 메시지를 갖고 자체 gitDB에 패치 적용
-exports.Session.prototype.git = function(git_patch, self) {
-    // git_pacth를 임시로 파일로 저장한다.
-    var temp = self.rootDir + "/" + Math.random().toString(10).slice(2,3) + '.patch';
-    try {
-        fs.writeFileSync(temp, git_patch);
-    } catch (err) {
-        console.log("Error: ", err);
-        return 1;
     }
     self.VC.apply(temp);
     // temp 파일 삭제

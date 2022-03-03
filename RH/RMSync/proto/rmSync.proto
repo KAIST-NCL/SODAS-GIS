@@ -3,9 +3,7 @@ syntax = 'proto3';
 package RMSync;
 
 service RMSyncBroker {
-
   rpc ReferenceModelSync (ReferenceModelInfo) returns (AckMessage);
-
 }
 
 message ReferenceModelInfo {

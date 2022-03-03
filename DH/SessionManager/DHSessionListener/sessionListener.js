@@ -105,6 +105,7 @@ exports.SessionListener.prototype._ackSN = function (call, callback) {
     console.log(result);
     sessionListener.other_end_point = result.end_point;
 
+    console.log('SessionListener thread send [TRANSMIT_NEGOTIATION_RESULT] event to SessionManager')
     sessionListener._smTransmitNegotiationResult(sessionListener.other_end_point, sessionListener.other_session_desc, sessionListener.session_result);
     sessionListener.my_session_desc.session_id = null;
     console.log(sessionListener.my_session_desc.session_id)
