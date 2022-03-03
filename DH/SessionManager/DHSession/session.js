@@ -45,8 +45,8 @@ exports.Session = function() {
     // Mutex_Flag 준비 되면 주석 해제
     this.flag = workerData.mutex_flag; // mutex flag
 
-    // FirstCommit 반영
-    this._reset_count(this.VC.returnFirstCommit(this.pubvc_root));
+    // FirstCommit 반영 Change Log -> added self as argument to returnFirstCommit
+    this._reset_count(this.VC.returnFirstCommit(this.VC, this.pubvc_root));
 
     // gRPC 서버 시작
     this.ip = workerData.my_ip;
@@ -99,12 +99,11 @@ exports.Session.prototype._init = function() {
     });
 }
 
-// [4]: SM으로부터 메시지 받아 처리하는 코드
-// 해야할 일: 절대 경로로부터 git diff 추출해내기
-// 해야할 일: SM으로부터 현재 받고 있는 메시지의 카운트를 세서 일정 카운트마다 [5] 실시
-// 해야할 일: SM으로부터 받고 있는 commit 번호 파일로 저장하기
+/// [4]: hanldes the msg from Session Manager
 exports.Session.prototype.prePublish = function(message) {
     // message로 전달받은 내용을 갖고 파일 작성 및 저장
+    // change log: Now only the commit number is needed
+    // ToDo: Rather than calling this function whenever receiving the thread call from SM, call this function just like the vcModule calls commit function
     var content = this.__read_dict();
     content.stored = content.stored + 1;
     content.commit_number.push(message.commit_number);
@@ -113,6 +112,7 @@ exports.Session.prototype.prePublish = function(message) {
     if (this.__check_MaxCount()) this.onMaxCount();
 }
 
+/// If the count / sync time reaches some point, extract the git diff and publish it to other session
 exports.Session.prototype.onMaxCount = async function() {
     this.count_msg = 0;
     console.log("onMaxCount");
@@ -126,6 +126,7 @@ exports.Session.prototype.onMaxCount = async function() {
     });
 }
 
+/// To extract git diff using two git commit numbers
 exports.Session.prototype.extractGitDiff = async function(topublish) {
     // mutex 적용
     if (this.flag[0] == 1) {
@@ -148,6 +149,7 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
     }
 }
 
+/// Reset count after publish
 exports.Session.prototype._reset_count = function(last_commit) {
     this.count_msg = 0;
     var lc = (typeof last_commit  === 'undefined') ? "" : last_commit;
@@ -165,6 +167,7 @@ exports.Session.prototype._reset_count = function(last_commit) {
 // target: Publish 받을 세션의 gRPC 서버 주소
 exports.Session.prototype.Publish = function(git_patch) {
     console.log("Publish");
+    // Change Log -> Now, does not send the related and filepath information through the gRPC. Subscriber extracts that information from git diff file
 
     // 보낼 내용 작성
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
@@ -184,6 +187,8 @@ exports.Session.prototype.Publish = function(git_patch) {
     });
 }
 
+/// (1): Subscribe from the other session
+// Change Log -> seperated from the constructor as an function
 exports.Session.prototype.Subscribe = function(self, call, callback) {
     console.log('Server: ' + self.id + ' gRPC Received: to ' + call.request.receiver_id);
     // 상대가 보낸 session_id가 나의 일치할 때만 처리
@@ -221,6 +226,9 @@ exports.Session.prototype.git = function(git_patch, self) {
 
 // (3): Producer:asset 메시지 생성 및 전송
 exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
+    // Change Log -> previous argument was {related, filepath} as json_string format. Now git diff
+    // Change Log -> Extract the filepath and related information from the git diff string
+
     // get filepaths from the git_pacth
     var filepath_list = diff_parser.parse_git_patch(git_pacth);
 
@@ -275,8 +283,6 @@ exports.Session.prototype.__check_MaxCount = function() {
     // 그 외에는 전부 false
     return false;
 }
-
-
 
 // Data Storing
 exports.Session.prototype.__save_dict = function(content) {

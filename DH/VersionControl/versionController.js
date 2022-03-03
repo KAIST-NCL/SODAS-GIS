@@ -23,12 +23,13 @@ class VC {
         return value;
     }
 
-    addReferenceModel(ReferenceModel) {
-        this.rp.addReferenceModel(ReferenceModel);
+    // Change Log -> Below two functions need self as new argument
+    addReferenceModel(self, ReferenceModel) {
+        self.rp.addReferenceModel(ReferenceModel);
     }
 
-    returnFirstCommit(dir) {
-        return this.git.getInitCommit(dir);
+    returnFirstCommit(self, dir) {
+        return self.git.getInitCommit(dir);
     }
 }
 
