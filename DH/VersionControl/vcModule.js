@@ -22,10 +22,14 @@ exports.vcModule = function(){
     this.consumer = new vcConsumer(kafkaHost, options, this);
     this.flag = workerData.mutex_flag; // mutex flag
 
-    this.sync_time = 10;
     this.last_commit_time = new Date().getTime();
     this.count = 0; // kafka message receive count
-    this.timeOut = 1;
+
+    // Change Log - > new value timeOut, sync_time has been added.
+    // timeOut => used in setTimeOut. Period to check whether there is anything to commit
+    // sync_time => commit period
+    this.timeOut = workerData.commit_period.timeOut;
+    this.sync_time = workerData.commit_period.period;
 
     var self = this;
     parentPort.on('message', message => {
@@ -35,7 +39,8 @@ exports.vcModule = function(){
         console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
         switch(message.event) {
             case 'UPDATE_REFERENCE_MODEL':
-                self.vc.addReferenceModel(message.data);
+                // Change Log -> added self as argument of addReferenceModel
+                self.vc.addReferenceModel(self.vc, message.data);
         }
     });
 };
@@ -64,7 +69,7 @@ exports.vcModule.prototype.commit = async function(self, commitmessage){
 };
 
 exports.vcModule.prototype.reportCommit = function(commitNumber){
-    // TODO
+    // Change Log - > data part has decreased
     const msg = {
         event: 'UPDATE_PUB_ASSET',
         data: {
