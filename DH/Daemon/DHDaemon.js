@@ -43,8 +43,10 @@ exports.DHDaemon = function(){
 };
 exports.DHDaemon.prototype.init = async function(){
     // create kafka topic if doesn't exist
-    await this.ctrlProducer.createCtrlTopics();
-    this.ctrlConsumer = new ctrlConsumer(this.kafka, this.kafka_options, this, this.conf);
+    self = this;
+    await this.ctrlProducer.createCtrlTopics().then(() => {
+        self.ctrlConsumer = new ctrlConsumer(self.kafka, self.kafka_options, self, self.conf);
+    });
 };
 exports.DHDaemon.prototype.run = function(){
 
