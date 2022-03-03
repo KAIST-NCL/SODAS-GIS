@@ -30,13 +30,16 @@ exports.RMSession = function () {
 exports.RMSession.prototype._referenceModelSync = function () {
     let referenceModelDir = __dirname+'/reference-model/domain'
 
+    console.log('RMSession is gRPC connect with %s', this.dh_rm_sync_ip);
+    console.log('RMSession send RM file [%s] to %s', 'domain01.rdf', this.dh_rm_sync_ip);
+
     fs.readFile( referenceModelDir + '/domain01.rdf' , (err, data) => {
         if (err) throw err
         rmSession.rmSyncClient.ReferenceModelSync({
                 id: 'domain01.rdf',
                 file: data
             }, (err, response) => {
-                console.log('Received Message:', response);
+                console.log('Received Message:', response.result);
             })
     })
 }

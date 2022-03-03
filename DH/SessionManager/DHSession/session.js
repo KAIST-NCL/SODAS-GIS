@@ -7,96 +7,32 @@ const {subscribeVC } = require('../../VersionControl/versionController')
 const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
-const execSync = require('child_process').execSync;
-const packageDefinition = protoLoader.loadSync(
-    PROTO_PATH,
-    {keepCase: true,
-        longs: String,
-        enums: String,
-        defaults: true,
-        oneofs: true
-    })
-const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
-const session = require(__dirname + '/session');
+const fs = require('fs')
 
+let workerName = 'Session';
+let port;
 
-// Constructor
-// workerData -> my_session_id, my_ip, my_portNum
-exports.Session = function() {
-    console.log("*** Session Created");
-    console.log("WorkerData: ");
-    console.log(workerData);
-    console.log("***************");
-    this.count_msg = 0;
+exports.Session = function () {
 
-    this.pubvc_root = workerData.pubvc_root;
-    // 루트 폴더 생성
-    this.id = workerData.my_session_id;
-    this.rootDir = workerData.subvc_root+'/'+this.id;
-    !fs.existsSync(this.rootDir) && fs.mkdirSync(this.rootDir);
+    parentPort.on('message', this.SMListener);
 
-    // 쓰레드 간 메시지 관련
-    this.msg_storepath = this.rootDir+'/msgStore.json'
+    const packageDefinition = protoLoader.loadSync(
+        PROTO_PATH,{
+            keepCase: true,
+            longs: String,
+            enums: String,
+            defaults: true,
+            oneofs: true
+        });
+    this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
+    this.sessSyncproto = this.protoDescriptor.SessionSync.SessionSyncBroker;
+    console.log('[SETTING] Session Created');
+    this.my_end_point = {}
+    this.my_end_point.ip = workerData.my_ip;
+    this.my_end_point.port = workerData.my_portNum;
+    this.session_id = workerData.my_session_id;
+    console.log(workerData.my_session_id + ' / ' + workerData.my_portNum)
 
-    // gitDB 설정
-    this.VC = new subscribeVC(this.rootDir+'/gitDB');
-    this.VC.init();
-    
-    // Mutex_Flag 준비 되면 주석 해제
-    this.flag = workerData.mutex_flag; // mutex flag
-
-    // FirstCommit 반영
-    this._reset_count(this.VC.returnFirstCommit(this.pubvc_root));
-
-    // gRPC 서버 시작
-    this.ip = workerData.my_ip;
-    this.my_port = workerData.my_portNum;
-    this.server = new grpc.Server();
-    var self = this;
-    this.server.addService(session_sync.SessionSync.service, {
-        // (1): 외부 Session으로부터 Subscribe - 상대방이 자신의 id를 건네줄 것인데, 이를 자신이 갖고 있는 상대방의 id와 비교해서 맞을 때만 처리
-        SessionComm: (call, callback) => {
-            self.Subscribe(self, call, callback);
-        }
-    });
-
-    // parentPort, 즉 자신을 생성한 SM으로부터 메시지를 받아 처리하는 함수.
-    parentPort.on('message', message => {
-        console.log("**** Session ID: " + this.id + " Received Thread Msg ###");
-        console.log(message);
-        console.log("********************************************")
-        switch(message.event) {
-            // Session 실행 시 SM으로부터 받아오는 값
-            case 'INIT':
-                this._init();
-                break;
-            // 연결될 상대방 Session 정보
-            case 'TRANSMIT_NEGOTIATION_RESULT':
-                // 처음 연동일 때에 sync_interest_list를 참조해서 상대방에 gitDB Publish를 한다.
-                this.target = message.data.end_point.ip + ':' + message.data.end_point.port;
-                console.log('Target:' + this.target);
-                // gRPC 클라이언트 생성
-                this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
-                this.session_desc = message.data.session_desc;
-                this.sn_options = message.data.sn_options; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
-                break;
-            // Publish할 내용을 받아온다.
-            case 'UPDATE_PUB_ASSET':
-                // asset_id, commit_number, related, filepath
-                // 우선 메시지 수신 시 카운트를 센다.
-                this.count_msg += 1;
-                this.prePublish(message.data);
-                break;
-        }
-    });
-}
-
-// Initiate Session
-exports.Session.prototype._init = function() {
-    const addr = this.ip+':'+this.my_port;
-    this.server.bindAsync(addr, grpc.ServerCredentials.createInsecure(), ()=> {
-        this.server.start();
-    });
 }
 
 // [4]: SM으로부터 메시지 받아 처리하는 코드
@@ -160,54 +96,30 @@ exports.Session.prototype._reset_count = function(last_commit) {
     this.__save_dict(content);
 }
 
-// [5]: 외부 Session으로 Publish
-// gRPC 전송 전용 코드
-// target: Publish 받을 세션의 gRPC 서버 주소
-exports.Session.prototype.Publish = function(git_patch) {
-    console.log("Publish");
+// [SessionManager -> Session]
+exports.Session.prototype.SMListener = function (message) {
+    switch (message.event) {
+        // S-Worker 초기화 event
+        case 'INIT':
+            console.log('[ ' + session.session_id + ' get message * INIT * ]')
+            break;
 
-    // 보낼 내용 작성
-    var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
-                  'git_patch': git_patch,
-                  'receiver_id': this.session_desc.session_id
-                };
+        //
+        case 'START_GRPC_SERVER':
+            console.log('[ ' + session.session_id + ' get message * START_GRPC_SERVER * ]')
+            server.bindAsync(port, grpc.ServerCredentials.createInsecure(), () => {
+                console.log(workerName + '`s gRPC server is now working on ' + port + '!!!')
+                server.start();
+            });
+            break;
 
-    // gRPC 전송
-    this.grpc_client.SessionComm(toSend, function(err, response) {
-        if (err) throw err;
-        if (response.transID = toSend.transID && response.result == 0) {
-            console.log("Publish Communicateion Successfull");
-        }
-        else {
-            console.log("Error on Publish Communication");
-        }
-    });
-}
+        //
+        case 'TRANSMIT_NEGOTIATION_RESULT':
+            console.log('Session thread receive [TRANSMIT_NEGOTIATION_RESULT] event from SessionManager')
+            console.log('[ ' + session.session_id + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]')
+            console.log(message.data)
+            break;
 
-exports.Session.prototype.Subscribe = function(self, call, callback) {
-    console.log('Server: ' + self.id + ' gRPC Received: to ' + call.request.receiver_id);
-    // 상대가 보낸 session_id가 나의 일치할 때만 처리
-    if (call.request.receiver_id == self.id) {
-        console.log("Git Patch Start");
-        // git Patch 적용
-        var result = self.gitPatch(call.request.git_patch, self);
-        // ACK 전송
-        // 문제 없으면 0, 오류 사항은 차차 정의
-        callback(null, {transID: call.request.transID, result: result});
-        // 카프카 메시지 생성 및 전송
-        self.kafkaProducer(call.request.git_patch, self);
-    }
-}
-
-// (2): 받은 gRPC 메시지를 갖고 자체 gitDB에 패치 적용
-exports.Session.prototype.git = function(git_patch, self) {
-    // git_pacth를 임시로 파일로 저장한다.
-    var temp = self.rootDir + "/" + Math.random().toString(10).slice(2,3) + '.patch';
-    try {
-        fs.writeFileSync(temp, git_patch);
-    } catch (err) {
-        console.log("Error: ", err);
-        return 1;
     }
     self.VC.apply(temp);
     // temp 파일 삭제
