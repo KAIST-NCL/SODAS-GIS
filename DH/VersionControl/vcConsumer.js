@@ -25,6 +25,7 @@ class vcConsumer extends Consumer{
         // Changed Logs - > Previous: editFile and then commit right away
         // Changed Logs - > Now: editFile only. Commit is done with some period
         self.VC.editFile(event, filepath, message_.contents);
+        self.VC.count = self.VC.count + 1;
     }
 }
 

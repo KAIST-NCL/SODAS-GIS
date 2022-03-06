@@ -91,6 +91,14 @@ exports.Session = function() {
     });
 }
 
+// Initiate Session
+exports.Session.prototype._init = function() {
+    const addr = this.ip+':'+this.my_port;
+    this.server.bindAsync(addr, grpc.ServerCredentials.createInsecure(), ()=> {
+        this.server.start();
+    });
+}
+
 /// [4]: hanldes the msg from Session Manager
 exports.Session.prototype.prePublish = function(message) {
     // message로 전달받은 내용을 갖고 파일 작성 및 저장

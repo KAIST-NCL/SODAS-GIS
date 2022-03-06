@@ -16,7 +16,8 @@ class TestvcConsumer {
         this.kafka_options = this.conf.get('Kafka', 'options');
         // vcConsumer 생성
         var self = this;
-        this.vc=new publishVC('/pubvc',__dirname+'/../../../rdf_files/reference-model/domain-version'); 
+        this.vc=new publishVC('./pubvc',__dirname+'/../../../rdf_files/reference-model/domain-version'); 
+        this.vc.init().then((commit_number) => this.vc.addReferenceModel(this.vc, 'domainVersion00.rdf'));
         this.vcConsumer = new vcConsumer(this.kafka, this.kafka_options, self);
     }
 

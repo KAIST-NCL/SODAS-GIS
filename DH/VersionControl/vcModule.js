@@ -3,6 +3,8 @@ const { parentPort, workerData } = require('worker_threads');
 const { publishVC } = require(__dirname + '/versionController');
 const { vcConsumer } = require(__dirname+'/vcConsumer');
 const vcModule = require(__dirname+'/vcModule');
+const diff_parser = require(__dirname+'/../Lib/diff_parser');
+const execSync = require('child_process').execSync;
 
 //
 exports.vcModule = function(){
@@ -48,6 +50,7 @@ exports.vcModule = function(){
 
 exports.vcModule.prototype.init = async function(){
     var self = this;
+    this.unlockMutex(self);
     await this.vc.init().then((commit_number) => {
         console.log("initiation done ()()()()()()()");
         console.log(commit_number);
@@ -62,21 +65,29 @@ exports.vcModule.prototype.run = function(){
 
 };
 
-exports.vcModule.prototype.commit = async function(self, commitmessage){
+exports.vcModule.prototype.commit = async function(self, message){
     // message양식 확인
-    var fp = self.vc.vcRoot + '/';
-    await self.vc.commit(fp, commitmessage, self).then((commNum) => self.reportCommit(commNum));
+    var fp = self.vc.vcRoot + '/';  
+    var commNum = await self.vc.commit(fp, message, self, self.reportCommit);
 };
 
-exports.vcModule.prototype.reportCommit = function(commitNumber){
+exports.vcModule.prototype.reportCommit = function(self, commitNumber){
     // Change Log - > data part has decreased
+
+    // Change Log - > filepath extraction using git show add
+    const stdout = execSync('cd ' + self.vc.vcRoot + ' && git show ' + commitNumber);
+    filepath_list = diff_parser.parse_git_patch(stdout.toString());
+
     const msg = {
         event: 'UPDATE_PUB_ASSET',
         data: {
-            commit_number: commitNumber
+            commit_number: commitNumber,
+            filepath: filepath_list
         }
     };
     this.smPort.postMessage(msg);
+    console.log("*&*&*&*& - Sent Message: ");
+    console.log(msg);
 };
 
 exports.vcModule.prototype.editFile = async function(option, filepath, content) {
@@ -101,15 +112,16 @@ exports.vcModule.prototype.unlockMutex = function (self) {
 
 exports.vcModule.prototype.git_run = function (self) {
     now = new Date().getTime();
-    if (self.count >= 1 && now - self.last_commit_time >= sync_time) {
+    if (self.count >= 1 && now - self.last_commit_time >= self.sync_time) {
+        console.log('Commit');
         self.count = 0;
-        self.commit(self, '', now.toString());
+        self.commit(self, now.toString());
         self.last_commit_time = now;
     }
-    setTimeout(self.git_run, self.timeOut);
+    setTimeout(self.git_run, self.timeOut, self);
 }
 
 const VC = new vcModule.vcModule();
 VC.init();
 VC.run();
-setTimeout(VC.git_run, VC.timeOut);
+VC.git_run(VC);

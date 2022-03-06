@@ -24,7 +24,7 @@ class ref_parser {
         // List가 입력되면 Concat
         var self = this;
         if (typeof ReferenceModel === 'object') {
-            console.log("list");
+            // console.log("list");
             ReferenceModel.forEach((element) => {
                 console.log(this.refRootdir + '/' + element);
                 self._createReferenceDir(this.refRootdir + '/' + element);
@@ -32,11 +32,11 @@ class ref_parser {
         }
         // String이 입력되면 추가
         else if (typeof ReferenceModel === 'string') {
-            console.log(this.refRootdir + '/' + ReferenceModel);
+            // console.log(this.refRootdir + '/' + ReferenceModel);
             this._createReferenceDir(this.refRootdir + '/' + ReferenceModel);
         }
         else {
-            console.log("Error on Input Type");
+            // console.log("Error on Input Type");
         }
     }
 

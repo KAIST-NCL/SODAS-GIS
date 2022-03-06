@@ -23,7 +23,15 @@ class DHDaemon {
     }
 
     init() {
-        const vcParam = {'sm_port': this.msgChn.port1, 'pubvc_root': this.pubvc_root, 'rmsync_root_dir': this.rmsync_root_dir, 'kafka': this.kafka, 'kafka_options': this.kafka_options, 'mutex_flag': mutex_flag};
+        const vcParam = {'sm_port': this.msgChn.port1, 
+                         'pubvc_root': this.pubvc_root, 
+                         'rmsync_root_dir': this.rmsync_root_dir, 
+                         'kafka': this.kafka, 
+                         'kafka_options': this.kafka_options, 
+                         'mutex_flag': mutex_flag, 
+                         'commit_period': {'timeOut': 5,
+                                           'period': 10}
+                        };
         this.VC = new Worker('../../../VersionControl/vcModule.js', { workerData: vcParam, transferList: [this.msgChn.port1]});
     }
 
