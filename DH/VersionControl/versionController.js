@@ -38,12 +38,12 @@ class publishVC extends VC{
     constructor(gitDir, refRootdir) {
         super(gitDir, refRootdir);
     }
-    async commit(filepath, message, vm, reportCommit){
+    async commit(filepath, message, vm){
         // Flag가 0이면 열린 상태, 1이면 잠긴 상태
         if(vm.flag[0] == 1){
             // retry commit
             const timeOut = 100;
-            setTimeout(this.commit.bind(this), timeOut, filepath, message);
+            setTimeout(this.commit.bind(this), timeOut, filepath, message, vm);
         }else{
             // MUTEX ON
             vm.lockMutex(vm);
@@ -53,7 +53,7 @@ class publishVC extends VC{
             // MUTEX OFF
             vm.unlockMutex(vm);
             console.log('[PublishVC Event]: ' + message + ' - Mutex unlock');
-            reportCommit(vm, commitNum);
+            vm.reportCommit(vm, commitNum);
         }
     }
 }
