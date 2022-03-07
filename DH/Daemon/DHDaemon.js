@@ -11,7 +11,6 @@ exports.DHDaemon = function(){
     this.name = this.conf.get('Daemon', 'name');
     this.dm_ip = this.conf.get('Daemon', 'ip');
     this.dm_portNum = this.conf.get('Daemon', 'portNum');
-    this.commit_period = this.conf.get('Daemon', 'commit_period');
     this.ds_portNum = this.conf.get('DHSearch', 'portNum');
     this.rm_portNum = this.conf.get('RMSync', 'portNum');
     this.rmSync_rootDir = this.conf.get('RMSync', 'rmSyncRootDir');
@@ -34,6 +33,10 @@ exports.DHDaemon = function(){
         sync_count: this.sync_count,
         transfer_interface: this.transfer_interface
     };
+    this.pubvc_root = this.conf.get('VersionControl', 'pubvc_root');
+    this.subvc_root = this.conf.get('VersionControl', 'subvc_root');
+    this.commit_period = this.conf.get('VersionControl', 'commit_period');
+
     process.env.DH_HOME = this.conf.get('ENV', 'DH_HOME');
     debug('[SETTING] DataHub daemon is running with %s:%s', this.dm_ip, this.dm_portNum);
     this.ctrlProducer = new ctrlProducer(this.kafka);
@@ -62,8 +65,8 @@ exports.DHDaemon.prototype.run = function(){
     // setEnvironmentData
     const dmServerParam = {'dm_ip': this.dm_ip, 'dm_portNum': this.dm_portNum, 'name': this.name};
     const dhSearchParam = {'dm_ip': this.dm_ip, 'ds_portNum': this.ds_portNum, 'sl_portNum': this.sl_portNum, 'bootstrap_ip': this.bs_ip, 'bootstrap_portNum': this.bs_portNum};
-    const vcParam = {'sm_port': msgChn.port1, 'rmsync_root_dir': this.rmsync_root_dir, 'kafka': this.kafka, 'kafka_options': this.kafka_options, 'commit_period': this.commit_period, 'mutex_flag': mutex_flag};
-    const smParam = {'vc_port': msgChn.port2, 'dm_ip': this.dm_ip, 'sl_port': this.sl_portNum, 'sn_options':this.sn_options};
+    const vcParam = {'sm_port': msgChn.port1, 'rmsync_root_dir': this.rmsync_root_dir, 'kafka': this.kafka, 'kafka_options': this.kafka_options, 'pubvc_root': this.pubvc_root, 'commit_period': this.commit_period, 'mutex_flag': mutex_flag};
+    const smParam = {'vc_port': msgChn.port2, 'dm_ip': this.dm_ip, 'sl_port': this.sl_portNum, 'sn_options':this.sn_options, 'pubvc_root': this.pubvc_root, 'subvc_root': this.subvc_root, 'mutex_flag': mutex_flag};
     const rmSyncParam = {'dm_ip': this.dm_ip, 'rm_port': this.rm_portNum, 'rh_ip': this.rh_ip, 'rh_portNum': this.rh_portNum, 'rymsync_root_dir': this.rmSync_rootDir};
 
     // run daemonServer
