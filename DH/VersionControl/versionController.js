@@ -50,12 +50,12 @@ class publishVC extends VC{
         }else{
             // MUTEX ON
             vm.lockMutex(vm);
-            console.log('[PublishVC Event]: ' + message + ' - bind because of Mutex');
+            debug('[PublishVC Event]: ' + message + ' - bind because of Mutex');
             var commitNum = await this.git.commit(filepath, message);
-            console.log('@@@@@@@@@@@@@ ' + commitNum);
+            debug(commitNum);
             // MUTEX OFF
             vm.unlockMutex(vm);
-            console.log('[PublishVC Event]: ' + message + ' - Mutex unlock');
+            debug('[PublishVC Event]: ' + message + ' - Mutex unlock');
             if (commitNum != '') vm.reportCommit(vm, commitNum);
         }
     }

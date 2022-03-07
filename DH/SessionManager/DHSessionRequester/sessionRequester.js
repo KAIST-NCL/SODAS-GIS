@@ -5,6 +5,7 @@ const sr = require(__dirname+'/sessionRequester');
 const policy = require(__dirname+'/../api/sync_policy');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
+const debug = require('debug')('sodas:sessionRequester');
 
 const workerName = 'SessionRequester';
 
@@ -29,36 +30,36 @@ exports.SessionRequester = function () {
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.SNproto = this.protoDescriptor.sessionNegotiation.SessionNegotiationBroker;
-    console.log('[SETTING] SessionRequester Created');
+    debug('[SETTING] SessionRequester Created');
 
 }
 exports.SessionRequester.prototype.run = function () {
-    console.log('[SETTING] SessionRequester is running');
+    debug('[SETTING] SessionRequester is running');
 }
 
 /* Worker threads Listener */
 exports.SessionRequester.prototype._smListener = function (message) {
     switch (message.event) {
         case 'INIT':
-            console.log('[ ' + workerName + ' get message * INIT * ]');
+            debug('[ ' + workerName + ' get message * INIT * ]');
             this.run();
             break;
         case 'START_SESSION_CONNECTION':
-            console.log('SessionRequester thread receive [START_SESSION_CONNECTION] event from SessionManager')
-            console.log('[ ' + workerName + ' get message * START_SESSION_CONNECTION * ]');
-            console.log(message.data);
+            debug('SessionRequester thread receive [START_SESSION_CONNECTION] event from SessionManager')
+            debug('[ ' + workerName + ' get message * START_SESSION_CONNECTION * ]');
+            debug(message.data);
 
             this._snProcess(message.data);
             break;
         case 'GET_NEW_SESSION_INFO':
-            console.log('[ ' + workerName + ' get message * GET_NEW_SESSION_INFO * ]');
-            console.log(message.data)
+            debug('[ ' + workerName + ' get message * GET_NEW_SESSION_INFO * ]');
+            debug(message.data)
             this.my_session_desc.session_id = message.data.sess_id;
             this.my_end_point.ip = message.data.sess_ip;
             this.my_end_point.port = message.data.sess_portNum;
             break;
         case 'UPDATE_NEGOTIATION_OPTIONS':
-            console.log('[ ' + workerName + ' get message * UPDATE_NEGOTIATION_OPTIONS * ]');
+            debug('[ ' + workerName + ' get message * UPDATE_NEGOTIATION_OPTIONS * ]');
             this.sn_options = message.data
             break;
     }
@@ -78,7 +79,7 @@ exports.SessionRequester.prototype._initConnection = function (sl_ip) {
 }
 exports.SessionRequester.prototype._closeConnection = function () {
     grpc.closeClient(this.sessionNegotiationClient);
-    console.log('gRPC session closed with other datahub SessionListener');
+    debug('gRPC session closed with other datahub SessionListener');
 }
 exports.SessionRequester.prototype._snProcess = async function (bucketList) {
 
@@ -88,30 +89,30 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
     const promiseFunc = (node) => {
         return new Promise((resolve, reject) => {
             setTimeout(async function checkCreateTempSession() {
-                console.log(node);
+                debug(node);
                 let sl_addr = node.address + ':' + node.port;
                 sessionRequester.sessionNegotiationClient = await sessionRequester._initConnection(sl_addr);
-                console.log("--=-=-=-=- test -=-=-=-=-");
-                console.log(sessionRequester.my_session_desc.session_id);
+                debug("--=-=-=-=- test -=-=-=-=-");
+                debug(sessionRequester.my_session_desc.session_id);
                 if ( sessionRequester.my_session_desc.session_id == null ) {
-                    console.log("srTempSession is not yet Created")
+                    debug("srTempSession is not yet Created")
                     setTimeout(checkCreateTempSession, 1000);
                 }
                 else {
                     await sessionRequester.sessionNegotiationClient.RequestSessionNegotiation(
                         {session_desc: sessionRequester.my_session_desc, sn_options: sessionRequester.sn_options}, (error, response) => {
                             if (!error) {
-                                console.log('SessionRequester send RequestSessionNegotiation to SessionListener with ' + node.port);
+                                debug('SessionRequester send RequestSessionNegotiation to SessionListener with ' + node.port);
                                 if (response.status) {
-                                    console.log('Session Negotiation Completed!!');
-                                    console.log('SessionRequester thread send [TRANSMIT_NEGOTIATION_RESULT] event to SessionManager')
+                                    debug('Session Negotiation Completed!!');
+                                    debug('SessionRequester thread send [TRANSMIT_NEGOTIATION_RESULT] event to SessionManager')
                                     sessionRequester._smTransmitNegotiationResult(response.end_point, response.session_desc, response.sn_options)
                                     sessionRequester.my_session_desc.session_id = null;
-                                    console.log(sessionRequester.my_session_desc.session_id)
-                                    console.log('SessionRequester send CheckNegotiation to SessionListener with ' + node.port);
+                                    debug(sessionRequester.my_session_desc.session_id)
+                                    debug('SessionRequester send CheckNegotiation to SessionListener with ' + node.port);
                                     sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, end_point: sessionRequester.my_end_point}, (error, response) => {
                                         if (!error) {
-                                            console.log('SessionRequester send AckSessionNegotiation to SessionListener with ' + node.port);
+                                            debug('SessionRequester send AckSessionNegotiation to SessionListener with ' + node.port);
                                         } else {
                                             console.error(error);
                                         }
@@ -131,7 +132,7 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
     for (let key in bucketList) {
         for (let i = 0; i < bucketList[key].length; i++) {
             const result = await promiseFunc(bucketList[key][i]);
-            console.log(result);
+            debug(result);
         }
     }
 }
