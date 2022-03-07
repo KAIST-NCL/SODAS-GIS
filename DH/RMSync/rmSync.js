@@ -1,4 +1,3 @@
-
 const RMSESSION_PROTO_PATH = __dirname+'/proto/rmSession.proto';
 const RMSYNC_PROTO_PATH = __dirname+'/proto/rmSync.proto';
 const { parentPort, workerData } = require('worker_threads');
@@ -8,6 +7,7 @@ const protoLoader = require("@grpc/proto-loader");
 const fs = require("fs");
 const execSync = require('child_process').execSync;
 const crypto = require("crypto");
+const debug = require('debug')('sodas:rmSync');
 
 
 exports.RMSync = function () {
@@ -45,13 +45,13 @@ exports.RMSync = function () {
         });
     this.rmSyncprotoDescriptor = grpc.loadPackageDefinition(rmSyncPackageDefinition);
     this.rmSyncproto = this.rmSyncprotoDescriptor.RMSync.RMSyncBroker;
-    console.log('RMSync thread is creating')
+    debug('[SETTING] RMSync thread creating')
 };
 exports.RMSync.prototype.run = function() {
     this.rmSyncServer = this._setRMSyncServer();
     this.rmSyncServer.bindAsync(this.dh_rm_sync_ip,
         grpc.ServerCredentials.createInsecure(), () => {
-            console.log('RMSync gRPC Server running at ' + this.dh_rm_sync_ip)
+            debug('[SETTING] RMSync gRPC Server running at ' + this.dh_rm_sync_ip)
             this.rmSyncServer.start();
         });
     this.requestRMSession();
@@ -61,11 +61,11 @@ exports.RMSync.prototype.run = function() {
 exports.RMSync.prototype._dhDaemonListener = function(message) {
     switch (message.event) {
         case 'INIT':
-            console.log('RMSync thread receive [INIT] event from DHDaemon')
+            debug('[SETTING] RMSync thread receive [INIT] event from DHDaemon');
             this.run();
             break;
         default:
-            console.log('[ERROR] DH Daemon Listener Error ! event:', message.event);
+            debug('[ERROR] DH Daemon Listener Error ! event:', message.event);
             break;
     }
 };
@@ -82,22 +82,22 @@ exports.RMSync.prototype._dmUpdateReferenceModel = function(id, path) {
 exports.RMSync.prototype.referenceModelSync = function(call, callback) {
     !fs.existsSync(__dirname+'/gitDB/') && fs.mkdirSync(__dirname+'/gitDB/');
     var targetFilePath = __dirname+'/gitDB/' + call.request.id;
-    console.log("Server Side Received:" , call.request.id);
-    console.log('RMSync thread send [UPDATE_REFERENCE_MODEL] event to DHDaemon')
+    debug("[LOG] Server Side Received:" , call.request.id);
+    debug('[LOG] RMSync thread send [UPDATE_REFERENCE_MODEL] event to DHDaemon')
     fs.writeFile(targetFilePath, call.request.file, 'binary', function(err){
         if (err) throw err
-        console.log('write end') });
+        debug('[LOG] write end') });
     callback(null, {result: 'File Name [' + call.request.id + '] is succeed synchronization.'});
     rmSync._dmUpdateReferenceModel(call.request.id, targetFilePath)
 }
 exports.RMSync.prototype.requestRMSession = function() {
     rmSync.rmSessionClient.RequestRMSession({'dh_id': crypto.randomBytes(20).toString('hex'), dh_ip: rmSync.dh_ip, dh_port: rmSync.rm_port}, (error, response) => {
         if (!error) {
-            console.log('Request RMSession Connection to RH-RMSessionManager');
-            console.log('Get response from RH-RMSessionManager');
-            console.log(response);
+            debug('[LOG] Request RMSession Connection to RH-RMSessionManager');
+            debug('[LOG] Get response from RH-RMSessionManager');
+            debug(response);
         } else {
-            console.error(error);
+            debug('[ERROR]', error);
         }
     });
 };

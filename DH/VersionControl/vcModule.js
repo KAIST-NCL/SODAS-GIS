@@ -5,15 +5,14 @@ const { vcConsumer } = require(__dirname+'/vcConsumer');
 const vcModule = require(__dirname+'/vcModule');
 const diff_parser = require(__dirname+'/../Lib/diff_parser');
 const execSync = require('child_process').execSync;
+const debug = require('debug')('sodas:vcModule');
 
 //
 exports.vcModule = function(){
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-    console.log("vcModule created");
-    console.log("vcModule - workerData: ");
-    console.log(workerData);
-    console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+    debug("[LOG] vcModule created");
+    debug("[LOG] workerData ");
+    debug(workerData);
     ////////////////////////////////////////////////////////////////////////////////////////////////
     const gitDir = workerData.pubvc_root;
     const kafkaHost = workerData.kafkaHost; // update
@@ -35,10 +34,7 @@ exports.vcModule = function(){
 
     var self = this;
     parentPort.on('message', message => {
-        console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
-        console.log("vcModule Received message: ");
-        console.log(message);
-        console.log("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
+        debug("[LOG] Received message: ", message);
         switch(message.event) {
             case 'UPDATE_REFERENCE_MODEL':
                 // Change Log -> added self as argument of addReferenceModel
@@ -51,13 +47,14 @@ exports.vcModule = function(){
 exports.vcModule.prototype.init = async function(){
     var self = this;
     this.unlockMutex(self);
-    await this.vc.init().then((commit_number) => {
-        console.log("initiation done ()()()()()()()");
-        console.log(commit_number);
-        if (typeof commit_number !== 'undefined') {
-            // fs.writeFileSync(self.)
-        };
-    });
+    await this.vc.init()
+        .then((commit_number) => {
+            debug("[LOG] initiation done: commit_number:  ", commit_number);
+            if (typeof commit_number !== 'undefined') {
+                // fs.writeFileSync(self.)
+                }
+        })
+        .catch((e) => {debug(e)});
 };
 
 exports.vcModule.prototype.run = function(){
@@ -98,26 +95,26 @@ exports.vcModule.prototype.editFile = async function(option, filepath, content) 
             this.vc.git.deleteFile(fp);
             break;
     }
-}
+};
 
 exports.vcModule.prototype.lockMutex = function (self) {
     self.flag[0] = 1;
-}
+};
 
 exports.vcModule.prototype.unlockMutex = function (self) {
     self.flag[0] = 0;
-}
+};
 
 exports.vcModule.prototype.git_run = function (self) {
     now = new Date().getTime();
     if (self.count >= 1 && now - self.last_commit_time >= self.sync_time) {
-        console.log('Commit');
+        debug('[LOG] COMMIT');
         self.count = 0;
         self.commit(self, now.toString());
         self.last_commit_time = now;
     }
     setTimeout(self.git_run, self.timeOut, self);
-}
+};
 
 const VC = new vcModule.vcModule();
 VC.init();

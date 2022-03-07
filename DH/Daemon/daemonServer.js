@@ -3,6 +3,7 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const DS = require('./daemonServer');
 const { parentPort, workerData } = require('worker_threads');
+const debug = require('debug')('sodas:daemon:server');
 
 // daemonServer
 dServer = function(){
@@ -79,7 +80,7 @@ dServer.prototype.start = function(){
     this.daemonServer = this.getDaemonServer();
     this.daemonServer.bindAsync('0.0.0.0:'+ this.port,
         grpc.ServerCredentials.createInsecure(), () => {
-            console.log('[RUNNING] DataHub daemon is running with '+ this.ip +':'+ this.port);
+            debug('[RUNNING] DataHub daemon is running with '+ this.ip +':'+ this.port);
             this.daemonServer.start();
         });
     parentPort.on('message', function(message) {self._parentSwitch(message)});
@@ -116,7 +117,7 @@ dServer.prototype._parentSwitch = function(message){
             this.sessionList = message.data;
             break;
         default:
-            console.log('[ERROR] DM-Server message error', message);
+            debug('[ERROR] DM-Server message error', message);
     }
 };
 

@@ -2,6 +2,7 @@
 const simpleGit = require('simple-git');
 const fs = require('fs');
 const execSync = require('child_process').execSync;
+const debug = require('debug')('sodas:lib:git');
 
 class Git {
     constructor(gitDIR_){
@@ -59,7 +60,7 @@ class Git {
             execSync('cd ' + this.gitDIR_ + ' && git apply --reject --whitespace=fix --3way ' + patch_name);
         }
         else {
-            console.log("Error: # of Arguments must be either 1 or 2");
+            debug("Error: # of Arguments must be either 1 or 2");
         }
     }
 
@@ -82,7 +83,7 @@ class Git {
     deleteFile(filepath) {
         fs.existsSync(filepath) && fs.unlink(filepath, function (err) {
             if (err) {
-                console.log("Error: ", err);
+                debug("Error: ", err);
             }
         });
     }    

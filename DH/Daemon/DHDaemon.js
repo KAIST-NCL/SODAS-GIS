@@ -2,6 +2,7 @@ const ConfigParser = require('configparser');
 const { Worker, MessageChannel } = require("worker_threads");
 const dm = require('./DHDaemon');
 const { ctrlConsumer, ctrlProducer } = require('./ctrlKafka');
+const debug = require('debug')('sodas:daemon');
 
 exports.DHDaemon = function(){
 
@@ -34,7 +35,7 @@ exports.DHDaemon = function(){
         transfer_interface: this.transfer_interface
     };
     process.env.DH_HOME = this.conf.get('ENV', 'DH_HOME');
-    console.log('[SETTING] DataHub daemon is running with %s:%s', this.dm_ip, this.dm_portNum);
+    debug('[SETTING] DataHub daemon is running with %s:%s', this.dm_ip, this.dm_portNum);
     this.ctrlProducer = new ctrlProducer(this.kafka);
     // ctrlConsumer will be created in init()
 
@@ -47,6 +48,7 @@ exports.DHDaemon.prototype.init = async function(){
     await this.ctrlProducer.createCtrlTopics().then(() => {
         self.ctrlConsumer = new ctrlConsumer(self.kafka, self.kafka_options, self, self.conf);
     });
+    debug('[SETTING] init');
 };
 exports.DHDaemon.prototype.run = function(){
 
@@ -90,7 +92,7 @@ exports.DHDaemon.prototype._dmServerListener = function(message){
     switch(message.event){
         case 'UPDATE':
             // TODO: dmServer-side UPDATE should be implemented
-            console.log('[SETTING] UPDATE is called !');
+            debug('[SETTING] UPDATE is called !');
             var interest= message.data.interest;
             var rm = message.data.reference_model;
             var negotiationOption = message.data.negotiation_option;
@@ -99,7 +101,7 @@ exports.DHDaemon.prototype._dmServerListener = function(message){
             this._smUpdateNegotiation(negotiationOption);
             break;
         case 'UPDATE_INTEREST_TOPIC':
-            console.log('[SETTING] Interest Topic is Updated!');
+            debug('[SETTING] Interest Topic is Updated!');
             var interest= message.data.interest;
             this._dhSearchUpdateInterestTopic(interest);
             break;
@@ -109,7 +111,7 @@ exports.DHDaemon.prototype._dmServerListener = function(message){
         case 'SYNC_ON':
             break;
         default:
-            console.log('[ERROR] DM Server Listener Error ! event:', message.event);
+            debug('[ERROR] DM Server Listener Error ! event:', message.event);
     }
 };
 exports.DHDaemon.prototype._dhSearchListener = function(message){
@@ -119,7 +121,7 @@ exports.DHDaemon.prototype._dhSearchListener = function(message){
             this._dmServerSetBucketList(this.bucketList);
             break;
         default:
-            console.log('[ERROR] DH Search Listener Error ! event:', message.event);
+            debug('[ERROR] DH Search Listener Error ! event:', message.event);
         //
     }
 };
@@ -134,7 +136,7 @@ exports.DHDaemon.prototype._smListener = function(message){
             });
             break;
         default:
-            console.log('[ERROR] Session Manager Listener Error ! event:', message.event);
+            debug('[ERROR] Session Manager Listener Error ! event:', message.event);
             break;
     }
 };
@@ -143,7 +145,7 @@ exports.DHDaemon.prototype._vcListener = function(message){
         case '':
             break;
         default:
-            console.log('[ERROR] Version Control Listener Error !');
+            debug('[ERROR] Version Control Listener Error !');
             break;
     }
 };
@@ -158,7 +160,7 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
             });
             break;
         default:
-            console.log('[ERROR] Reference Model Listener Error !');
+            debug('[DAEMON/ERROR] Reference Model Listener Error !');
             break;
     }
 };

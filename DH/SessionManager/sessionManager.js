@@ -8,6 +8,7 @@ const workerName = 'SessionManager';
 
 const MIN_PORT_NUM_OF_SESSION = 55000;
 const MAX_PORT_NUM_OF_SESSION = 65535;
+const debug = require('debug')('sodas:sessionManager');
 
 exports.SessionManager = function() {
 
@@ -31,8 +32,8 @@ exports.SessionManager = function() {
         datahub_id: crypto.randomBytes(20).toString('hex')
     };
 
-    console.log('[SETTING] SessionManager Created');
-}
+    debug('[SETTING] SessionManager Created');
+};
 exports.SessionManager.prototype.run = function (){
 
     // setEnvironmentData
@@ -56,7 +57,7 @@ exports.SessionManager.prototype.run = function (){
         this._slGetNewSessionInfo();
     });
 
-    console.log('[RUNNING] SessionManager is running');
+    debug('[RUNNING] SessionManager is running');
 }
 
 /* Worker threads Listener */
@@ -70,8 +71,8 @@ exports.SessionManager.prototype._dhDaemonListener = function (message){
             break;
         // 동기화 시작 이벤트로, SessionRequester 에게 Bucket 정보와 함께 START_SESSION_CONNECTION 이벤트 전송
         case 'SYNC_ON':
-            console.log('SessionManager thread receive [SYNC_ON] event from DHDaemon')
-            console.log('SessionManager thread send [START_SESSION_CONNECTION] event from SessionRequester')
+            debug('[LOG] SessionManager thread receive [SYNC_ON] event from DHDaemon');
+            debug('[LOG] SessionManager thread send [START_SESSION_CONNECTION] event from SessionRequester');
             this._srStartSessionConnection(message.data);
             this._createSession().then(value => {
                 this.srTempSession = value;
@@ -86,8 +87,8 @@ exports.SessionManager.prototype._vcListener = function (message){
         // ETRI's KAFKA 에서 Asset 데이터맵 변화 이벤트 감지 시, 해당 데이터맵 및 git Commit 정보를 전달받아서
         // sessionList 정보 조회 후, 해당 session 에게 UPDATE_PUB_ASSET 이벤트 전달
         case 'UPDATE_PUB_ASSET':
-            console.log('[ ' + workerName + ' get message * UPDATE_PUB_ASSET * ]')
-            console.log(message.data)
+            debug('[LOG] [' + workerName + ' get message * UPDATE_PUB_ASSET * ]');
+            debug(message.data);
             let sync_list = message.data.filepath.split("/").slice(0,-1);
             let sync_target = null;
             for (let i = 0; i < sync_list.length; i++) {
@@ -96,7 +97,7 @@ exports.SessionManager.prototype._vcListener = function (message){
                 } else {
                     sync_target += "/" + sync_list[i]
                 }
-                console.log(sync_target)
+                debug(sync_target)
                 if (sessionManager.session_list[sync_target]) {
                     for (let j = 0; j < sessionManager.session_list[sync_target].length; j++) {
                         sessionManager._sessionUpdatePubAsset(sessionManager.session_list[sync_target][j].worker, message.data)
@@ -110,8 +111,8 @@ exports.SessionManager.prototype._srListener = function (message){
     switch (message.event) {
         // SessionRequester 에서 세션 협상 완료된 Event 로, 타 데이터 허브의 Session의 end-point 전송 받음
         case 'TRANSMIT_NEGOTIATION_RESULT':
-            console.log('SessionManager thread receive [TRANSMIT_NEGOTIATION_RESULT] event from SessionRequester')
-            console.log('[ ' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]')
+            debug('[LOG] SessionManager thread receive [TRANSMIT_NEGOTIATION_RESULT] event from SessionRequester');
+            debug('[LOG] [ ' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]')
             sessionManager.srTempSession.sn_result = message.data.sn_result;
             sessionManager.srTempSession.other_ip = message.data.end_point.ip;
             sessionManager.srTempSession.other_port = message.data.end_point.port;
@@ -128,7 +129,7 @@ exports.SessionManager.prototype._srListener = function (message){
             sessionManager._dmGetSessionListInfo();
 
             // todo: srTempSession, slTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
-            console.log('SessionManager thread send [TRANSMIT_NEGOTIATION_RESULT] event from Session(SR)')
+            debug('[LOG] SessionManager thread send [TRANSMIT_NEGOTIATION_RESULT] event from Session(SR)')
             sessionManager._sessionTransmitNegotiationResult(sessionManager.srTempSession.worker, message.data.end_point, message.data.session_desc, message.data.sn_result);
 
             // todo: sessionList 관리
@@ -145,7 +146,7 @@ exports.SessionManager.prototype._srListener = function (message){
                 sessionManager.srTempSession = value;
                 sessionManager._sessionInit(sessionManager.srTempSession.worker);
                 sessionManager._srGetNewSessionInfo();
-                console.log(sessionManager.session_list)
+                debug('[LOG] ', sessionManager.session_list)
             });
 
             break;
@@ -155,8 +156,8 @@ exports.SessionManager.prototype._slListener = function (message){
     switch (message.event) {
         // 데이터 허브 간 세션 협상에 의해 세션 연동이 결정난 경우, 상대방 세션의 endpoint 전달받는 이벤트
         case 'TRANSMIT_NEGOTIATION_RESULT':
-            console.log('SessionManager thread receive [TRANSMIT_NEGOTIATION_RESULT] event from SessionListener')
-            console.log('[ ' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]');
+            debug('[LOG]', 'SessionManager thread receive [TRANSMIT_NEGOTIATION_RESULT] event from SessionListener')
+            debug('[LOG] [' + workerName + ' get message * TRANSMIT_NEGOTIATION_RESULT * ]');
             sessionManager.slTempSession.sn_result = message.data.sn_result;
             sessionManager.slTempSession.other_ip = message.data.end_point.ip;
             sessionManager.slTempSession.other_port = message.data.end_point.port;
@@ -173,7 +174,7 @@ exports.SessionManager.prototype._slListener = function (message){
             sessionManager._dmGetSessionListInfo();
 
             // todo: srTempSession, slTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
-            console.log('SessionManager thread send [TRANSMIT_NEGOTIATION_RESULT] event from Session(SL)')
+            debug('[LOG] SessionManager thread send [TRANSMIT_NEGOTIATION_RESULT] event from Session(SL)')
             sessionManager._sessionTransmitNegotiationResult(sessionManager.slTempSession.worker, message.data.end_point, message.data.session_desc, message.data.sn_result);
 
             // todo: sessionList 관리
@@ -190,7 +191,7 @@ exports.SessionManager.prototype._slListener = function (message){
                 sessionManager.slTempSession = value;
                 sessionManager._sessionInit(sessionManager.slTempSession.worker);
                 sessionManager._slGetNewSessionInfo();
-                console.log(sessionManager.session_list)
+                debug('[LOG] ',sessionManager.session_list)
             });
 
 
@@ -208,8 +209,8 @@ exports.SessionManager.prototype._sessionListener = function (message){
 /* DHDaemon methods */
 exports.SessionManager.prototype._dmGetSessionListInfo = function () {
     // [SessionManager -> DHDaemon] [GET_SESSION_LIST_INFO]
-    console.log('SessionManager thread send [GET_SESSION_LIST_INFO] event to DHDaemon')
-    console.log(sessionManager.session_list)
+    debug('[LOG] SessionManager thread send [GET_SESSION_LIST_INFO] event to DHDaemon')
+    debug('[LOG]', sessionManager.session_list);
     parentPort.postMessage({
         event: "GET_SESSION_LIST_INFO",
         data: sessionManager.session_list_to_daemon
@@ -298,7 +299,7 @@ exports.SessionManager.prototype._setSessionPort = async function () {
         .then(_port => {
         })
         .catch(err => {
-            console.log(err);
+            debug('[ERROR]', err);
         });
     return detect();
 }

@@ -1,5 +1,6 @@
 const { Git } = require(__dirname + '/../Lib/git');
 const { ref_parser } = require('../Lib/ref_parser');
+const debug = require('debug')('sodas:versionController');
 
 class VC {
 
@@ -16,9 +17,11 @@ class VC {
 
     async init(){
         var value = '';
-        await this.git.init().then((commnum) => {
+        await this.git.init()
+            .then((commnum) => {
             value = (' ' + commnum).slice(1);
-        });
+            })
+            .catch((e) => {debug(e)});
         this.isInit = true;
         return value;
     }

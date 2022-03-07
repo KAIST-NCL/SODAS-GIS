@@ -1,5 +1,6 @@
 // Define the msg handlers for each message operation here
 var vc = require('./git');
+const debug = require('debug')('sodas:lib:msg-handler');
 
 // msg type reference-model
 exports.refmodelhandler = function(operation) {
@@ -111,5 +112,5 @@ exports.assethandler = async function(operation, related, id, contents, gitDIR, 
 };
 
 function errorhandler() {
-    console.log('undefined operation and type combination.')
+    debug('undefined operation and type combination.')
 }

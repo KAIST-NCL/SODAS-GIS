@@ -2,6 +2,7 @@ const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
 const kafka = require('kafka-node');
 const Producer = kafka.Producer;
 const KeyedMessage = kafka.KeyedMessage;
+const debug = require('debug')('sodas:kafka');
 
 class ctrlConsumer extends Consumer{
     constructor(kafkaHost, options, dhDaemon, conf){
@@ -13,7 +14,7 @@ class ctrlConsumer extends Consumer{
         this.referenceHubPort = conf.get('ReferenceHub', 'port');
     }
     onMessage = function(){
-        console.log('[RUNNING] Kafka consumer for control signal is running ');
+        debug('[RUNNING] Kafka consumer for control signal is running ');
         const that = this;
         this.consumer.on('message', function(message){
 
@@ -24,7 +25,7 @@ class ctrlConsumer extends Consumer{
                 const msg = message_.content;
                 that.eventSwitch(event, msg);
             } catch (e){
-                console.log(e);
+                debug(e);
                 return;
             }
         });
@@ -69,7 +70,7 @@ exports.ctrlProducer.prototype.createCtrlTopics = async function(){
 exports.ctrlProducer.prototype._produce = function(msg){
     const payloads = [{ topic: this.topic, value: msg }];
     this.producer.send(payloads, function(err, data){
-        if(err) console.log(err);
+        if(err) debug(err);
     });
 };
 

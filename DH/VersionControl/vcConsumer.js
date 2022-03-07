@@ -1,4 +1,5 @@
 const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
+const debug = require('debug')('sodas:vcConsumer');
 
 // NodeJS에서 extends는 상속하는데 사용한다
 class vcConsumer extends Consumer{
@@ -8,18 +9,15 @@ class vcConsumer extends Consumer{
         this.VC = VC; // vcModule
     }
     run(){
-        console.log('[RUNNING] kafka consumer for VC is running');
+        debug('[RUNNING] kafka consumer for VC is running');
         const that = this;
         this.consumer.on('message', function(message) {
             that.handler(message, that);
         });
     }
     handler(message, self){
-        // TODO
-        console.log('---- vcConsumer: Kafka Message Received ----');
+        debug('[LOG] Kafka Message Received');
         const message_ = JSON.parse(message.value);
-        //console.log(message_);
-        //console.log('---------------------------------------------');
         const event = message_.operation;
         const filepath = self.VC.vc.rp.related_to_filepath(message_.related) + '/' + message_.id + '.asset';
         // Changed Logs - > Previous: editFile and then commit right away

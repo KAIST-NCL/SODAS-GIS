@@ -6,6 +6,7 @@ const knode = require(__dirname+'/kademlia/knode');
 const dhsearch = require(__dirname+'/dhSearch');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
+const debug = require('debug')('sodas:dhSearch');
 
 exports.DHSearch = function(){
 
@@ -35,7 +36,7 @@ exports.DHSearch = function(){
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.BSproto = this.protoDescriptor.bootstrap.BootstrapBroker;
     this.bootstrapClient = new this.BSproto(this.bootstrap_server_ip, grpc.credentials.createInsecure());
-    console.log('[SETTING] DHSearch is running with %s:%s', this.ip, this.ds_portNum);
+    debug('[SETTING] DHSearch is running with %s:%s', this.ip, this.ds_portNum);
 
 };
 exports.DHSearch.prototype.run = function(){
@@ -51,11 +52,11 @@ exports.DHSearch.prototype._dhDaemonListener = function(message){
         case 'UPDATE_INTEREST_TOPIC':
             this.run()
             this.sync_interest_list = message.data.sync_interest_list;
-            console.log('DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DHDaemon');
-            console.log(this.sync_interest_list);
+            debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DHDaemon');
+            debug(this.sync_interest_list);
             break;
         default:
-            console.log('[ERROR] DH Daemon Listener Error ! event:', message.event);
+            debug('[ERROR] DH Daemon Listener Error ! event:', message.event);
             break;
     }
 };
@@ -83,13 +84,13 @@ exports.DHSearch.prototype.getSeedNode = function(seedNode) {
 exports.DHSearch.prototype._bootstrapProcess = async function() {
     await this.getSeedNode(this.seedNode).then((value => {
         dhSearch.seedNodeList = JSON.parse(JSON.stringify( value.nodes ));
-        console.log('DHSearch request seed node list info to bootstrap server')
-        console.log(value.nodes)
+        debug('[LOG] DHSearch request seed node list info to bootstrap server')
+        debug(value.nodes)
     }));
     return null;
 }
 exports.DHSearch.prototype._discoverProcess = async function() {
-    console.log('Start distributed search')
+    debug('[LOG] Start distributed search')
     for (var seedNodeIndex of this.seedNodeList) {
         var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port);
         // await new Promise((resolve, reject) => setTimeout(resolve, 2000));
@@ -99,7 +100,7 @@ exports.DHSearch.prototype._discoverProcess = async function() {
 }
 exports.DHSearch.prototype._closeBootstrapServerConnection = function() {
     grpc.closeClient(this.bootstrapClient);
-    console.log('gRPC session closed with bootstrap server');
+    debug('[LOG] gRPC session closed with bootstrap server');
 }
 exports.DHSearch.prototype._setInterestTopic = function() {
     // todo: InterestTopic 정보 받아와서 노드 ID 반영 및 kademlia set/get 수행 로직

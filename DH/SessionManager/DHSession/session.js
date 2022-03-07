@@ -18,15 +18,14 @@ const packageDefinition = protoLoader.loadSync(
     })
 const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
 const session = require(__dirname + '/session');
+const debug = require('debug')('sodas:session');
 
 
 // Constructor
 // workerData -> my_session_id, my_ip, my_portNum
 exports.Session = function() {
-    console.log("*** Session Created");
-    console.log("WorkerData: ");
-    console.log(workerData);
-    console.log("***************");
+    debug("[LOG] Session Created");
+    debug(workerData);
     this.count_msg = 0;
 
     this.pubvc_root = workerData.pubvc_root;
@@ -62,9 +61,8 @@ exports.Session = function() {
 
     // parentPort, 즉 자신을 생성한 SM으로부터 메시지를 받아 처리하는 함수.
     parentPort.on('message', message => {
-        console.log("**** Session ID: " + this.id + " Received Thread Msg ###");
-        console.log(message);
-        console.log("********************************************")
+        debug("[Session ID: " + this.id + "] Received Thread Msg ###");
+        debug(message);
         switch(message.event) {
             // Session 실행 시 SM으로부터 받아오는 값
             case 'INIT':
@@ -74,7 +72,7 @@ exports.Session = function() {
             case 'TRANSMIT_NEGOTIATION_RESULT':
                 // 처음 연동일 때에 sync_interest_list를 참조해서 상대방에 gitDB Publish를 한다.
                 this.target = message.data.end_point.ip + ':' + message.data.end_point.port;
-                console.log('Target:' + this.target);
+                debug('[LOG] Target:' + this.target);
                 // gRPC 클라이언트 생성
                 this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
                 this.session_desc = message.data.session_desc;
@@ -115,7 +113,7 @@ exports.Session.prototype.prePublish = function(message) {
 /// If the count / sync time reaches some point, extract the git diff and publish it to other session
 exports.Session.prototype.onMaxCount = async function() {
     this.count_msg = 0;
-    console.log("onMaxCount");
+    debug("[LOG] onMaxCount");
     // 우선, 파일 내용을 읽어온 뒤 초기화를 진행한다.
     const topublish = this.__read_dict();
     this._reset_count(topublish.commit_number[topublish.commit_number.length - 1]);
@@ -144,7 +142,7 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
         var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
         this.flag[0] = 0;
         // mutex off
-        console.log(git_diff);
+        debug(git_diff);
         return git_diff;
     }
 }
@@ -166,7 +164,7 @@ exports.Session.prototype._reset_count = function(last_commit) {
 // gRPC 전송 전용 코드
 // target: Publish 받을 세션의 gRPC 서버 주소
 exports.Session.prototype.Publish = function(git_patch) {
-    console.log("Publish");
+    debug("[LOG] Publish");
     // Change Log -> Now, does not send the related and filepath information through the gRPC. Subscriber extracts that information from git diff file
 
     // 보낼 내용 작성
@@ -179,10 +177,10 @@ exports.Session.prototype.Publish = function(git_patch) {
     this.grpc_client.SessionComm(toSend, function(err, response) {
         if (err) throw err;
         if (response.transID = toSend.transID && response.result == 0) {
-            console.log("Publish Communicateion Successfull");
+            debug("[LOG] Publish Communicateion Successfull");
         }
         else {
-            console.log("Error on Publish Communication");
+            debug("[ERROR] Error on Publish Communication");
         }
     });
 }
@@ -190,10 +188,10 @@ exports.Session.prototype.Publish = function(git_patch) {
 /// (1): Subscribe from the other session
 // Change Log -> seperated from the constructor as an function
 exports.Session.prototype.Subscribe = function(self, call, callback) {
-    console.log('Server: ' + self.id + ' gRPC Received: to ' + call.request.receiver_id);
+    debug('[LOG] Server: ' + self.id + ' gRPC Received: to ' + call.request.receiver_id);
     // 상대가 보낸 session_id가 나의 일치할 때만 처리
     if (call.request.receiver_id == self.id) {
-        console.log("Git Patch Start");
+        debug("[LOG] Git Patch Start");
         // git Patch 적용
         var result = self.gitPatch(call.request.git_patch, self);
         // ACK 전송
@@ -211,14 +209,14 @@ exports.Session.prototype.gitPatch = function(git_patch, self) {
     try {
         fs.writeFileSync(temp, git_patch);
     } catch (err) {
-        console.log("Error: ", err);
+        debug("[ERROR] ", err);
         return 1;
     }
     self.VC.apply(temp);
     // temp 파일 삭제
     fs.existsSync(temp) && fs.unlink(temp, function (err) {
         if (err) {
-            console.log("Error: ", err);
+            debug("[ERROR] ", err);
         }
     });
     return 0;
@@ -246,18 +244,18 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
             "content": fs.readFileSync(self.VC.vcRoot + '/' + filepath).toString()
         }
         payload_list.push(temp);
-        console.log("Payload added " + temp.id);
+        debug("[LOG] Payload added " + temp.id);
     }
     
-    console.log('kafka Producer start');
+    debug('[LOG] kafka Producer start');
 
     var Producer = kafka.Producer;
     var client = new kafka.KafkaClient();
     var producer = new Producer(client);
 
     producer.on('error', function(err) {
-        console.log("kafkaproducer error");
-        console.log(err);
+        debug("[ERROR] kafkaproducer error");
+        debug(err);
     })
 
     producer.on('ready', function() {
@@ -266,11 +264,11 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
                 { topic: 'send.asset', messages:JSON.stringify(payload_list[i])}
             ];
             producer.send(payloads, function(err, result) {
-                console.log(result);
+                debug('[LOG]', result);
             });
         }
     });
-    console.log('kafka Producer done');
+    debug('[LOG] kafka Producer done');
 }
 
 // Publish 조건 충족 여부 확인 함수

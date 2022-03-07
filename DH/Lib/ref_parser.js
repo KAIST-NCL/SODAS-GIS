@@ -1,5 +1,6 @@
 const { forEach } = require('async');
 const fs = require('fs');
+const debug = require('debug')('sodas:lib:ref-parser');
 
 class ref_parser {
     // reference model을 읽어 폴더 구조로 변환하는 코드
@@ -26,7 +27,7 @@ class ref_parser {
         if (typeof ReferenceModel === 'object') {
             // console.log("list");
             ReferenceModel.forEach((element) => {
-                console.log(this.refRootdir + '/' + element);
+                debug(this.refRootdir + '/' + element);
                 self._createReferenceDir(this.refRootdir + '/' + element);
             });
         }
@@ -220,21 +221,21 @@ class ref_parser {
         var fault = false;
         fault = fault || temp_dom.some((element) => {
             if(!this._linked_list_correction(element,temp_dom, temp_tax, temp_cat)) {
-                console.log("Error");
+                debug("[ERROR]");
                 return true;
             }
         });
         if (fault) return false;
         fault = fault || temp_tax.some((element) => {
             if(!this._linked_list_correction(element,temp_dom, temp_tax, temp_cat)) {
-                console.log("Error");
+                debug("[ERROR]");
                 return true;
             }
         });
         if (fault) return false;
         fault = fault || temp_cat.some((element) => {
             if(!this._linked_list_correction(element,temp_dom, temp_tax, temp_cat)) {
-                console.log("Error");
+                debug("[ERROR]");
                 return true;
             }
         });
