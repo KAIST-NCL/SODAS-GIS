@@ -68,7 +68,7 @@ exports.vcModule.prototype.run = function(){
 exports.vcModule.prototype.commit = async function(self, message){
     // message양식 확인
     var fp = self.vc.vcRoot + '/';  
-    var commNum = await self.vc.commit(fp, message, self);
+    await self.vc.commit(fp, message, self);
 };
 
 exports.vcModule.prototype.reportCommit = function(self, commitNumber){
@@ -86,8 +86,6 @@ exports.vcModule.prototype.reportCommit = function(self, commitNumber){
         }
     };
     this.smPort.postMessage(msg);
-    console.log("*&*&*&*& - Sent Message: ");
-    console.log(msg);
 };
 
 exports.vcModule.prototype.editFile = async function(option, filepath, content) {

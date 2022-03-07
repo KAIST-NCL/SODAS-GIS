@@ -20,13 +20,13 @@ exports.file_path_to_related = function(dir) {
     var related = [];
 
     var domain = strArray[0];
-    related.add({operation: "UPDATE", id: domain, "type": "domain"});
+    related.push({operation: "UPDATE", id: domain, "type": "domain"});
     var taxonomy = strArray[1];
-    related.add({operation: "UPDATE", id: taxonomy, "type": "taxonomy"});
+    related.push({operation: "UPDATE", id: taxonomy, "type": "taxonomy"});
 
     for (i = 2; i < strArrayLength - 1; i++) {
         var category = strArray[i];
-        related.add({operation: "UPDATE", id: category, "type": "category"});
+        related.push({operation: "UPDATE", id: category, "type": "category"});
     }
 
     return related;

@@ -53,7 +53,7 @@ class publishVC extends VC{
             // MUTEX OFF
             vm.unlockMutex(vm);
             console.log('[PublishVC Event]: ' + message + ' - Mutex unlock');
-            vm.reportCommit(vm, commitNum);
+            if (commitNum != '') vm.reportCommit(vm, commitNum);
         }
     }
 }

@@ -202,6 +202,18 @@ exports.Session.prototype.Subscribe = function(self, call, callback) {
         // 카프카 메시지 생성 및 전송
         self.kafkaProducer(call.request.git_patch, self);
     }
+}
+
+// (2): 받은 gRPC 메시지를 갖고 자체 gitDB에 패치 적용
+exports.Session.prototype.gitPatch = function(git_patch, self) {
+    // git_pacth를 임시로 파일로 저장한다.
+    var temp = self.rootDir + "/" + Math.random().toString(10).slice(2,3) + '.patch';
+    try {
+        fs.writeFileSync(temp, git_patch);
+    } catch (err) {
+        console.log("Error: ", err);
+        return 1;
+    }
     self.VC.apply(temp);
     // temp 파일 삭제
     fs.existsSync(temp) && fs.unlink(temp, function (err) {
@@ -222,7 +234,7 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
 
     // 보낼 메시지 내용 - operation, id, related, content.interest, content.reference_model
     var payload_list = [];
-    for (var i = 0; i < related_array.length; i++) {
+    for (var i = 0; i < filepath_list.length; i++) {
         var filepath = filepath_list[i];
         var related = diff_parser.file_path_to_related(filepath);
 
