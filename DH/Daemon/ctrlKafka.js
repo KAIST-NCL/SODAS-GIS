@@ -34,15 +34,19 @@ class ctrlConsumer extends Consumer{
         switch(event){
             case 'START':
                 this.daemon._rmSyncInit();
+                debug('[Function Test / Init Process] START event');
                 break;
             case 'UPDATE':
                 this.daemon._dhSearchUpdateInterestTopic(msg.interest);
                 this.daemon._vcUpdateReferenceModel(msg.reference_model);
-                this.daemon._smUpdateNegotiation(msg.negotiation_option);
+                this.daemon._smUpdateNegotiation(msg.sn_options);
+                debug('[Function Test / UPDATE Process] UPDATE event complete');
                 break;
             case 'SYNC_ON':
                 if (this.daemon._smSyncOn() === -1)
                     this.daemon._raiseError('UPDATE IS NOT YET COMPLETED');
+                else
+                    this.daemon._smSyncOn();
                 break;
             default:
                 break;
@@ -65,10 +69,11 @@ exports.ctrlProducer.prototype.createCtrlTopics = async function(){
         { topic: 'recv.asset', partitions: 1 , replicationFactor: 1},
         { topic: 'send.asset', partitions: 1, replicationFactor: 1}], function (err, data) {
     });
+    debug('[Function Test / Init Process] creating control topics is completed');
 };
 
 exports.ctrlProducer.prototype._produce = function(msg){
-    const payloads = [{ topic: this.topic, value: msg }];
+    const payloads = [{ topic: this.topic, messages: msg , partition: 0}];
     this.producer.send(payloads, function(err, data){
         if(err) debug(err);
     });
@@ -79,7 +84,9 @@ exports.ctrlProducer.prototype.sendError = function(errorCode){
 };
 
 exports.ctrlProducer.prototype.sendUpdate = function(id, data){
-    this._produce({'operateion':'UPDATE', 'content':{'id':id, 'data':data}});
+    const msg = {'operation':'UPDATE', 'content':{'id':id, 'data':data}};
+    debug('\x1b[36m%s\x1b[0m', '[Function Test / UPDATE REFERENCE MODEL Process] sending message to Kafka', msg);
+    this._produce(msg);
 };
 
 exports.ctrlConsumer = ctrlConsumer;
