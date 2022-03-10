@@ -3,6 +3,7 @@ const { Worker, MessageChannel } = require("worker_threads");
 const dm = require('./DHDaemon');
 const { ctrlConsumer, ctrlProducer } = require('./ctrlKafka');
 const debug = require('debug')('sodas:daemon');
+const fs = require("fs");
 
 exports.DHDaemon = function(){
 
@@ -91,6 +92,7 @@ exports.DHDaemon.prototype.stop = function(){
     this.dhSearch.exit();
     this.VC.exit();
     this.sessionManager.exit();
+    this.rmSync.exit();
 };
 
 /* Worker threads Listener */
@@ -115,6 +117,7 @@ exports.DHDaemon.prototype._dmServerListener = function(message){
             this._rmSyncInit();
             break;
         case 'SYNC_ON':
+            this._smSyncOn();
             break;
         default:
             debug('[ERROR] DM Server Listener Error ! event:', message.event);
@@ -164,6 +167,8 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
             fs.readFile(rmPath, 'utf8', function(err, data){
                 self.ctrlProducer.sendUpdate(rmId, data);
             });
+            debug('[LOG] rmID from message', rmId);
+            debug('[Function Test / UPDATE REFERENCE MODEL] UPDATE event is sent to Kafka');
             break;
         default:
             debug('[DAEMON/ERROR] Reference Model Listener Error !');
@@ -177,6 +182,7 @@ exports.DHDaemon.prototype._dhSearchUpdateInterestTopic = function(interestTopic
         event: 'UPDATE_INTEREST_TOPIC',
         data: {interest: interestTopic}
     });
+    debug('[Function Test / UPDATE Process] UPDATE interest topic with ', interestTopic);
 };
 /* RMSync-related methods */
 exports.DHDaemon.prototype._rmSyncInit = function(){
@@ -196,9 +202,11 @@ exports.DHDaemon.prototype._smUpdateNegotiation = function(session_negotiation_o
     this.sessionManager.postMessage({
         event: 'UPDATE_NEGOTIATION_OPTIONS',
         data: {sn_options: session_negotiation_option}
-    })
+    });
+    debug('[Function Test / UPDATE Process] UPDATE negotiation option ', session_negotiation_option);
 };
 exports.DHDaemon.prototype._smSyncOn = function(){
+    debug('[Function Test / SYNCON Process] SYNC_ON event detected');
     if(this.bucketList == null) return -1;
     this.sessionManager.postMessage({
         event:'SYNC_ON',
@@ -213,11 +221,12 @@ exports.DHDaemon.prototype._vcInit = function(){
         data: {}
     });
 };
-exports.DHDaemon.prototype._vcUpdateReferenceModel = function(){
+exports.DHDaemon.prototype._vcUpdateReferenceModel = function(referenceModel){
     this.VC.postMessage({
         event: 'UPDATE_REFERENCE_MODEL',
-        data: this.RM
+        data: referenceModel
     });
+    debug('[Function Test / UPDATE Process] UPDATE reference model ', referenceModel);
 };
 
 /* Daemon Server methods */
@@ -240,6 +249,7 @@ exports.DHDaemon.prototype._dmServerSetSessionList = function(sessionList){
     });
 };
 exports.DHDaemon.prototype._raiseError = function(errorCode){
+    debug(errorCode);
     this.ctrlProducer.sendError(errorCode);
 };
 

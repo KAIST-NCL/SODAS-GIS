@@ -1,10 +1,10 @@
-
 const PROTO_PATH = __dirname+'/proto/rmSession.proto';
 const {Worker, workerData} = require('worker_threads');
 const rmSM = require(__dirname+'/rmSessionManager');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const crypto = require("crypto");
+const debug = require('debug')('sodas:rmSessionManager');
 
 exports.RMSessionManager = function () {
 
@@ -20,17 +20,17 @@ exports.RMSessionManager = function () {
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.rmSessionproto = this.protoDescriptor.RMSession.RMSessionBroker;
     this.rmSessionDict = {};
-    console.log('RMSessionManager thread is running')
-}
+    debug('RMSessionManager thread is running')
+};
 
 exports.RMSessionManager.prototype._requestRMSession = function (call, callback) {
-    console.log("[RH] [RMSessionManager] - RequestRMSession")
+    debug("[RH] [RMSessionManager] - RequestRMSession");
     var dhNode = call.request
-    console.log("Request RMSession Connection from DH-RMSync")
-    console.log(dhNode)
-    rmSessionManager._createNewRMSession(dhNode)
+    debug("Request RMSession Connection from DH-RMSync");
+    debug(dhNode);
+    rmSessionManager._createNewRMSession(dhNode);
     callback(null, {result: 'OK', rm_session_id: rmSessionManager.session_id})
-}
+};
 
 exports.RMSessionManager.prototype._setRMSessionManager = function () {
     this.server = new grpc.Server();
@@ -44,7 +44,7 @@ exports.RMSessionManager.prototype.run = function () {
     this.rmSMServer = this._setRMSessionManager();
     this.rmSMServer.bindAsync(this.rm_sm_ip,
         grpc.ServerCredentials.createInsecure(), () => {
-            console.log('RMSessionManager gRPC Server running at ' + this.rm_sm_ip)
+            debug('RMSessionManager gRPC Server running at ' + this.rm_sm_ip);
             this.rmSMServer.start();
         });
 }
@@ -55,12 +55,12 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
         ip: dhNode.dh_ip,
         port: dhNode.dh_port,
         session_id: this.session_id
-    }
-    console.log('Create New RMSession')
-    console.log(rmSessParam)
+    };
+    debug('Create New RMSession');
+    debug(rmSessParam);
     var rmSession = new Worker(__dirname+'/RMSession/rmSession.js', {workerData: rmSessParam});
     this.rmSessionDict[dhNode.dh_id] = rmSession;
-}
+};
 
-const rmSessionManager = new rmSM.RMSessionManager()
-rmSessionManager.run()
+const rmSessionManager = new rmSM.RMSessionManager();
+rmSessionManager.run();
