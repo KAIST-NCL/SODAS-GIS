@@ -73,15 +73,15 @@ exports.DHDaemon.prototype.run = function(){
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });
     this.dhSearch = new Worker('../DHSearch/dhSearch.js', { workerData: dhSearchParam });
-    // this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port1]});
-    // this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
+    this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port1]});
+    this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
     this.rmSync = new Worker('../RMSync/rmSync.js', { workerData: rmSyncParam });
     //
     // setting on function
     this.daemonServer.on('message', function(message){self._dmServerListener(message)});
     this.dhSearch.on('message', function(message) {self._dhSearchListener(message)});
-    // this.VC.on('message', function(message) {self._vcListener(message)});
-    // this.sessionManager.on('message', function(message) {self._smListener(message)});
+    this.VC.on('message', function(message) {self._vcListener(message)});
+    this.sessionManager.on('message', function(message) {self._smListener(message)});
     this.rmSync.on('message', function(message){self._rmSyncListener(message)});
 
     // run ctrlConsumer
