@@ -28,12 +28,17 @@ exports.DHDaemon = function(){
     this.sync_count = this.conf.get('Session', 'sync_count');
     this.transfer_interface = this.conf.get('Session', 'transfer_interface');
     this.sn_options = {
-        sync_interest_list: this.sync_interest_list,
-        data_catalog_vocab: this.data_catalog_vocab,
-        sync_time: this.sync_time,
-        sync_count: this.sync_count,
-        transfer_interface: this.transfer_interface
+        datamap_desc:{
+            sync_interest_list: this.sync_interest_list.split(','),
+            data_catalog_vocab: this.data_catalog_vocab.split(',')
+        },
+        sync_desc: {
+            sync_time: this.sync_time.split(',').map(Number),
+            sync_count: this.sync_count.split(',').map(Number),
+            transfer_interface: this.transfer_interface.split(',')
+        }
     };
+    debug('[LOG]: session negotiation option', this.sn_options);
     this.pubvc_root = this.conf.get('VersionControl', 'pubvc_root');
     this.subvc_root = this.conf.get('VersionControl', 'subvc_root');
     this.commit_period = this.conf.get('VersionControl', 'commit_period');
