@@ -7,7 +7,7 @@ const diff_parser = require(__dirname+'/../Lib/diff_parser');
 const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:vcModule');
 
-//
+/// Constructor
 exports.vcModule = function(){
     ////////////////////////////////////////////////////////////////////////////////////////////////
     debug("[LOG] vcModule created");
@@ -43,7 +43,6 @@ exports.vcModule = function(){
     });
 };
 
-
 exports.vcModule.prototype.init = async function(){
     var self = this;
     this.unlockMutex(self);
@@ -62,8 +61,7 @@ exports.vcModule.prototype.run = function(){
 
 };
 
-exports.vcModule.prototype.commit = async function(self, message){
-    // message양식 확인
+exports.vcModule.prototype.commit = async function(self, message) {
     var fp = self.vc.vcRoot + '/';  
     await self.vc.commit(fp, message, self);
 };

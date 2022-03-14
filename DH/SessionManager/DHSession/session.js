@@ -21,7 +21,7 @@ const session = require(__dirname + '/session');
 const debug = require('debug')('sodas:session');
 
 
-// Constructor
+/// Constructor
 // workerData -> my_session_id, my_ip, my_portNum
 exports.Session = function() {
     debug("[LOG] Session Created");
@@ -59,7 +59,7 @@ exports.Session = function() {
         }
     });
 
-    // Thread Calls from Parent
+    /// Thread Calls from Parent
     parentPort.on('message', message => {
         debug("[Session ID: " + this.id + "] Received Thread Msg ###");
         debug(message);
@@ -70,10 +70,10 @@ exports.Session = function() {
                 break;
             // Information about counter session
             case 'TRANSMIT_NEGOTIATION_RESULT':
-                // 처음 연동일 때에 sync_interest_list를 참조해서 상대방에 gitDB Publish를 한다.
+                // Get the counter session's address + port
                 this.target = message.data.end_point.ip + ':' + message.data.end_point.port;
                 debug('[LOG] Target:' + this.target);
-                // gRPC 클라이언트 생성
+                // gRPC client creation
                 this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
                 this.session_desc = message.data.session_desc;
                 this.sn_options = message.data.sn_options; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
@@ -87,7 +87,7 @@ exports.Session = function() {
     });
 }
 
-// Initiate Session
+/// Initiate Session
 exports.Session.prototype._init = function() {
     const addr = this.ip+':'+this.my_port;
     this.server.bindAsync(addr, grpc.ServerCredentials.createInsecure(), ()=> {
@@ -96,15 +96,16 @@ exports.Session.prototype._init = function() {
 }
 
 /// [4]: hanldes the msg from Session Manager
+// message: dict. data part of thread call "UPDATE_PUB_ASSET"
 exports.Session.prototype.prePublish = function(message) {
-    // message로 전달받은 내용을 갖고 파일 작성 및 저장
+    // save the things in message in a file as log
     // change log: Now only the commit number is needed
     // ToDo: Rather than calling this function whenever receiving the thread call from SM, call this function just like the vcModule calls commit function
     var content = this.__read_dict();
     content.stored = content.stored + 1;
     content.commit_number.push(message.commit_number);
     this.__save_dict(content);
-    // 아래 조건 충족 시 Publsih를 실행한다.
+    // When condition is met, publish things to the counter session
     if (this.__check_MaxCount()) this.onMaxCount();
 }
 
@@ -112,17 +113,18 @@ exports.Session.prototype.prePublish = function(message) {
 exports.Session.prototype.onMaxCount = async function() {
     this.count_msg = 0;
     debug("[LOG] onMaxCount");
-    // 우선, 파일 내용을 읽어온 뒤 초기화를 진행한다.
+    // Read file first and reset the file
     const topublish = this.__read_dict();
     this._reset_count(topublish.commit_number[topublish.commit_number.length - 1]);
-    // git diff 추출
+    // git diff extraction
     this.extractGitDiff(topublish).then((git_diff) => {
-        // gRPC 전송 - kafka에 쓸 전체 related, git patch를 적용할 가장 큰 폴더 단위, git patch 파일 내용
+        // Send gRPC message 
         this.Publish(git_diff);
     });
 }
 
 /// To extract git diff using two git commit numbers
+// topublish: dict. Result of reading log file
 exports.Session.prototype.extractGitDiff = async function(topublish) {
     // mutex 적용
     if (this.flag[0] == 1) {
@@ -146,6 +148,7 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
 }
 
 /// Reset count after publish
+// last_commit: string. commit # of last git commit
 exports.Session.prototype._reset_count = function(last_commit) {
     this.count_msg = 0;
     var lc = (typeof last_commit  === 'undefined') ? "" : last_commit;
@@ -158,20 +161,18 @@ exports.Session.prototype._reset_count = function(last_commit) {
     this.__save_dict(content);
 }
 
-// [5]: 외부 Session으로 Publish
-// gRPC 전송 전용 코드
-// target: Publish 받을 세션의 gRPC 서버 주소
+/// [5]: Publish to the counter Session
+// git_patch: string. Git diff Extraction result
 exports.Session.prototype.Publish = function(git_patch) {
     debug("[LOG] Publish");
     // Change Log -> Now, does not send the related and filepath information through the gRPC. Subscriber extracts that information from git diff file
 
-    // 보낼 내용 작성
+    // Make the message body to send
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
                   'git_patch': git_patch,
-                  'receiver_id': this.session_desc.session_id
-                };
+                  'receiver_id': this.session_desc.session_id};
 
-    // gRPC 전송
+    // gRPC transmittion
     this.grpc_client.SessionComm(toSend, function(err, response) {
         if (err) throw err;
         if (response.transID = toSend.transID && response.result == 0) {
@@ -187,22 +188,22 @@ exports.Session.prototype.Publish = function(git_patch) {
 // Change Log -> seperated from the constructor as an function
 exports.Session.prototype.Subscribe = function(self, call, callback) {
     debug('[LOG] Server: ' + self.id + ' gRPC Received: to ' + call.request.receiver_id);
-    // 상대가 보낸 session_id가 나의 일치할 때만 처리
+    // Only process the things when sender's id is the same one with the counter session's id
     if (call.request.receiver_id == self.id) {
         debug("[LOG] Git Patch Start");
-        // git Patch 적용
+        // git Patch apply
         var result = self.gitPatch(call.request.git_patch, self);
-        // ACK 전송
-        // 문제 없으면 0, 오류 사항은 차차 정의
-        callback(null, {transID: call.request.transID, result: result});
-        // 카프카 메시지 생성 및 전송
+        // ACK Transimittion
+        // If no problem, result is 0. Otherwise is not defined yet.
+        callback(null, {transID: call.request.transID, result: result})
+        // Producing the Kafka message and publish it.
         self.kafkaProducer(call.request.git_patch, self);
     }
 }
 
-// (2): 받은 gRPC 메시지를 갖고 자체 gitDB에 패치 적용
+// (2): Apply the git patch received through gRPC
 exports.Session.prototype.gitPatch = function(git_patch, self) {
-    // git_pacth를 임시로 파일로 저장한다.
+    // save git patch as a temporal file
     var temp = self.rootDir + "/" + Math.random().toString(10).slice(2,3) + '.patch';
     try {
         fs.writeFileSync(temp, git_patch);
@@ -211,7 +212,7 @@ exports.Session.prototype.gitPatch = function(git_patch, self) {
         return 1;
     }
     self.VC.apply(temp);
-    // temp 파일 삭제
+    // remove the temporal file
     fs.existsSync(temp) && fs.unlink(temp, function (err) {
         if (err) {
             debug("[ERROR] ", err);
@@ -220,7 +221,7 @@ exports.Session.prototype.gitPatch = function(git_patch, self) {
     return 0;
 }
 
-// (3): Producer:asset 메시지 생성 및 전송
+// (3): Producer: send.asset Message creation and Sending it
 exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     // Change Log -> previous argument was {related, filepath} as json_string format. Now git diff
     // Change Log -> Extract the filepath and related information from the git diff string
@@ -228,7 +229,7 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     // get filepaths from the git_pacth
     var filepath_list = diff_parser.parse_git_patch(git_pacth);
 
-    // 보낼 메시지 내용 - operation, id, related, content.interest, content.reference_model
+    // Things to send - operation, id, related, content
     var payload_list = [];
     for (var i = 0; i < filepath_list.length; i++) {
         var filepath = filepath_list[i];
@@ -237,7 +238,7 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
         var temp = {
             "id": path.basename(filepath, '.asset'),
             "operation": "UPDATE",
-            "type": "asset",
+            "type": "send.asset",
             "related": related,
             "content": fs.readFileSync(self.VC.vcRoot + '/' + filepath).toString()
         }
@@ -269,14 +270,14 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     debug('[LOG] kafka Producer done');
 }
 
-// Publish 조건 충족 여부 확인 함수
+// Publish Condition Check
 exports.Session.prototype.__check_MaxCount = function() {
-    // 만약 count가 sync_count 이상이 된 경우
-    // sync_count가 [a,b] 형식인데 이거 의미는?
+    // If count is or is over sync_count
+    // sync_count: [a,b] -> don't know the meaning yet 
     if (this.count_msg >= this.sn_options.sync_desc.sync_count[0]) return true;
-    // 만약 sync_time을 초과한 경우
+    // TODO: If sync_time has passed -> need to implelement
 
-    // 그 외에는 전부 false
+    // Otherwise return false
     return false;
 }
 
