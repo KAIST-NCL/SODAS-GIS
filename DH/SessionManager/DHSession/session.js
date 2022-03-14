@@ -29,46 +29,46 @@ exports.Session = function() {
     this.count_msg = 0;
 
     this.pubvc_root = workerData.pubvc_root;
-    // 루트 폴더 생성
+    // Root Dir Creation
     this.id = workerData.my_session_id;
     this.rootDir = workerData.subvc_root+'/'+this.id;
     !fs.existsSync(this.rootDir) && fs.mkdirSync(this.rootDir);
 
-    // 쓰레드 간 메시지 관련
+    // Settings for storing thread call information
     this.msg_storepath = this.rootDir+'/msgStore.json'
 
-    // gitDB 설정
+    // Settings for GitDB
     this.VC = new subscribeVC(this.rootDir+'/gitDB');
     this.VC.init();
     
-    // Mutex_Flag 준비 되면 주석 해제
+    // Mutex_Flag for Git
     this.flag = workerData.mutex_flag; // mutex flag
 
-    // FirstCommit 반영 Change Log -> added self as argument to returnFirstCommit
+    // FirstCommit Extraction from PubVC
     this._reset_count(this.VC.returnFirstCommit(this.VC, this.pubvc_root));
 
-    // gRPC 서버 시작
+    // Run gRPC Server
     this.ip = workerData.my_ip;
     this.my_port = workerData.my_portNum;
     this.server = new grpc.Server();
     var self = this;
     this.server.addService(session_sync.SessionSync.service, {
-        // (1): 외부 Session으로부터 Subscribe - 상대방이 자신의 id를 건네줄 것인데, 이를 자신이 갖고 있는 상대방의 id와 비교해서 맞을 때만 처리
+        // (1): Subscription from counter session
         SessionComm: (call, callback) => {
             self.Subscribe(self, call, callback);
         }
     });
 
-    // parentPort, 즉 자신을 생성한 SM으로부터 메시지를 받아 처리하는 함수.
+    // Thread Calls from Parent
     parentPort.on('message', message => {
         debug("[Session ID: " + this.id + "] Received Thread Msg ###");
         debug(message);
         switch(message.event) {
-            // Session 실행 시 SM으로부터 받아오는 값
+            // Information to init the Session
             case 'INIT':
                 this._init();
                 break;
-            // 연결될 상대방 Session 정보
+            // Information about counter session
             case 'TRANSMIT_NEGOTIATION_RESULT':
                 // 처음 연동일 때에 sync_interest_list를 참조해서 상대방에 gitDB Publish를 한다.
                 this.target = message.data.end_point.ip + ':' + message.data.end_point.port;
@@ -78,10 +78,8 @@ exports.Session = function() {
                 this.session_desc = message.data.session_desc;
                 this.sn_options = message.data.sn_options; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
                 break;
-            // Publish할 내용을 받아온다.
+            // Things to publsih
             case 'UPDATE_PUB_ASSET':
-                // asset_id, commit_number, related, filepath
-                // 우선 메시지 수신 시 카운트를 센다.
                 this.count_msg += 1;
                 this.prePublish(message.data);
                 break;
