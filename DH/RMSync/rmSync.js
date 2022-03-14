@@ -65,7 +65,7 @@ exports.RMSync.prototype._dhDaemonListener = function(message) {
             this.run();
             break;
         default:
-            debug('[ERROR] DH Daemon Listener Error ! event:', message.event);
+            debug('[ERROR] DHDaemon Listener Error ! event:', message.event);
             break;
     }
 };
