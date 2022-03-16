@@ -238,7 +238,7 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
         var temp = {
             "id": path.basename(filepath, '.asset'),
             "operation": "UPDATE",
-            "type": "send.asset",
+            "type": "asset",
             "related": related,
             "content": fs.readFileSync(self.VC.vcRoot + '/' + filepath).toString()
         }
