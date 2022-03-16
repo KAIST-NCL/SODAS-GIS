@@ -56,7 +56,7 @@ exports.DHSearch.prototype._dhDaemonListener = function(message){
             debug(this.sync_interest_list);
             break;
         default:
-            debug('[ERROR] DH Daemon Listener Error ! event:', message.event);
+            debug('[ERROR] DHDaemon Listener Error ! event:', message.event);
             break;
     }
 };
