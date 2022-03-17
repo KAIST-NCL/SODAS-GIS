@@ -6,7 +6,7 @@ const debug = require('debug')('sodas:bootstrap_server');
 
 exports.BootstrapServer = function () {
 
-    this.bootstrapServerIP = '127.0.0.1:50051';
+    this.bootstrapServerIP = 'sodas.bootstrap:50051';
     const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
         keepCase: true,
         longs: String,

@@ -8,7 +8,7 @@ const debug = require('debug')('sodas:rmSessionManager');
 
 exports.RMSessionManager = function () {
 
-    this.rm_sm_ip = '127.0.0.1:50050';
+    this.rm_sm_ip = 'sodas.referencehub:50050';
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH, {
             keepCase: true,

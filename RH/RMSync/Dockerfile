@@ -9,8 +9,7 @@ RUN apt-get install -y git
 
 RUN git clone https://$REPO_TOKEN@github.com/EunjuYang/KAIST_SODAS.git
 RUN git checkout dh_daemon
-WORKDIR /KAIST_SODAS/DH/
+WORKDIR /KAIST_SODAS/RH/
 RUN npm install
-WORKDIR /KAIST_SODAS/DH/Daemon
 ENV DEBUG=sodas:*
-ENTRYPOINT ["node", "DHDaemon.js"]
+ENTRYPOINT ["node", "rmSessionManager.js"]
