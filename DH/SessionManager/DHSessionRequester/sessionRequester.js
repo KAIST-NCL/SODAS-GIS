@@ -7,8 +7,6 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const debug = require('debug')('sodas:sessionRequester');
 
-const workerName = 'SessionRequester';
-
 exports.SessionRequester = function () {
 
     self = this;
@@ -41,25 +39,23 @@ exports.SessionRequester.prototype.run = function () {
 exports.SessionRequester.prototype._smListener = function (message) {
     switch (message.event) {
         case 'INIT':
-            debug('[ ' + workerName + ' get message * INIT * ]');
+            debug('[RX: INIT] from SessionManager');
             this.run();
             break;
         case 'START_SESSION_CONNECTION':
-            debug('SessionRequester thread receive [START_SESSION_CONNECTION] event from SessionManager')
-            debug('[ ' + workerName + ' get message * START_SESSION_CONNECTION * ]');
+            debug('[RX: START_SESSION_CONNECTION] from SessionManager')
             debug(message.data);
-
             this._snProcess(message.data);
             break;
         case 'GET_NEW_SESSION_INFO':
-            debug('[ ' + workerName + ' get message * GET_NEW_SESSION_INFO * ]');
+            debug('[RX: GET_NEW_SESSION_INFO] from SessionManager');
             debug(message.data)
             this.my_session_desc.session_id = message.data.sess_id;
             this.my_end_point.ip = message.data.sess_ip;
             this.my_end_point.port = message.data.sess_portNum;
             break;
         case 'UPDATE_NEGOTIATION_OPTIONS':
-            debug('[ ' + workerName + ' get message * UPDATE_NEGOTIATION_OPTIONS * ]');
+            debug('[RX: UPDATE_NEGOTIATION_OPTIONS] from SessionManager');
             this.sn_options = message.data
             break;
     }
@@ -67,6 +63,7 @@ exports.SessionRequester.prototype._smListener = function (message) {
 
 /* SessionManager methods */
 exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_point, session_desc, sn_result) {
+    debug('[TX: TRANSMIT_NEGOTIATION_RESULT] to SessionManager');
     parentPort.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
         data: { end_point: end_point, session_desc: session_desc, sn_result: sn_result }
@@ -92,7 +89,6 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                 debug(node);
                 let sl_addr = node.address + ':' + node.port;
                 sessionRequester.sessionNegotiationClient = await sessionRequester._initConnection(sl_addr);
-                debug("--=-=-=-=- test -=-=-=-=-");
                 debug(sessionRequester.my_session_desc.session_id);
                 if ( sessionRequester.my_session_desc.session_id == null ) {
                     debug("srTempSession is not yet Created")
@@ -124,7 +120,7 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                         });
                 }
                 await sessionRequester._closeConnection();
-                resolve(node.port + '와의 세션 협상 종료 =========================')
+                await resolve(node.port + '와의 세션 협상 종료 =========================')
             }, 2000);
         })
     }

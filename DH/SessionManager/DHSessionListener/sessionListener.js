@@ -52,18 +52,17 @@ exports.SessionListener.prototype.run = function () {
 exports.SessionListener.prototype._smListener = function (message) {
     switch (message.event) {
         case 'INIT':
-            debug('[LOG] ' + '[ ' + workerName + ' get message * INIT * ]');
+            debug('[RX: INIT] from SessionManager');
             this.run();
             break;
         case 'GET_NEW_SESSION_INFO':
-            debug('[LOG] ' + '[ ' + workerName + ' get message * GET_NEW_SESSION_INFO * ]');
-            // sessionListener.session_desc.session_id = message.data.sess_id;
+            debug('[RX: GET_NEW_SESSION_INFO] from SessionManager');
             this.my_session_desc.session_id = message.data.sess_id;
             this.my_end_point.ip = message.data.sess_ip;
             this.my_end_point.port = message.data.sess_portNum;
             break;
         case 'UPDATE_NEGOTIATION_OPTIONS':
-            debug('[LOG] [ ' + workerName + ' get message * UPDATE_NEGOTIATION_OPTIONS * ]');
+            debug('[RX: UPDATE_NEGOTIATION_OPTIONS] from SessionManager');
             this.sn_options = message.data
             break;
     }
@@ -71,6 +70,7 @@ exports.SessionListener.prototype._smListener = function (message) {
 
 /* SessionManager methods */
 exports.SessionListener.prototype._smTransmitNegotiationResult = function (end_point, session_desc, sn_result) {
+    debug('[TX: TRANSMIT_NEGOTIATION_RESULT] to SessionManager');
     parentPort.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
         data: { end_point: end_point, session_desc: session_desc, sn_result: sn_result }
@@ -106,7 +106,6 @@ exports.SessionListener.prototype._ackSN = function (call, callback) {
     debug(result);
     sessionListener.other_end_point = result.end_point;
 
-    debug('[LOG] SessionListener thread send [TRANSMIT_NEGOTIATION_RESULT] event to SessionManager')
     sessionListener._smTransmitNegotiationResult(sessionListener.other_end_point, sessionListener.other_session_desc, sessionListener.session_result);
     sessionListener.my_session_desc.session_id = null;
     debug(sessionListener.my_session_desc.session_id)
