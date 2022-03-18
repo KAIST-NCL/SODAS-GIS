@@ -139,7 +139,7 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
         for (var i = 0; i < this.sn_options.datamap_desc.sync_interest_list.length; i++) {
             diff_directories = diff_directories + ' ' + this.sn_options.datamap_desc.sync_interest_list[i];
         }
-        var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
+        var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
         this.flag[0] = 0;
         // mutex off
         debug(git_diff);
