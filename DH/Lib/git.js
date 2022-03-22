@@ -54,10 +54,10 @@ class Git {
         // var result = execSync('cd' + this.gitDIR_ + ' && git apply --check ' + patch_name).toString()
         // 위 코드 실행 후 result가 빈 string인지 확인하면 된다.
         if (arguments.length == 1) {
-            execSync('cd ' + this.gitDIR_ + ' && git apply '+ patch_name);
+            execSync('cd ' + this.gitDIR_ + ' && git apply --whitespace=fix --3way --ignore-space-change --ignore-whitespace ' + patch_name);
         }
         else if (arguments.length == 2) {
-            execSync('cd ' + this.gitDIR_ + ' && git apply --reject --whitespace=fix --3way ' + patch_name);
+            execSync('cd ' + this.gitDIR_ + ' && git apply --whitespace=fix --3way --ignore-space-change --ignore-whitespace ' + patch_name);
         }
         else {
             debug("Error: # of Arguments must be either 1 or 2");
