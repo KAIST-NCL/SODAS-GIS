@@ -37,6 +37,7 @@ class ctrlConsumer extends Consumer{
                 debug('[Function Test / Init Process] START event');
                 break;
             case 'UPDATE':
+                debug(msg);
                 this.daemon._dhSearchUpdateInterestTopic(msg.interest);
                 this.daemon._vcUpdateReferenceModel(msg.reference_model);
                 this.daemon._smUpdateNegotiation(msg.sn_options);

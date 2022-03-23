@@ -97,21 +97,21 @@ exports.DHDaemon.prototype.run = function(){
     const dmServerParam = {'dm_ip': this.dm_ip, 'dm_portNum': this.dm_portNum, 'name': this.name};
     const dhSearchParam = {'dm_ip': this.dm_ip, 'ds_portNum': this.ds_portNum, 'sl_portNum': this.sl_portNum, 'bootstrap_ip': this.bs_ip, 'bootstrap_portNum': this.bs_portNum};
     const vcParam = {'sm_port': msgChn.port1, 'rmsync_root_dir': this.rmsync_root_dir, 'kafka': this.kafka, 'kafka_options': this.kafka_options, 'pubvc_root': this.pubvc_root, 'commit_period': this.commit_period, 'mutex_flag': mutex_flag};
-    const smParam = {'vc_port': msgChn.port2, 'dm_ip': this.dm_ip, 'sl_port': this.sl_portNum, 'sn_options':this.sn_options, 'pubvc_root': this.pubvc_root, 'subvc_root': this.subvc_root, 'mutex_flag': mutex_flag};
+    const smParam = {'vc_port': msgChn.port2, 'dm_ip': this.dm_ip, 'sl_portNum': this.sl_portNum, 'sn_options':this.sn_options, 'pubvc_root': this.pubvc_root, 'subvc_root': this.subvc_root, 'mutex_flag': mutex_flag};
     const rmSyncParam = {'dm_ip': this.dm_ip, 'rm_port': this.rm_portNum, 'rh_ip': this.rh_ip, 'rh_portNum': this.rh_portNum, 'rymsync_root_dir': this.rmSync_rootDir};
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });
     this.dhSearch = new Worker('../DHSearch/dhSearch.js', { workerData: dhSearchParam });
-    // this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port1]});
-    // this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
+    this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port1]});
+    this.sessionManager = new Worker('../SessionManager/sessionManager.js', { workerData: smParam, transferList: [msgChn.port2]});
     this.rmSync = new Worker('../RMSync/rmSync.js', { workerData: rmSyncParam });
     //
     // setting on function
     this.daemonServer.on('message', function(message){self._dmServerListener(message)});
     this.dhSearch.on('message', function(message) {self._dhSearchListener(message)});
-    // this.VC.on('message', function(message) {self._vcListener(message)});
-    // this.sessionManager.on('message', function(message) {self._smListener(message)});
+    this.VC.on('message', function(message) {self._vcListener(message)});
+    this.sessionManager.on('message', function(message) {self._smListener(message)});
     this.rmSync.on('message', function(message){self._rmSyncListener(message)});
 
     // run ctrlConsumer
