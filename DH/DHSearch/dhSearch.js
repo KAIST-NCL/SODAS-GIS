@@ -18,8 +18,8 @@ exports.DHSearch = function(){
     this.sl_portNum = workerData.sl_portNum;
     this.bootstrap_server_ip = workerData.bootstrap_ip + ':' + workerData.bootstrap_portNum;
 
-    this.seedNode = dh.seedNodeInfo({address: this.ip, port: parseInt(workerData.ds_portNum)});
-    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.ds_portNum)});
+    this.seedNode = dh.seedNodeInfo({address: this.ip, port: parseInt(workerData.ds_portNum), sl_portNum: parseInt(workerData.sl_portNum)});
+    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.ds_portNum), sl_portNum: parseInt(workerData.sl_portNum)});
     this.node._updateContactEvent.on('update_contact', () => {
         this._dmUpdateBucketList()
     });
@@ -92,7 +92,7 @@ exports.DHSearch.prototype._bootstrapProcess = async function() {
 exports.DHSearch.prototype._discoverProcess = async function() {
     debug('[LOG] Start distributed search')
     for (var seedNodeIndex of this.seedNodeList) {
-        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port);
+        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.sl_portNum);
         // await new Promise((resolve, reject) => setTimeout(resolve, 2000));
     }
     await this._dmUpdateBucketList();
