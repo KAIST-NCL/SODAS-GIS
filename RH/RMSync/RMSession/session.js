@@ -3,8 +3,8 @@ const path = require('path');
 const diff_parser = require('../../../DH/Lib/diff_parser');
 var kafka = require('kafka-node');
 const {parentPort, workerData} = require('worker_threads');
-const {publishVC,subscribeVC } = require('../../VersionControl/versionController')
-const PROTO_PATH = __dirname + '/../proto/rmSessionSync.proto';
+const {subscribeVC } = require('../../VersionControl/versionController')
+const PROTO_PATH = __dirname + '/../proto/sessionSync.proto';
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const execSync = require('child_process').execSync;
@@ -16,8 +16,8 @@ const packageDefinition = protoLoader.loadSync(
         defaults: true,
         oneofs: true
     })
-const session_sync = grpc.loadPackageDefinition(packageDefinition).RMSessionSyncModule;
-const session = require(__dirname + '/rmSession');
+const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
+const session = require(__dirname + '/session');
 const debug = require('debug')('sodas:session');
 
 
@@ -27,11 +27,20 @@ exports.Session = function() {
     debug("[LOG] RH Session Created");
     debug(workerData);
     this.count_msg = 0;
-    this.id = workerData.session_id;
-    this.pubRM_dir = workerData.pubvc_root;
-    this.VC= new publishVC(this.pubRM_dir);
-    //this.VC.init();
-    this.msg_storepath = this.pubRM_dir+'/msgStore.json'
+
+    this.pubRM_dir = workerData.pubRM_dir;
+    // Root Dir Creation
+    this.id = workerData.my_session_id;
+    this.subRM_dir = workerData.subRM_dir+'/'+this.id;
+    !fs.existsSync(this.subRM_dir) && fs.mkdirSync(this.subRM_dir);
+
+    // Settings for storing thread call information
+    this.msg_storepath = this.subRM_dir+'/msgStore.json'
+
+    // Settings for GitDB
+    this.VC = new subscribeVC(this.subRM_dir+'/gitDB');
+    this.VC.init();
+    
     // Mutex_Flag for Git
     this.flag = workerData.mutex_flag; // mutex flag
 
@@ -39,11 +48,11 @@ exports.Session = function() {
     this._reset_count(this.VC.returnFirstCommit(this.VC, this.pubRM_dir));
 
     // Run gRPC Server
-    this.ip = workerData.dh_ip;
-    this.my_port = workerData.dh_port;
+    this.ip = workerData.my_ip;
+    this.my_port = workerData.my_portNum;
     this.server = new grpc.Server();
     var self = this;
-    this.server.addService(session_sync.RMSessionSync.service, {
+    this.server.addService(session_sync.SessionSync.service, {
         // (1): Subscription from counter session
         SessionComm: (call, callback) => {
             self.Subscribe(self, call, callback);
@@ -57,7 +66,7 @@ exports.Session = function() {
         switch(message.event) {
             // Information to init the Session
             case 'INIT':
-                //this._init();
+                this._init();
                 break;
             // Information about counter session
             case 'TRANSMIT_NEGOTIATION_RESULT':
@@ -66,7 +75,7 @@ exports.Session = function() {
                 console.log('[LOG] Target:' + this.target);
                 debug('[LOG] Target:' + this.target);
                 // gRPC client creation
-                this.grpc_client = new session_sync.RMSessionSync(this.target, grpc.credentials.createInsecure());
+                this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
                 this.session_desc = message.data.session_desc;
                 this.sn_options = message.data.sn_options; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
                 break;
@@ -171,6 +180,90 @@ exports.Session.prototype.Publish = function(git_patch) {
             debug("[ERROR] Error on Publish Communication");
         }
     });
+}
+
+/// (1): Subscribe from the other session
+// Change Log -> seperated from the constructor as an function
+exports.Session.prototype.Subscribe = function(self, call, callback) {
+    debug('[LOG] Server: ' + self.id + ' gRPC Received: to ' + call.request.receiver_id);
+    // Only process the things when sender's id is the same one with the counter session's id
+    if (call.request.receiver_id == self.id) {
+        debug("[LOG] Git Patch Start");
+        // git Patch apply
+        var result = self.gitPatch(call.request.git_patch, self);
+        // ACK Transimittion
+        // If no problem, result is 0. Otherwise is not defined yet.
+        callback(null, {transID: call.request.transID, result: result})
+        // Producing the Kafka message and publish it.
+        self.kafkaProducer(call.request.git_patch, self);
+    }
+}
+
+// (2): Apply the git patch received through gRPC
+exports.Session.prototype.gitPatch = function(git_patch, self) {
+    // save git patch as a temporal file
+    var temp = self.subRM_dir + "/" + Math.random().toString(10).slice(2,3) + '.patch';
+    try {
+        fs.writeFileSync(temp, git_patch);
+    } catch (err) {
+        debug("[ERROR] ", err);
+        return 1;
+    }
+    self.VC.apply(temp);
+    // remove the temporal file
+    fs.existsSync(temp) && fs.unlink(temp, function (err) {
+        if (err) {
+            debug("[ERROR] ", err);
+        }
+    });
+    return 0;
+}
+
+// (3): Producer: send.asset Message creation and Sending it
+exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
+    // Change Log -> previous argument was {related, filepath} as json_string format. Now git diff
+    // Change Log -> Extract the filepath and related information from the git diff string
+
+    // get filepaths from the git_pacth
+    var filepath_list = diff_parser.parse_git_patch(git_pacth);
+
+    // Things to send - operation, id, related, content
+    var payload_list = [];
+    for (var i = 0; i < filepath_list.length; i++) {
+        var filepath = filepath_list[i];
+        var temp = {
+            "id": path.basename(filepath, '.rdf'),
+            "operation": "UPDATE",
+            "type": filepath.split('/')[0],
+            "content": fs.readFileSync(self.VC.vcRoot + '/' + filepath).toString()
+        }
+        console.log(temp);
+        payload_list.push(temp);
+        debug("[LOG] Payload added " + temp.id);
+    }
+    
+    debug('[LOG] kafka Producer start');
+
+    var Producer = kafka.Producer;
+    var client = new kafka.KafkaClient();
+    var producer = new Producer(client);
+
+    producer.on('error', function(err) {
+        debug("[ERROR] kafkaproducer error");
+        debug(err);
+    })
+
+    producer.on('ready', function() {
+        for (var i=0; i < payload_list.length; i++) {
+            var payloads = [
+                { topic: 'send.rdf', messages:JSON.stringify(payload_list[i])}
+            ];
+            producer.send(payloads, function(err, result) {
+                debug('[LOG]', result);
+            });
+        }
+    });
+    debug('[LOG] kafka Producer done');
 }
 
 // Publish Condition Check
