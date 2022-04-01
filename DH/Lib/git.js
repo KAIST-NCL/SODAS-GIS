@@ -10,7 +10,7 @@ class Git {
     }
     async init(){
         // callback, argDict는 optional.
-        !fs.existsSync(this.gitDIR_) && fs.mkdirSync(this.gitDIR_);
+        !fs.existsSync(this.gitDIR_) && fs.mkdirSync(this.gitDIR_, {recursive: true});
         this.git = await simpleGit(this.gitDIR_, { binary: 'git' });
         await this.git.init();
         const stdout = execSync('cd ' + this.gitDIR_ + '&& git rev-list --all --count');

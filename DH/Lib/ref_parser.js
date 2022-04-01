@@ -118,7 +118,7 @@ class ref_parser {
 
     // 해당 경로에 폴더를 생성하는 함수
     _folder_create(target) {
-        !fs.existsSync(target) && fs.mkdirSync(target);
+        !fs.existsSync(target) && fs.mkdirSync(target, {recursive: true});
     }
 
     // 필요한 내용이 들은 줄이 파티션 내에서 몇 번째 인덱스에 해당하는지 반환하는 함수.
