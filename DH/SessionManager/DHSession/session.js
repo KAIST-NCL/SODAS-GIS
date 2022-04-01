@@ -19,7 +19,7 @@ const packageDefinition = protoLoader.loadSync(
 const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
 const session = require(__dirname + '/session');
 const debug = require('debug')('sodas:session');
-
+const tools = require('../../Lib/tools');
 
 /// Constructor
 // workerData -> my_session_id, my_ip, my_portNum
@@ -32,7 +32,7 @@ exports.Session = function() {
     // Root Dir Creation
     this.id = workerData.my_session_id;
     this.rootDir = workerData.subvc_root+'/'+this.id;
-    !fs.existsSync(this.rootDir) && fs.mkdirSync(this.rootDir, {recursive: true});
+    !fs.existsSync(this.rootDir) && tools.mkdirSyncRecursive(this.rootDir);
 
     // Settings for storing thread call information
     this.msg_storepath = this.rootDir+'/msgStore.json'

@@ -3,14 +3,16 @@ const simpleGit = require('simple-git');
 const fs = require('fs');
 const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:lib:git');
+const tools = require('./tools')
 
 class Git {
     constructor(gitDIR_){
         this.gitDIR_ = gitDIR_;
     }
+
     async init(){
         // callback, argDict는 optional.
-        !fs.existsSync(this.gitDIR_) && fs.mkdirSync(this.gitDIR_, {recursive: true});
+        !fs.existsSync(this.gitDIR_) && tools.mkdirSyncRecursive(this.gitDIR_);
         this.git = await simpleGit(this.gitDIR_, { binary: 'git' });
         await this.git.init();
         const stdout = execSync('cd ' + this.gitDIR_ + '&& git rev-list --all --count');
