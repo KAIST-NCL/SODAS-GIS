@@ -32,6 +32,7 @@ exports.Session = function() {
     // Root Dir Creation
     this.id = workerData.my_session_id;
     this.rootDir = workerData.subvc_root+'/'+this.id;
+    !fs.existsSync(workerData.subvc_root) && fs.mkdirSync(workerData.subvc_root);
     !fs.existsSync(this.rootDir) && fs.mkdirSync(this.rootDir);
 
     // Settings for storing thread call information
