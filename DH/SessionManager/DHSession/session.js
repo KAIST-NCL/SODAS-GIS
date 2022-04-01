@@ -84,7 +84,7 @@ exports.Session = function() {
             // Things to publsih
             case 'UPDATE_PUB_ASSET':
                 this.count_msg += 1;
-                this.prePublish(message.data);
+                this.prePublish(this, message.data);
                 break;
         }
     });
@@ -100,14 +100,19 @@ exports.Session.prototype._init = function(self) {
 
 /// [4]: hanldes the msg from Session Manager
 // message: dict. data part of thread call "UPDATE_PUB_ASSET"
-exports.Session.prototype.prePublish = function(message) {
+exports.Session.prototype.prePublish = function(self, message) {
     // save the things in message in a file as log
     // change log: Now only the commit number is needed
     // ToDo: Rather than calling this function whenever receiving the thread call from SM, call this function just like the vcModule calls commit function
-    var content = this.__read_dict();
+    var content = self.__read_dict();
     content.stored = content.stored + 1;
     content.commit_number.push(message.commit_number);
-    this.__save_dict(content);
+    self.__save_dict(content);
+    if (self.count_msg >= self.sn_options.sync_desc.sync_count[0]) {
+        debug("[LOG] Sync_count reached - clearTimeOout");
+        clearTimeout(self.setTimeoutID);
+        self.run(self);
+    }
 }
 
 /// If the count / sync time reaches some point, extract the git diff and publish it to other session
@@ -118,10 +123,9 @@ exports.Session.prototype.onMaxCount = async function(self) {
     const topublish = self.__read_dict();
     self._reset_count(topublish.commit_number[topublish.commit_number.length - 1]);
     // git diff extraction
-    self.extractGitDiff(topublish).then((git_diff) => {
-        // Send gRPC message 
-        self.Publish(git_diff);
-    });
+    git_diff = await self.extractGitDiff(topublish)
+    // Send gRPC message 
+    if (git_diff) self.Publish(git_diff);
 }
 
 /// To extract git diff using two git commit numbers
@@ -143,7 +147,6 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
         var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
         this.flag[0] = 0;
         // mutex off
-        debug(git_diff);
         return git_diff;
     }
 }
