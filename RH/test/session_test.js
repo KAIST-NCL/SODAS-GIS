@@ -25,18 +25,18 @@ class test {
     // Todo.
     // 세션 생성에 필요한 내용 전달
     constructor(ip) {
-        this.sessions = [];
         this.dm_ip = ip;
         this.dh_listener=[];
     }
 
     // 세션 생성 하는 함수
     RMSession_Create(id) {
-        console.log("### Create RMSession: " + id);
-        var index = this.sessions.length;
-        this._createSession(id).then(()=> {
-            this._sessionInit(this.sessions[index].worker);
-            console.log(this.sessions);
+        console.log("### Create RMSession for DH: " + id);
+        this._createSession(id).then((worker)=> {
+            worker.postMessage({
+                event: "INIT",
+                data: null
+            });
         });
     }
     async DHListener_Create(id) {
@@ -56,65 +56,29 @@ class test {
         dh.server.bindAsync(dh.addr, grpc.ServerCredentials.createInsecure(), ()=> {
             dh.server.start();
         });
-        console.log(dh);
+        //console.log(dh);
+        console.log("Create DH Listener Session: " + id);
         this.dh_listener.push(dh);
-    }
-    // 2. event = 'TRANSMIT_NEGOTIATION_RESULT' - > end_point.ip/port, session_desc, sn_options
-    // session_desc: datahub_id, session_id
-    Session_SetOptions(RHIndex, DHIndex) {
-        console.log("### Send Options to Session: " + RHIndex);
-        var endpoint = {
-            ip: this.dh_listener[DHIndex].ip,
-            port: this.dh_listener[DHIndex].port
-        };
-
-        var session_desc = {
-            dh_id: this.dh_listener[DHIndex].id
-        };
-
-        var sn_options = {
-            datamap_desc: {
-                data_catalog_vocab: 'DCATv2'
-            }, 
-            sync_desc: {
-                sync_time: [2, 43],
-                sync_count: [2, 5],
-                transfer_interface: ['gRPC']
-            }
-        };
-
-        this._session_setoptions(RHIndex, endpoint, session_desc, sn_options);
+        this.RMSession_Create(id);
     }
 
-    _session_setoptions(index, end_point, session_desc, sn_options) {
-        this.sessions[index].worker.postMessage({
-            event: 'TRANSMIT_NEGOTIATION_RESULT',
-            data: {end_point: end_point,
-            session_desc: session_desc,
-            sn_options: sn_options}
-        });
+    Session_Update_Asset(message) {
+        console.log("### Update Reference Mmodel to Session");
+        this.worker_session.postMessage({ event: 'UPDATE_REFERENCE_MODEL', data: message});
     }
 
-    // 3. event = 'UPDATE_PUB_ASSET' - > asset_id, commit_number, related, filepath
-    Session_Update_Asset(index, message) {
-        console.log("### Update Reference Mmodel to Session: " + index);
-        this.sessions[index].worker.postMessage({ event: 'UPDATE_REFERENCE_MODEL', data: message});
-    }
-
-    async _createSession(id) {
-        var session = {};
-        session.session_id = id;
-        session.ip = this.dm_ip;
-        await this._setSessionPort().then(value => session.port = value);
-        session.worker = await new Worker(__dirname + '/../RMSync/RMSession/rmSession.js', 
+    async _createSession(dh_id) {
+        var worker = new Worker(__dirname + '/../RMSync/RMSession/rmSession.js', 
                                          { workerData: {
-                                             'session_id': session.session_id, 
-                                             'dh_ip': session.ip, 
-                                             'dh_port': session.port,
+                                             'session_id': 0,
+                                             'dh_id': dh_id, 
+                                             'dh_ip': this.dh_listener[dh_id].ip, 
+                                             'dh_port': this.dh_listener[dh_id].port,
                                              'pubvc_root': __dirname + '/functionTest/reference_files_dir',
                                              'mutex_flag': mutex_flag} 
                                          });
-        this.sessions.push(session);
+        this.worker_session=worker;
+        return worker
     }
 
     async _setSessionPort() {
@@ -125,13 +89,6 @@ class test {
                 console.log(err);
             });
         return detect();
-    }
-
-    _sessionInit(sessionWorker) {
-        sessionWorker.postMessage({
-            event: "INIT",
-            data: null
-        });
     }
 }
 
