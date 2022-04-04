@@ -3,14 +3,16 @@ const simpleGit = require('simple-git');
 const fs = require('fs');
 const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:lib:git');
+const tools = require('./tools')
 
 class Git {
     constructor(gitDIR_){
         this.gitDIR_ = gitDIR_;
     }
+
     async init(){
         // callback, argDict는 optional.
-        !fs.existsSync(this.gitDIR_) && fs.mkdirSync(this.gitDIR_);
+        !fs.existsSync(this.gitDIR_) && tools.mkdirSyncRecursive(this.gitDIR_);
         this.git = await simpleGit(this.gitDIR_, { binary: 'git' });
         await this.git.init();
         const stdout = execSync('cd ' + this.gitDIR_ + '&& git rev-list --all --count');
@@ -54,10 +56,10 @@ class Git {
         // var result = execSync('cd' + this.gitDIR_ + ' && git apply --check ' + patch_name).toString()
         // 위 코드 실행 후 result가 빈 string인지 확인하면 된다.
         if (arguments.length == 1) {
-            execSync('cd ' + this.gitDIR_ + ' && git apply '+ patch_name);
+            execSync('cd ' + this.gitDIR_ + ' && git apply --whitespace=fix --3way --ignore-space-change --ignore-whitespace ' + patch_name);
         }
         else if (arguments.length == 2) {
-            execSync('cd ' + this.gitDIR_ + ' && git apply --reject --whitespace=fix --3way ' + patch_name);
+            execSync('cd ' + this.gitDIR_ + ' && git apply --whitespace=fix --3way --ignore-space-change --ignore-whitespace ' + patch_name);
         }
         else {
             debug("Error: # of Arguments must be either 1 or 2");

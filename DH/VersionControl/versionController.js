@@ -71,7 +71,7 @@ class subscribeVC extends VC{
         await this.git.commit(filepath, message);
     }
 
-    async apply(gitPatch) {
+    apply(gitPatch) {
         this.git.apply(gitPatch);
     }
 }

@@ -1,12 +1,11 @@
 const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
 const debug = require('debug')('sodas:vcConsumer');
 
-// NodeJS에서 extends는 상속하는데 사용한다
 class vcConsumer extends Consumer{
     constructor(kafkaHost, options, VC) {
         const topics = [ {topic:'recv.asset', partitions:0} ];
-        super(kafkaHost, topics, options); // 부모 생성자 호출
-        this.VC = VC; // vcModule
+        super(kafkaHost, topics, options); 
+        this.VC = VC; 
     }
     run(){
         debug('[RUNNING] kafka consumer for VC is running');
