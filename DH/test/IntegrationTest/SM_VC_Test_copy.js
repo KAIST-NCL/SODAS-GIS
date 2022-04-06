@@ -15,7 +15,7 @@ class DHDaemon {
         this.conf.read(__dirname+'/../../setting.cfg');
         this.pubvc_root = __dirname + '/pubvc';
         this.subvc_root = __dirname + '/subvc';
-        this.rmsync_root_dir = '/home/ncl/jwlee/main/KAIST_SODAS/DH/rdf_files/reference-model/domain-version';
+        this.rmsync_root_dir = '/home/ncl/jwlee/my_branch/KAIST_SODAS/DH/rdf_files/reference-model/domain-version';
         this.RM = 'domainVersion00.rdf';
         this.msgChn = new MessageChannel();
         this.dm_ip = this.conf.get('Daemon', 'ip'); 
