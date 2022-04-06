@@ -23,6 +23,7 @@ exports.vcModule = function(){
     this.consumer = new vcConsumer(kafkaHost, options, this);
     this.flag = workerData.mutex_flag; // mutex flag
 
+    /* Uncomment for Pooling
     this.last_commit_time = new Date().getTime();
     this.count = 0; // kafka message receive count
 
@@ -31,6 +32,7 @@ exports.vcModule = function(){
     // sync_time => commit period
     this.timeOut = workerData.commit_period.timeOut;
     this.sync_time = workerData.commit_period.period;
+    */
 
     var self = this;
     parentPort.on('message', message => {
@@ -67,9 +69,6 @@ exports.vcModule.prototype.commit = async function(self, message) {
 };
 
 exports.vcModule.prototype.reportCommit = function(self, commitNumber){
-    // Change Log - > data part has decreased
-
-    // Change Log - > filepath extraction using git show add
     const stdout = execSync('cd ' + self.vc.vcRoot + ' && git show ' + commitNumber);
     filepath_list = diff_parser.parse_git_patch(stdout.toString());
 
@@ -103,6 +102,7 @@ exports.vcModule.prototype.unlockMutex = function (self) {
     self.flag[0] = 0;
 };
 
+/* Uncomment for Pooling Method
 exports.vcModule.prototype.git_run = function (self) {
     now = new Date().getTime();
     if (self.count >= 1 && now - self.last_commit_time >= self.sync_time) {
@@ -113,8 +113,9 @@ exports.vcModule.prototype.git_run = function (self) {
     }
     setTimeout(self.git_run, self.timeOut, self);
 };
+*/
 
 const VC = new vcModule.vcModule();
 VC.init();
 VC.run();
-VC.git_run(VC);
+// VC.git_run(VC);
