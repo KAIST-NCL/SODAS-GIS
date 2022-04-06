@@ -405,13 +405,13 @@ exports.KNode.prototype.debug = function() {
 }
 
 /***** Public API *****/
-exports.KNode.prototype.connect = function(address, port, cb) {
+exports.KNode.prototype.connect = function(address, port, sl_portNum, cb) {
     // console.log("<-------------------------- [Call connect function] -------------------------->")
     var callback = cb || function() {};
     assert.ok(this.self.nodeID);
-    var contact = util.make_contact(address, port);
-    // console.log("[connect function] contact:")
-    // console.log(contact)
+    var contact = util.make_contact(address, port, sl_portNum);
+    console.log("[connect function] contact:")
+    console.log(contact)
 
     var refreshBucketsFartherThanClosestKnown = function(type, contacts, asyncCallback) {
         // console.log("<-------------------------- [Call refreshBucketsFartherThanClosestKnown function] -------------------------->")

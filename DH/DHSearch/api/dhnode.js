@@ -43,7 +43,8 @@ exports.seedNodeInfo = function(desc){
     let seedNode = {
         node_id: null,
         address: desc.address,
-        port: desc.port
+        port: desc.port,
+        sl_portNum: desc.sl_portNum
     };
 
     seedNode.node_id = crypto.createHash('sha1').update(seedNode.address + ':' + seedNode.port).digest('hex');

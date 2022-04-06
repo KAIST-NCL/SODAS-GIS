@@ -19,7 +19,7 @@ const packageDefinition = protoLoader.loadSync(
 const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
 const session = require(__dirname + '/session');
 const debug = require('debug')('sodas:session');
-
+const tools = require('../../Lib/tools');
 
 /// Constructor
 // workerData -> my_session_id, my_ip, my_portNum
@@ -32,10 +32,12 @@ exports.Session = function() {
     // Root Dir Creation
     this.id = workerData.my_session_id;
     this.rootDir = workerData.subvc_root+'/'+this.id;
-    !fs.existsSync(this.rootDir) && fs.mkdirSync(this.rootDir);
+    !fs.existsSync(this.rootDir) && tools.mkdirSyncRecursive(this.rootDir);
 
     // Settings for storing thread call information
     this.msg_storepath = this.rootDir+'/msgStore.json'
+    this.last_commit_time = new Date().getTime();
+    this.timeOut = 5;
 
     // Settings for GitDB
     this.VC = new subscribeVC(this.rootDir+'/gitDB');
@@ -66,7 +68,7 @@ exports.Session = function() {
         switch(message.event) {
             // Information to init the Session
             case 'INIT':
-                this._init();
+                this._init(this);
                 break;
             // Information about counter session
             case 'TRANSMIT_NEGOTIATION_RESULT':
@@ -77,50 +79,53 @@ exports.Session = function() {
                 this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
                 this.session_desc = message.data.session_desc;
                 this.sn_options = message.data.sn_options; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
+                this.run(this);
                 break;
             // Things to publsih
             case 'UPDATE_PUB_ASSET':
                 this.count_msg += 1;
-                this.prePublish(message.data);
+                this.prePublish(this, message.data);
                 break;
         }
     });
 }
 
 /// Initiate Session
-exports.Session.prototype._init = function() {
-    const addr = this.ip+':'+this.my_port;
-    this.server.bindAsync(addr, grpc.ServerCredentials.createInsecure(), ()=> {
-        this.server.start();
+exports.Session.prototype._init = function(self) {
+    const addr = self.ip+':'+self.my_port;
+    self.server.bindAsync(addr, grpc.ServerCredentials.createInsecure(), ()=> {
+        self.server.start();
     });
 }
 
 /// [4]: hanldes the msg from Session Manager
 // message: dict. data part of thread call "UPDATE_PUB_ASSET"
-exports.Session.prototype.prePublish = function(message) {
+exports.Session.prototype.prePublish = function(self, message) {
     // save the things in message in a file as log
     // change log: Now only the commit number is needed
     // ToDo: Rather than calling this function whenever receiving the thread call from SM, call this function just like the vcModule calls commit function
-    var content = this.__read_dict();
+    var content = self.__read_dict();
     content.stored = content.stored + 1;
     content.commit_number.push(message.commit_number);
-    this.__save_dict(content);
-    // When condition is met, publish things to the counter session
-    if (this.__check_MaxCount()) this.onMaxCount();
+    self.__save_dict(content);
+    if (self.count_msg >= self.sn_options.sync_desc.sync_count[0]) {
+        debug("[LOG] Sync_count reached - clearTimeOout");
+        clearTimeout(self.setTimeoutID);
+        self.run(self);
+    }
 }
 
 /// If the count / sync time reaches some point, extract the git diff and publish it to other session
-exports.Session.prototype.onMaxCount = async function() {
-    this.count_msg = 0;
+exports.Session.prototype.onMaxCount = async function(self) {
+    self.count_msg = 0;
     debug("[LOG] onMaxCount");
     // Read file first and reset the file
-    const topublish = this.__read_dict();
-    this._reset_count(topublish.commit_number[topublish.commit_number.length - 1]);
+    const topublish = self.__read_dict();
+    self._reset_count(topublish.commit_number[topublish.commit_number.length - 1]);
     // git diff extraction
-    this.extractGitDiff(topublish).then((git_diff) => {
-        // Send gRPC message 
-        this.Publish(git_diff);
-    });
+    git_diff = await self.extractGitDiff(topublish)
+    // Send gRPC message 
+    if (git_diff) self.Publish(git_diff);
 }
 
 /// To extract git diff using two git commit numbers
@@ -142,7 +147,6 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
         var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
         this.flag[0] = 0;
         // mutex off
-        debug(git_diff);
         return git_diff;
     }
 }
@@ -204,7 +208,7 @@ exports.Session.prototype.Subscribe = function(self, call, callback) {
 // (2): Apply the git patch received through gRPC
 exports.Session.prototype.gitPatch = function(git_patch, self) {
     // save git patch as a temporal file
-    var temp = self.rootDir + "/" + Math.random().toString(10).slice(2,3) + '.patch';
+    var temp = self.rootDir + "/" + Math.random().toString(10).slice(2,5) + '.patch';
     try {
         fs.writeFileSync(temp, git_patch);
     } catch (err) {
@@ -270,17 +274,6 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     debug('[LOG] kafka Producer done');
 }
 
-// Publish Condition Check
-exports.Session.prototype.__check_MaxCount = function() {
-    // If count is or is over sync_count
-    // sync_count: [a,b] -> don't know the meaning yet 
-    if (this.count_msg >= this.sn_options.sync_desc.sync_count[0]) return true;
-    // TODO: If sync_time has passed -> need to implelement
-
-    // Otherwise return false
-    return false;
-}
-
 // Data Storing
 exports.Session.prototype.__save_dict = function(content) {
     const contentJSON = JSON.stringify(content);
@@ -291,4 +284,15 @@ exports.Session.prototype.__read_dict = function() {
     return JSON.parse(fs.readFileSync(this.msg_storepath.toString()));
 }
 
+
+exports.Session.prototype.run = function(self) {
+    now = new Date().getTime();
+    var condition_time = self.count_msg >= 1 && now - self.last_commit_time >= self.sn_options.sync_desc.sync_time[0];
+    var condition_count = (self.count_msg >= self.sn_options.sync_desc.sync_count[0]);
+    if (condition_time || condition_count) {
+        // Sync_time 초과 시 강제 진행
+        self.onMaxCount(self);
+    }
+    setTimeout(self.run, self.timeOut, self);
+}
 const ss = new session.Session();
