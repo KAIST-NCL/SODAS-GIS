@@ -1,0 +1,3 @@
+node_modules/
+package_lock.json
+test/functionTest/reference_files_dir
