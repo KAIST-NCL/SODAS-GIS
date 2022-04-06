@@ -13,7 +13,7 @@ exports.RMSessionManager = function () {
     this.VC = workerData.vc_port;
     this.VC.on('message', this._vcListener);
 
-    this.rm_sm_addr = workerData.dm_ip + ':' + workerData.sm_portNum;
+    this.rm_sm_addr = workerData.sm_ip + ':' + workerData.sm_portNum;
     this.pubvc_root = workerData.pubvc_root;
     this.mutex_flag = workerData.mutex_flag;
 
