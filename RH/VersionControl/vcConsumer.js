@@ -3,7 +3,8 @@ const debug = require('debug')('sodas:vcConsumer');
 
 class vcConsumer extends Consumer{
     constructor(kafkaHost, options, VC) {
-        const topics = [ {topic:'recv.rdf', partitions:0} ];
+        const topics = [ {topic:'recv2.rdf', partitions:0} ];
+        console.log(kafkaHost,topics,options);
         super(kafkaHost, topics, options); 
         this.VC = VC; 
     }
@@ -19,11 +20,12 @@ class vcConsumer extends Consumer{
         const message_ = JSON.parse(message.value);
         const event = message_.operation;
         const filepath = self.VC.vc.vcRoot + '/' + message_.type+ '/'+ message_.id + '.rdf';
-        console.log(message_.operation+' '+ filepath);
-        // Changed Logs - > Previous: editFile and then commit right away
-        // Changed Logs - > Now: editFile only. Commit is done with some period
-        self.VC.editFile(event, filepath,message_.type, message_.contents);
-        self.VC.count = self.VC.count + 1;
+        debug(message_.operation+' '+ filepath);
+        //
+        self.VC.editFile(event, filepath,message_.type, message_.contents).then(() => {
+            const commitMessage = message_.id;
+            self.VC.commit(self.VC, filepath, commitMessage, message_);
+        });
     }
 }
 

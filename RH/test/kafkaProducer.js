@@ -62,7 +62,7 @@ function rdf_content_generator() {
 }
 
 
-var topic = 'recv.rdf'
+var topic = 'recv2.rdf'
 
 var fd = fs.openSync(log_file, 'a+');
 
@@ -126,8 +126,9 @@ producer.on('ready', function () {
             }
         ];
         producer.send(payloads, function (err, data) {
-            //console.log("send:",payloads);
+            // console.log("send:",payloads);
         });
+        console.log(payload_list[i]['id'],payload_list[i]['operation'],payload_list[i]['type']);
     }
 });
 

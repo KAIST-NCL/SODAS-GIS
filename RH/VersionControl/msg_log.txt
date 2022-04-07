@@ -1,2 +1,0 @@
-{"event":"UPDATE_REFERENCE_MODEL","data":{"commit_number":"7c01bea","filepath":["domain/domain_id_0.rdf","domain/domain_id_2.rdf","domain_version/domain_version_id_5.rdf"]}}
-{"event":"UPDATE_REFERENCE_MODEL","data":{"commit_number":"c937421","filepath":["domain/domain_id_0.rdf","domain/domain_id_2.rdf"]}}
