@@ -182,25 +182,28 @@ for (var i = 0; i < eventCount; i++) {
 const delay_array = Sampler.sample(eventCount);
 
 function send_kafka (pl) {
-    producer.on('error', function(err) {})
-
-    producer.on('ready', function () {
-        var payloads = [
-            {
-                topic: topic,
-                messages: JSON.stringify(pl)
-            }
-        ];
-        producer.send(payloads, function (err, data) {
-            console.log("send:",data);
-        });
+    console.log("send");
+    var payloads = [
+        {
+            topic: topic,
+            messages: JSON.stringify(pl)
+        }
+    ];
+    producer.send(payloads, function (err, data) {
+        console.log("send:",data);
     });
 }
 
-for (var i = 0; i < eventCount; i++) {
-    var delay_time = multiplier * delay_array[i]; // ms 단위
-    console.log("delay_time: " + delay_time +" ms");
-    setTimeout(send_kafka, delay_time, payload_list[i]);
-}
+const timer = ms => new Promise(res => setTimeout(res, ms));
+
+producer.on('error', function(err) {})
+producer.on('ready', async function () {
+    for (var i = 0; i < eventCount; i++) {
+        var delay_time = multiplier * delay_array[i]; // ms 단위
+        console.log("delay_time: " + delay_time +" ms");
+        await timer(delay_time);
+        send_kafka(payload_list[i]);
+    }
+});
 
 fs.closeSync(fd);
