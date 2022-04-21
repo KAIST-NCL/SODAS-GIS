@@ -7,8 +7,6 @@ const diff_parser = require(__dirname+'/../../DH/Lib/diff_parser');
 const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:vcModule');
 
-var fd = fs.openSync(__dirname+"/msg_log.txt", 'a+');
-
 /// Constructor
 exports.vcModule = function(){
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -16,34 +14,15 @@ exports.vcModule = function(){
     debug("[LOG] workerData ");
     debug(workerData);
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    const RMgitDir = workerData.rmgit_dir;
-    const kafkaHost = workerData.kafkaHost; // update
-    const options = workerData.kafka; // update
+    const RMgitDir = workerData.pubvc_root;
+    const kafkaHost = workerData.kafka; // update
+    const options = workerData.kafka_options; // update
 
     this.smPort = workerData.sm_port;
     // Create VC 
     this.vc = new publishVC(RMgitDir);
     this.consumer = new vcConsumer(kafkaHost, options, this);
     this.flag = workerData.mutex_flag; // mutex flag
-
-    this.last_commit_time = new Date().getTime();
-    this.count = 0; // kafka message receive count
-
-    // Change Log - > new value timeOut, sync_time has been added.
-    // timeOut => used in setTimeOut. Period to check whether there is anything to commit
-    // sync_time => commit period
-    this.timeOut = workerData.commit_period.timeOut;
-    this.sync_time = workerData.commit_period.period;
-
-    var self = this;
-    parentPort.on('message', message => {
-        debug("[LOG] Received message: ", message);
-        switch(message.event) {
-            case 'UPDATE_REFERENCE_MODEL':
-                // Change Log -> added self as argument of addReferenceModel
-                //self.vc.addReferenceModel(self.vc, message.data);
-        }
-    });
 };
 
 exports.vcModule.prototype.init = async function(){
@@ -52,9 +31,6 @@ exports.vcModule.prototype.init = async function(){
     await this.vc.init()
         .then((commit_number) => {
             debug("[LOG] initiation done: commit_number:  ", commit_number);
-            if (typeof commit_number !== 'undefined') {
-                // fs.writeFileSync(self.)
-                }
         })
         .catch((e) => {debug(e)});
 };
@@ -80,12 +56,8 @@ exports.vcModule.prototype.reportCommit = function(self, commitNumber){
         event: 'UPDATE_REFERENCE_MODEL',
         data: {
             commit_number: commitNumber,
-            filepath: filepath_list
         }
     };
-    var to_append=JSON.stringify(msg)+'\n';
-    console.log(to_append);
-    fs.appendFileSync(fd,to_append,'utf8'); 
     this.smPort.postMessage(msg);
 };
 
@@ -118,17 +90,6 @@ exports.vcModule.prototype.unlockMutex = function (self) {
     self.flag[0] = 0;
 };
 
-exports.vcModule.prototype.git_run = function (self) {
-    now = new Date().getTime();
-    if (self.count >= 1 && now - self.last_commit_time >= self.sync_time) {
-        debug('[LOG] COMMIT');
-        self.count = 0;
-        self.commit(self, now.toString());
-        self.last_commit_time = now;
-    }
-    setTimeout(self.git_run, self.timeOut, self);
-};
 const VC = new vcModule.vcModule();
 VC.init();
 VC.run();
-VC.git_run(VC);

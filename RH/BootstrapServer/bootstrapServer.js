@@ -2,11 +2,13 @@ const PROTO_PATH = __dirname+'/proto/bootstrap.proto';
 const bs = require(__dirname+'/bootstrapServer');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
+const { Worker, workerData, parentPort} = require("worker_threads");
 const debug = require('debug')('sodas:bootstrap_server');
 
 exports.BootstrapServer = function () {
 
-    this.bootstrapServerIP = '127.0.0.1:50051';
+    self = this;
+    this.bootstrapServerIP = workerData.bs_ip + ':' + workerData.bs_portNum;
     const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
         keepCase: true,
         longs: String,
@@ -19,6 +21,16 @@ exports.BootstrapServer = function () {
     this.seedNodeList = []
 
 };
+
+/* DHDaemon methods */
+exports.BootstrapServer.prototype._dmUpdateSeedNodeList = function () {
+    // [BootstrapServer -> RHDaemon] [UPDATE_SEEDNODE_LIST]
+    debug('[TX: UPDATE_SEEDNODE_LIST] to RHDaemon')
+    parentPort.postMessage({
+        event: "UPDATE_SEEDNODE_LIST",
+        data: bsServer.seedNodeList
+    });
+}
 
 exports.BootstrapServer.prototype._setSeedNode = function (call, callback) {
     debug("SetSeedNode");
@@ -36,8 +48,7 @@ exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
     debug(seedNode);
     callback(null, {nodes: bsServer.seedNodeList});
     bsServer.seedNodeList.unshift(seedNode);
-    debug("SeedNodeList is");
-    debug(bsServer.seedNodeList);
+    bsServer._dmUpdateSeedNodeList();
 };
 
 exports.BootstrapServer.prototype._setBootstrapServer = function () {
@@ -53,7 +64,7 @@ exports.BootstrapServer.prototype.run = function () {
     this.bootstrapServer = this._setBootstrapServer();
     this.bootstrapServer.bindAsync(this.bootstrapServerIP,
         grpc.ServerCredentials.createInsecure(), () => {
-            debug('Bootstrap Server gRPC Server running at ' + this.bootstrapServerIP)
+            debug('gRPC Server running at ' + this.bootstrapServerIP)
             this.bootstrapServer.start();
         });
 };
