@@ -36,17 +36,17 @@ exports.RHDaemon.prototype.run = function(){
     // setEnvironmentData
     const bsParam = {'bs_ip': this.bs_ip, 'bs_portNum': this.bs_portNum};
     const smParam = {'vc_port': msgChn.port1, 'sm_ip': this.sm_ip, 'sm_portNum': this.sm_portNum, 'pubvc_root': this.pubvc_root, 'mutex_flag': mutex_flag};
-    // const vcParam = {'sm_port': msgChn.port2, 'kafka': this.kafka, 'kafka_options':this.kafka_options};
+    const vcParam = {'sm_port': msgChn.port2, 'kafka': this.kafka, 'kafka_options':this.kafka_options, 'pubvc_root': this.pubvc_root, 'mutex_flag': mutex_flag};
 
     // run daemonServer
     this.bootstrapServer = new Worker('../BootstrapServer/bootstrapServer.js', { workerData: bsParam });
     this.rmSessionManager = new Worker('../RMSync/rmSessionManager.js', { workerData: smParam, transferList: [msgChn.port1] });
-    // this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port2] });
+    this.VC = new Worker('../VersionControl/vcModule.js', { workerData: vcParam, transferList: [msgChn.port2] });
 
     // setting on function
     this.bootstrapServer.on('message', function(message){self._bsServerListener(message)});
     this.rmSessionManager.on('message', function(message) {self._rmSessionManagerListener(message)});
-    // this.VC.on('message', function(message) {self._vcListener(message)});
+    this.VC.on('message', function(message) {self._vcListener(message)});
 
 };
 

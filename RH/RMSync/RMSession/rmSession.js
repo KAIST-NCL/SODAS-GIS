@@ -22,7 +22,6 @@ const debug = require('debug')('sodas:session');
 
 
 /// Constructor
-// workerData -> my_session_id, my_ip, my_portNum
 exports.Session = function() {
     debug("[LOG] RH Session Created");
     debug(workerData);
@@ -32,8 +31,8 @@ exports.Session = function() {
     debug('[LOG] Target:' + this.target);
     this.pubRM_dir = workerData.pubvc_root;
     this.VC= new publishVC(this.pubRM_dir);
-    //this.VC.init();
-    this.msg_storepath = this.pubRM_dir+'/msgStore.json'
+    // this.VC.init();
+    this.msg_storepath = this.pubRM_dir+'/../msgStore.json'
     // Mutex_Flag for Git
     this.flag = workerData.mutex_flag; // mutex flag
     // FirstCommit Extraction from PubVC
@@ -49,16 +48,14 @@ exports.Session = function() {
                 // gRPC client creation
                 this.grpc_client = new session_sync.RMSessionSync(this.target, grpc.credentials.createInsecure());
                 break;
-            // Things to publsih
             case 'UPDATE_REFERENCE_MODEL':
-                this.prePublish(message.data);
+                debug(message.data);
+                this.prePublish(message);
                 break;
         }
     });
 }
 
-/// [4]: hanldes the msg from Session Manager
-// message: dict. data part of thread call "UPDATE_PUB_ASSET"
 exports.Session.prototype.prePublish = function(message) {
     // save the things in message in a file as log
     // change log: Now only the commit number is needed

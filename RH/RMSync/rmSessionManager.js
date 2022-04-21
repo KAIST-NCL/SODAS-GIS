@@ -94,6 +94,10 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     var rmSession = new Worker(__dirname+'/RMSession/rmSession.js', {workerData: rmSessParam});
     rmSessionManager.rmSession_list_to_daemon.push(dhNode);
     rmSessionManager.rmSessionDict[dhNode.session_id] = rmSession;
+    rmSession.postMessage({
+        event: "INIT",
+        data: null
+    })
 };
 
 const rmSessionManager = new rmSM.RMSessionManager();
