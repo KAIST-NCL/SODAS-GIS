@@ -1,9 +1,8 @@
 ---
-version: '1.0'
+version: '2.2'
 
 networks:
   sodas:
-    name: sodas
 
 services:
   sodas.zookeeper:
@@ -20,7 +19,7 @@ services:
     networks:
       - sodas
     depends_on:
-      - zookeeper
+      - sodas.zookeeper
     ports:
       - "9093:9092"
     environment:
