@@ -62,7 +62,7 @@ exports.BootstrapServer.prototype._setBootstrapServer = function () {
 
 exports.BootstrapServer.prototype.run = function () {
     this.bootstrapServer = this._setBootstrapServer();
-    this.bootstrapServer.bindAsync('0.0.0.0:50051',
+    this.bootstrapServer.bindAsync('0.0.0.0:'+workerData.bs_portNum,
         grpc.ServerCredentials.createInsecure(), () => {
             debug('gRPC Server running at ' + this.bootstrapServerIP)
             this.bootstrapServer.start();

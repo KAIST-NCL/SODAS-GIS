@@ -13,8 +13,7 @@ exports.RMSessionManager = function () {
     this.VC = workerData.vc_port;
     this.VC.on('message', this._vcListener);
 
-    // this.rm_sm_addr = workerData.sm_ip + ':' + workerData.sm_portNum;
-    this.rm_sm_addr = 'sodas.referencehub:50050';
+    this.rm_sm_addr = workerData.sm_ip + ':' + workerData.sm_portNum;
     this.pubvc_root = workerData.pubvc_root;
     this.mutex_flag = workerData.mutex_flag;
 
@@ -73,7 +72,7 @@ exports.RMSessionManager.prototype._setRMSessionManager = function () {
 
 exports.RMSessionManager.prototype.run = function () {
     this.rmSMServer = this._setRMSessionManager();
-    this.rmSMServer.bindAsync(this.rm_sm_addr,
+    this.rmSMServer.bindAsync('0.0.0.0:' + workerData.sm_portNum,
         grpc.ServerCredentials.createInsecure(), () => {
             debug('gRPC Server running at ' + this.rm_sm_addr);
             this.rmSMServer.start();
