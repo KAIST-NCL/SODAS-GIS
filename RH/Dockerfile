@@ -12,6 +12,6 @@ WORKDIR /KAIST_SODAS
 RUN git checkout dh_daemon
 WORKDIR /KAIST_SODAS/RH/
 RUN npm install
-WORKDIR /KAIST_SODAS/RH/BootstrapServer
+WORKDIR /KAIST_SODAS/RH/Daemon
 ENV DEBUG=sodas:*
-ENTRYPOINT ["node", "bootstrapServer.js"]
+ENTRYPOINT ["node", "RHDaemon.js"]
