@@ -87,7 +87,7 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
         return new Promise((resolve, reject) => {
             setTimeout(async function checkCreateTempSession() {
                 debug(node);
-                let sl_addr = node.address + ':' + node.port;
+                let sl_addr = node.address + ':' + node.sl_portNum;
                 sessionRequester.sessionNegotiationClient = await sessionRequester._initConnection(sl_addr);
                 debug(sessionRequester.my_session_desc.session_id);
                 if ( sessionRequester.my_session_desc.session_id == null ) {
@@ -98,17 +98,17 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                     await sessionRequester.sessionNegotiationClient.RequestSessionNegotiation(
                         {session_desc: sessionRequester.my_session_desc, sn_options: sessionRequester.sn_options}, (error, response) => {
                             if (!error) {
-                                debug('SessionRequester send RequestSessionNegotiation to SessionListener with ' + node.port);
+                                debug('SessionRequester send RequestSessionNegotiation to SessionListener with ' + node.sl_portNum);
                                 if (response.status) {
                                     debug('Session Negotiation Completed!!');
                                     debug('SessionRequester thread send [TRANSMIT_NEGOTIATION_RESULT] event to SessionManager')
                                     sessionRequester._smTransmitNegotiationResult(response.end_point, response.session_desc, response.sn_options)
                                     sessionRequester.my_session_desc.session_id = null;
                                     debug(sessionRequester.my_session_desc.session_id)
-                                    debug('SessionRequester send CheckNegotiation to SessionListener with ' + node.port);
+                                    debug('SessionRequester send CheckNegotiation to SessionListener with ' + node.sl_portNum);
                                     sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, end_point: sessionRequester.my_end_point}, (error, response) => {
                                         if (!error) {
-                                            debug('SessionRequester send AckSessionNegotiation to SessionListener with ' + node.port);
+                                            debug('SessionRequester send AckSessionNegotiation to SessionListener with ' + node.sl_portNum);
                                         } else {
                                             console.error(error);
                                         }

@@ -3,7 +3,9 @@ syntax = 'proto3';
 package RMSession;
 
 service RMSessionBroker {
+
   rpc RequestRMSession (DHInfo) returns (AckMessage);
+
 }
 
 message DHInfo {

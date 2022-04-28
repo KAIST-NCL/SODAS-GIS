@@ -141,7 +141,10 @@ exports.message_contact = function(message) {
     if (!message.port || typeof message.port !== 'number')
         return null;
 
-    return { nodeID: message.nodeID, address: message.address, port: message.port };
+    if (!message.sl_portNum || typeof message.sl_portNum !== 'number')
+        return null;
+
+    return { nodeID: message.nodeID, address: message.address, port: message.port, sl_portNum: message.sl_portNum};
 }
 
 exports.message_rpcID = function(message) {
@@ -150,6 +153,6 @@ exports.message_rpcID = function(message) {
     return message.rpcID;
 }
 
-exports.make_contact = function(address, port) {
-    return { nodeID: exports.nodeID(address, port), address: address, port: port };
+exports.make_contact = function(address, port, sl_portNum) {
+    return { nodeID: exports.nodeID(address, port), address: address, port: port, sl_portNum: sl_portNum};
 }
