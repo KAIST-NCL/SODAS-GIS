@@ -7,9 +7,8 @@ const debug = require('debug')('sodas:bootstrap_server');
 
 exports.BootstrapServer = function () {
 
-    this.bootstrapServerIP = 'sodas.bootstrap:50051';
     // de-coment the below code when you use bare-metal version
-    // this.bootstrapServerIP = workerData.bs_ip + ':' + workerData.bs_portNum;
+    this.bootstrapServerIP = workerData.bs_ip + ':' + workerData.bs_portNum;
     const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
         keepCase: true,
         longs: String,
@@ -63,7 +62,7 @@ exports.BootstrapServer.prototype._setBootstrapServer = function () {
 
 exports.BootstrapServer.prototype.run = function () {
     this.bootstrapServer = this._setBootstrapServer();
-    this.bootstrapServer.bindAsync(this.bootstrapServerIP,
+    this.bootstrapServer.bindAsync('0.0.0.0:50051',
         grpc.ServerCredentials.createInsecure(), () => {
             debug('gRPC Server running at ' + this.bootstrapServerIP)
             this.bootstrapServer.start();
