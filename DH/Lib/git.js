@@ -18,12 +18,9 @@ class Git {
         if (stdout.toString() !== 'true') {
             // init
             execSync('cd ' + this.gitDIR_ + ' && git init');
-        }
-
-        // Check how many commit was done on this folder
-        const stdout2 = execSync('cd ' + this.gitDIR_ + '&& git rev-list --all --count');
-        if(parseInt(stdout2.toString()) === 0) {
-            // If no commit is done yet, then make an empty file and do the first commit, report it
+            // configuration
+            execSync('cd ' + this.gitDIR_ + ' && git config --local user.name "SODAS" && git config --local user.email ""');
+            // const stdout2 = execSync('cd ' + this.gitDIR_ + '&& git rev-list --all --count');
             var commnum = this._first_commit();
             return commnum;
         }
