@@ -17,7 +17,7 @@ class DHDaemon {
         this.subvc_root = __dirname + '/subvc';
         this.kafka = this.conf.get('Kafka', 'ip');
         this.kafka_options = this.conf.get('Kafka', 'options');
-        this.rmsync_root_dir = '/home/ncl/jwlee/main/KAIST_SODAS/DH/rdf_files/reference-model/domain-version';
+        this.rmsync_root_dir = '/home/ncl/jwlee/my_branch/KAIST_SODAS/DH/rdf_files/reference-model/domain-version';
         this.RM = 'domainVersion00.rdf';
         this.msgChn = new MessageChannel();
         this.dm_ip = this.conf.get('Daemon', 'ip');
@@ -27,6 +27,7 @@ class DHDaemon {
                 nodeID: '3f3f481702f05ccd74063a0e45dd67cee4731a2d',
                 address: '127.0.0.1',
                 port: 53000,
+                sl_portNum: 53000,
                 lastSeen: 1636006599297
             } ]
         }

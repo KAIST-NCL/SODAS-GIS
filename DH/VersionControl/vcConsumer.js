@@ -1,6 +1,8 @@
 const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
 const debug = require('debug')('sodas:vcConsumer');
 
+
+
 class vcConsumer extends Consumer{
     constructor(kafkaHost, options, VC) {
         const topics = [ {topic:'recv.asset', partitions:0} ];
@@ -21,8 +23,17 @@ class vcConsumer extends Consumer{
         const filepath = self.VC.vc.rp.related_to_filepath(message_.related) + '/' + message_.id + '.asset';
         // Changed Logs - > Previous: editFile and then commit right away
         // Changed Logs - > Now: editFile only. Commit is done with some period
+        
+        /* Uncomment for Pooling 
         self.VC.editFile(event, filepath, message_.contents);
         self.VC.count = self.VC.count + 1;
+        */
+
+        // Comment below for Pooling
+        self.VC.editFile(event, filepath, message_.contents).then(() => {
+            const commitMessage = message_.id;
+            self.VC.commit(self.VC, filepath, commitMessage, message_);
+        });
     }
 }
 

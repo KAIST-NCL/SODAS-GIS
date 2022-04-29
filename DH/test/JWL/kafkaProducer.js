@@ -1,4 +1,5 @@
-var kafka = require('kafka-node')
+var kafka = require('kafka-node');
+const ran = require('ranjs');
 const fs = require('fs');
 
 var Producer = kafka.Producer
@@ -9,6 +10,11 @@ var producer = new Producer(client)
 // program evnettype eventcount
 var eventCount = parseInt(process.argv[3]);
 var eventType = process.argv[2]; // Create/Update
+
+// Poisson Distribution
+const lambda = 10; // Middle Value
+const Sampler = new ran.dist.Poisson([lambda]);
+const multiplier = 10; // To convert Poisson Samples to meaningful delay btw msgs
 
 const log_file = __dirname+'/log.txt';
 
@@ -173,19 +179,30 @@ for (var i = 0; i < eventCount; i++) {
     payload_list.push(eventMessage);
 }
 
-producer.on('error', function(err) {})
+const delay_array = Sampler.sample(eventCount);
 
-producer.on('ready', function () {
-    for (var i=0; i<eventCount; i++) {
-        var payloads = [
-            {
-                topic: topic,
-                messages: JSON.stringify(payload_list[i])
-            }
-        ];
-        producer.send(payloads, function (err, data) {
-            console.log("send:",data);
-        });
+function send_kafka (pl) {
+    console.log("send");
+    var payloads = [
+        {
+            topic: topic,
+            messages: JSON.stringify(pl)
+        }
+    ];
+    producer.send(payloads, function (err, data) {
+        console.log("send:",data);
+    });
+}
+
+const timer = ms => new Promise(res => setTimeout(res, ms));
+
+producer.on('error', function(err) {})
+producer.on('ready', async function () {
+    for (var i = 0; i < eventCount; i++) {
+        var delay_time = multiplier * delay_array[i]; // ms 단위
+        console.log("delay_time: " + delay_time +" ms");
+        await timer(delay_time);
+        send_kafka(payload_list[i]);
     }
 });
 
