@@ -3,21 +3,17 @@ const { parentPort, workerData } = require('worker_threads');
 const { publishVC } = require(__dirname + '/versionController');
 const { vcConsumer } = require(__dirname+'/vcConsumer');
 const vcModule = require(__dirname+'/vcModule');
-const diff_parser = require(__dirname+'/../../DH/Lib/diff_parser');
-const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:vcModule');
 
 /// Constructor
 exports.vcModule = function(){
-    ////////////////////////////////////////////////////////////////////////////////////////////////
     debug("[LOG] vcModule created");
     debug("[LOG] workerData ");
     debug(workerData);
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    const RMgitDir = workerData.pubvc_root;
-    const kafkaHost = workerData.kafka; // update
-    const options = workerData.kafka_options; // update
 
+    const RMgitDir = workerData.pubvc_root;
+    const kafkaHost = workerData.kafka; 
+    const options = workerData.kafka_options; 
     this.smPort = workerData.sm_port;
     // Create VC 
     this.vc = new publishVC(RMgitDir);
@@ -46,12 +42,7 @@ exports.vcModule.prototype.commit = async function(self, message) {
 };
 
 exports.vcModule.prototype.reportCommit = function(self, commitNumber){
-    // Change Log - > data part has decreased
-
-    // Change Log - > filepath extraction using git show add
-    const stdout = execSync('cd ' + self.vc.vcRoot + ' && git show ' + commitNumber);
-    filepath_list = diff_parser.parse_git_patch(stdout.toString());
-
+    // send commit number to SessionManager
     const msg = {
         event: 'UPDATE_REFERENCE_MODEL',
         data: {
@@ -77,7 +68,6 @@ exports.vcModule.prototype.editFile = async function(option, filepath, type, con
         case 'CREATE':
             var fd = fs.openSync(fp, 'w');
             fs.writeSync(fd, content);
-            //this.vc.git.createFile(fp, content);
             break;
     }
 };
