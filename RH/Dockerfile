@@ -20,4 +20,6 @@ WORKDIR /KAIST_SODAS/RH/
 RUN npm install
 WORKDIR /KAIST_SODAS/RH/Daemon
 ENV DEBUG=sodas:*
+RUN git config --global user.email sodas@kaist.ac.kr
+RUN git config --global user.name sodas
 ENTRYPOINT ["node", "RHDaemon.js"]

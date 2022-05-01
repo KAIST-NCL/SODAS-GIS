@@ -19,4 +19,6 @@ RUN git checkout dh_daemon
 RUN npm install
 WORKDIR /KAIST_SODAS/DH/Daemon
 ENV DEBUG=sodas:*
+RUN git config --global user.email sodas@kaist.ac.kr
+RUN git config --global user.name sodas
 ENTRYPOINT ["node", "DHDaemon.js"]
