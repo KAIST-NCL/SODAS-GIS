@@ -295,6 +295,7 @@ exports.SessionManager.prototype._createSession = async function () {
 
     return session
 }
+
 exports.SessionManager.prototype._setSessionPort = async function () {
     await detect(MIN_PORT_NUM_OF_SESSION)
         .then(_port => {

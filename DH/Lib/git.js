@@ -1,5 +1,4 @@
 // Local Git DB Location
-const simpleGit = require('simple-git');
 const fs = require('fs');
 const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:lib:git');
@@ -13,35 +12,33 @@ class Git {
     async init(){
         // callback, argDict는 optional.
         !fs.existsSync(this.gitDIR_) && tools.mkdirSyncRecursive(this.gitDIR_);
-        this.git = await simpleGit(this.gitDIR_, { binary: 'git' });
-        await this.git.init();
-        const stdout = execSync('cd ' + this.gitDIR_ + '&& git rev-list --all --count');
-        if(parseInt(stdout.toString()) === 0) {
-            var commnum;
-            await this._first_commit().then((commit_number)=> {
-                commnum = (' '+commit_number).slice(1);
-            });
+
+        // if not initialized, then init the git
+        const stdout = execSync('cd ' + this.gitDIR_ + ' && git rev-parse --is-inside-work-tree');
+        if (stdout.toString() !== 'true') {
+            // init
+            execSync('cd ' + this.gitDIR_ + ' && git init');
+            // configuration
+            execSync('cd ' + this.gitDIR_ + ' && git config --local user.name "SODAS" && git config --local user.email ""');
+            // const stdout2 = execSync('cd ' + this.gitDIR_ + '&& git rev-list --all --count');
+            var commnum = this._first_commit();
             return commnum;
         }
     }
 
-    async _first_commit(){
+    _first_commit(){
         execSync('cd '+ this.gitDIR_ + '&& touch init.txt');
-        /*
-        await this.commit(['.'], 'initial commit').then((comm) => {
-            if (typeof callback !== 'undefined' && typeof argDict !== 'undefined') {
-                callback("firstCommit", [], "firstCommit", comm);
-            }
-        });*/
-        var commnum = '';
-        await this.commit(['.'], 'initial commit').then((commit_number) => commnum = (' ' + commit_number).slice(1));
+        var commnum = this.commit('./', 'initial commit');
         return commnum;
     }
 
-    async commit(filepath, message){
-        await this.git.add([filepath]);
-        const comm = await this.git.commit(message);
-        return comm.commit;
+    commit(filepath, message){
+        execSync('cd ' + this.gitDIR_ + ' && git add ' + filepath);
+        var stdout = execSync('cd ' + this.gitDIR_ + ' && git commit -m "' + message + '" && git rev-parse HEAD');
+        var printed = stdout.toString().split('\n');
+        printed.pop();
+        var comm = printed.pop();
+        return comm;
     }
 
     diff(comID1, comID2, diff_dir){

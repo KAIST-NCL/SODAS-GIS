@@ -9,19 +9,19 @@ class vcConsumer extends Consumer{
         this.VC = VC; 
     }
     run(){
-        debug('[RUNNING] kafka consumer for VC is running');
+        debug('[RUNNING] kafka consumer for VC of RH is running');
         const that = this;
         this.consumer.on('message', function(message) {
             that.handler(message, that);
         });
     }
+    // Kafka message received event handler
     handler(message, self){
         debug('[LOG] Kafka Message for RH is received');
         const message_ = JSON.parse(message.value);
         const event = message_.operation;
         const filepath = self.VC.vc.vcRoot + '/' + message_.type+ '/'+ message_.id + '.rdf';
-        debug(message_.operation+' '+ filepath);
-        //
+        // do the operation right away
         self.VC.editFile(event, filepath,message_.type, message_.contents).then(() => {
             const commitMessage = message_.id;
             self.VC.commit(self.VC, filepath, commitMessage, message_);
