@@ -1,6 +1,7 @@
 const ConfigParser = require('configparser');
 const { Worker, MessageChannel} = require("worker_threads");
 const rh = require('./RHDaemon');
+const kafka = require('kafka-node');
 var msgChn = new MessageChannel();
 const debug = require('debug')('sodas:RHDaemon');
 
@@ -22,6 +23,7 @@ exports.RHDaemon = function(){
     this.kafka = this.conf.get('Kafka', 'ip');
     this.kafka_options = this.conf.get('Kafka', 'options');
     this.pubvc_root = __dirname + this.conf.get('VersionControl', 'pubvc_root');
+    this.kafka_client = new kafka.KafkaClient({kafkaHost: this.kafka});
 
     // get ip from local
     for (const name of Object.keys(nets)) {
@@ -39,13 +41,27 @@ exports.RHDaemon = function(){
     this.sm_ip = ips[this.rh_network][0];
 
 };
+exports.RHDaemon.prototype._createCtrlTopics = async function(){
+
+    debug('CreateCtrlTopics is called');
+    await this.kafka_client.createTopics([
+        { topic: 'recv2.rdf', partitions: 1 , replicationFactor: 1}],
+        function (err, data) {
+    });
+};
 exports.RHDaemon.prototype.init = async function(){
     // todo: create kafka topic if doesn't exist
     self = this;
-    debug('[SETTING] init');
+    await this._createCtrlTopics()
+        .then(() => {
+            debug('[SETTING] init');
+            debug('complete to create topics')
+        })
+        .catch((e) => {debug(e)});
 };
 exports.RHDaemon.prototype.run = function(){
 
+    debug('[SETTING] run is called')
     // msg-channel(one-way) : VC -> sessionManager
     msgChn = new MessageChannel();
 
@@ -106,7 +122,11 @@ exports.RHDaemon.prototype._vcListener = function(message){
 };
 
 const daemon = new rh.RHDaemon();
-daemon.init().then(() => {daemon.run();});
+daemon.init()
+    .then(() => {
+        debug('[SETTING] daemon init is complete')
+        daemon.run();
+    });
 
 process.on('SIGINT', () => {
     daemon.stop();
