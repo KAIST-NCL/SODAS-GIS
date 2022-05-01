@@ -1,4 +1,4 @@
-const { Consumer } = require('../../DH/Lib/EventHandler/consumer/consumer');
+const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
 const debug = require('debug')('sodas:vcConsumer');
 
 class vcConsumer extends Consumer{

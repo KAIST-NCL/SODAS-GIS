@@ -3,6 +3,8 @@ const { parentPort, workerData } = require('worker_threads');
 const { publishVC } = require(__dirname + '/versionController');
 const { vcConsumer } = require(__dirname+'/vcConsumer');
 const vcModule = require(__dirname+'/vcModule');
+const diff_parser = require(__dirname+'/../Lib/diff_parser');
+const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:vcModule');
 
 /// Constructor

@@ -1,4 +1,4 @@
-const { Git } = require(__dirname + '/../../DH/Lib/git');
+const { Git } = require(__dirname + '/../Lib/git');
 const debug = require('debug')('sodas:versionController');
 const fs= require('fs');
 class VC {

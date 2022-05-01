@@ -5,12 +5,17 @@ const { ctrlConsumer, ctrlProducer } = require('./ctrlKafka');
 const debug = require('debug')('sodas:daemon');
 const fs = require("fs");
 
+'use strict';
+const { networkInterfaces } = require('os');
+const nets = networkInterfaces();
+const ips = Object.create(null); // Or just '{}', an empty object
+
 exports.DHDaemon = function(){
 
     this.conf = new ConfigParser();
     this.conf.read('../setting.cfg');
     this.name = this.conf.get('Daemon', 'name');
-    this.dm_ip = this.conf.get('Daemon', 'ip');
+    this.dm_network = this.conf.get('Daemon', 'networkInterface');
     this.dm_portNum = this.conf.get('Daemon', 'portNum');
     this.ds_portNum = this.conf.get('DHSearch', 'portNum');
     this.rm_portNum = this.conf.get('RMSync', 'portNum');
@@ -38,6 +43,21 @@ exports.DHDaemon = function(){
             transfer_interface: this.transfer_interface.split(',')
         }
     };
+
+    // get ip from local
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+            if (net.family === 'IPv4' && !net.internal) {
+                if (!ips[name]) {
+                    ips[name] = [];
+                }
+                ips[name].push(net.address);
+            }
+        }
+    }
+    this.dm_ip = ips[this.dm_network][0];
+    debug('[LOG]: ip', this.dm_ip);
     debug('[LOG]: session negotiation option', this.sn_options);
     this.pubvc_root = this.conf.get('VersionControl', 'pubvc_root');
     this.subvc_root = this.conf.get('VersionControl', 'subvc_root');
@@ -54,9 +74,14 @@ exports.DHDaemon = function(){
 exports.DHDaemon.prototype.init = async function(){
     // create kafka topic if doesn't exist
     self = this;
-    await this.ctrlProducer.createCtrlTopics().then(() => {
-        self.ctrlConsumer = new ctrlConsumer(self.kafka, self.kafka_options, self, self.conf);
-    });
+    await this.ctrlProducer.createCtrlTopics()
+        .then(() => {
+            self.ctrlConsumer = new ctrlConsumer(self.kafka, self.kafka_options, self, self.conf);
+        })
+        .catch((e) => {
+            debug(e)
+        });
+
     debug('[SETTING] init');
 };
 exports.DHDaemon.prototype.run = function(){
@@ -72,8 +97,8 @@ exports.DHDaemon.prototype.run = function(){
     const dmServerParam = {'dm_ip': this.dm_ip, 'dm_portNum': this.dm_portNum, 'name': this.name};
     const dhSearchParam = {'dm_ip': this.dm_ip, 'ds_portNum': this.ds_portNum, 'sl_portNum': this.sl_portNum, 'bootstrap_ip': this.bs_ip, 'bootstrap_portNum': this.bs_portNum};
     const vcParam = {'sm_port': msgChn.port1, 'rmsync_root_dir': this.rmsync_root_dir, 'kafka': this.kafka, 'kafka_options': this.kafka_options, 'pubvc_root': this.pubvc_root, 'commit_period': this.commit_period, 'mutex_flag': mutex_flag};
-    const smParam = {'vc_port': msgChn.port2, 'dm_ip': this.dm_ip, 'sl_port': this.sl_portNum, 'sn_options':this.sn_options, 'pubvc_root': this.pubvc_root, 'subvc_root': this.subvc_root, 'mutex_flag': mutex_flag};
-    const rmSyncParam = {'dm_ip': this.dm_ip, 'rm_port': this.rm_portNum, 'rh_ip': this.rh_ip, 'rh_portNum': this.rh_portNum, 'rymsync_root_dir': this.rmSync_rootDir};
+    const smParam = {'vc_port': msgChn.port2, 'dm_ip': this.dm_ip, 'sl_portNum': this.sl_portNum, 'sn_options':this.sn_options, 'pubvc_root': this.pubvc_root, 'subvc_root': this.subvc_root, 'mutex_flag': mutex_flag};
+    const rmSyncParam = {'dm_ip': this.dm_ip, 'rm_port': this.rm_portNum, 'rh_ip': this.rh_ip, 'rh_portNum': this.rh_portNum, 'rmsync_root_dir': this.rmSync_rootDir};
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });

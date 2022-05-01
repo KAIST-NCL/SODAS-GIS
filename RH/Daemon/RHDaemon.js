@@ -4,11 +4,17 @@ const rh = require('./RHDaemon');
 var msgChn = new MessageChannel();
 const debug = require('debug')('sodas:RHDaemon');
 
+'use strict';
+const { networkInterfaces } = require('os');
+const nets = networkInterfaces();
+const ips = Object.create(null); // Or just '{}', an empty object
+
 exports.RHDaemon = function(){
 
     this.conf = new ConfigParser();
     this.conf.read('../setting.cfg');
     this.name = this.conf.get('Daemon', 'name');
+    this.rh_network = this.conf.get('Daemon', 'networkInterface');
     this.bs_ip = this.conf.get('BootstrapServer', 'ip');
     this.bs_portNum = this.conf.get('BootstrapServer', 'portNum');
     this.sm_ip = this.conf.get('RMSessionManager', 'ip');
@@ -16,6 +22,21 @@ exports.RHDaemon = function(){
     this.kafka = this.conf.get('Kafka', 'ip');
     this.kafka_options = this.conf.get('Kafka', 'options');
     this.pubvc_root = __dirname + this.conf.get('VersionControl', 'pubvc_root');
+
+    // get ip from local
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+            if (net.family === 'IPv4' && !net.internal) {
+                if (!ips[name]) {
+                    ips[name] = [];
+                }
+                ips[name].push(net.address);
+            }
+        }
+    }
+    this.bs_ip = ips[this.rh_network][0];
+    this.sm_ip = ips[this.rh_network][0];
 
 };
 exports.RHDaemon.prototype.init = async function(){

@@ -72,7 +72,7 @@ exports.RMSessionManager.prototype._setRMSessionManager = function () {
 
 exports.RMSessionManager.prototype.run = function () {
     this.rmSMServer = this._setRMSessionManager();
-    this.rmSMServer.bindAsync(this.rm_sm_addr,
+    this.rmSMServer.bindAsync('0.0.0.0:' + workerData.sm_portNum,
         grpc.ServerCredentials.createInsecure(), () => {
             debug('gRPC Server running at ' + this.rm_sm_addr);
             this.rmSMServer.start();
