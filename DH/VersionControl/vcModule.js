@@ -15,8 +15,8 @@ exports.vcModule = function(){
     debug(workerData);
     ////////////////////////////////////////////////////////////////////////////////////////////////
     const gitDir = workerData.pubvc_root;
-    const kafkaHost = workerData.kafkaHost; // update
-    const options = workerData.kafka; // update
+    const kafkaHost = workerData.kafka; // update
+    const options = workerData.kafka_options; // update
 
     this.smPort = workerData.sm_port;
     this.vc = new publishVC(gitDir, workerData.rmsync_root_dir);
