@@ -14,15 +14,31 @@
 
 > 디버깅을 위한 팁 ! 아래 명령어를 따라 standalone machine에서 테스트 수행. 수행 시, 자유로운 디버깅을 위해서는 컨테이너 이미지 entrypoint를 없애고 /bin/bash 로 진입하도록 실행한 후, 수정한 디버깅 코드를 docker cp 명령어를 통해 컨테이너로 옮겨서 동작 테스트를 해볼 수 있음. 컨테이너 상에서 동작을 모두 확인한 후 master 브랜치로 push해주세요.
 
-#### 1. Create SODAS network
+#### 1. Install docker-compose
+
+```jsx
+sudos apt-get install docker-compose
+```
+
+or instead, you can use `docker compose`. Please follow the document for installation.
+
+[Install Docker Compose](https://docs.docker.com/compose/install/)
+
+#### 2. Clone the code from `master`
+
+```bash
+$ git clone 
+```
+
+#### 3. Create SODAS network
 
 ```bash
 docker network create sodas
 ```
 
-#### 2. Build `DHDaemon`, `BootstrapServer`, `RH`
+#### 4. Build `DHDaemon`, `RH` Container Images
 
-
+ 
 
 - Build the Dockerfile
 
@@ -34,11 +50,7 @@ docker build -t sodas/dhdaemon:v01 --build-arg REPO_TOKEN={YOUR ACCESS TOKEN HER
 docker build -t sodas/rhdaemon:v01 --build-arg REPO_TOKEN={YOUR TOKEN} RH/RMSync/
 ```
 
-```bash
-$ docker build -t sodas/bootstrap:v01 --build-arg REPO_TOKEN={YOUR TOKEN} RH/BootstrapServer/
-```
-
-#### 3. Run `zookeepr` , `kafka` as your own environment &  `RH` at your stand-alone server environment with docker-compose
+#### 5. Run `zookeepr` , `kafka` as your own environment for `DH` side &  `RH` side respectively at your stand-alone server environment with docker-compose
 
 Install `docker-compose` first,
 
@@ -49,13 +61,15 @@ sudo apt-get install docker-compose
 Run all pre-requisite containers with `docker-compose`
 
 ```bash
-docker-compose up -d
+/KAIST_SODAS/     $ docker-compose up -d
+/KAIST_SODAS/     $ cd RH
+/KAIST_SODAS/RH/  $ docker-compose up -d
 ```
 
 You can run `zookeepr` and `kafka` with the following yaml file.
 
 - (I set the port number of kafka as 9093 (by default 9092 is commonly used, but I change the port number to prevent conflict between baremetal kafka (if exist))
-- `docker-compose.yaml` is written as follows. It runs both zookeeper and kafka with network and port setting.
+- `docker-compose.yaml` for `/KAIST_SODAS` is written as follows. It runs both zookeeper and kafka with network and port setting.
     
     ```bash
     ---
@@ -86,24 +100,65 @@ You can run `zookeepr` and `kafka` with the following yaml file.
           KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://sodas.broker:9093
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_EXTERNAL_PORT: 9093
-    
-      sodas.referencehub:
-        image: sodas/rhdaemon:v01
-        container_name: sodas.referencehub
     ```
     
 
-#### 4. Run your `DataHub` with the following command line.
+- `docker-compose.yaml` for `/KAIST_SODAS/RH` is written as follows. It runs both zookeeper and kafka with network and port setting.
 
 ```bash
-$ docker run --rm --network=sodas --name=sodas.datahub -it sodas/dhdaemon:v01
+---
+version: '2.2'
+
+networks:
+  default:
+    external:
+      name: sodas
+
+services:
+  sodas.rh.zookeeper:
+    image: confluentinc/cp-zookeeper
+    container_name: sodas.rh.zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  sodas.rh.broker:
+    image: confluentinc/cp-kafka
+    container_name: sodas.rh.broker
+    depends_on:
+      - sodas.rh.zookeeper
+    ports:
+      - "9094:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: sodas.rh.zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://sodas.rh.broker:9094
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_EXTERNAL_PORT: 9094
 ```
 
-#### 5. Test Kafka Message with your container Kafka
+#### 6. Run your `DataHub` with the following command line.
+
+```bash
+$ docker run --rm --network=sodas --name=sodas.datahub -it sodas/dhdaemon:v01 /bin/bash
+```
+
+#### 7. Run your `ReferenceHub` with the following command line.
+
+```bash
+$ docker run --rm --network=sodas --name=sodas.referencehub -it sodas/rhdaemon:v01 /bin/bash
+```
+
+#### 8. Test Kafka Message with your container Kafka
 
 ```bash
 $ docker run -it --rm --network sodas confluentinc/cp-kafka /bin/kafka-console-producer --bootstrap-server sodas.broker:9093 --topic send.datahub
 > { "operation": "START", "content": {} }
+```
+
+#### Useful commandline for your debugging
+
+```bash
+$ docker cp RH/. sodas.referencehub:/KAIST_SODAS/RH/
 ```
 
 ## DHClient
