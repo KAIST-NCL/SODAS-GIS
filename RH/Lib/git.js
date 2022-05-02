@@ -15,7 +15,7 @@ class Git {
 
         // if not initialized, then init the git
         const stdout = execSync('cd ' + this.gitDIR_ + ' && git rev-parse --is-inside-work-tree');
-        if (stdout.toString() !== 'true') {
+        if (stdout.toString().substring(0,4) !== 'true') {
             // init
             execSync('cd ' + this.gitDIR_ + ' && git init');
             // configuration
