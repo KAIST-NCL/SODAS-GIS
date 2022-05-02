@@ -133,14 +133,15 @@ exports.RMSync.prototype.Subscribe = function(self, call, callback) {
 }
 
 exports.RMSync.prototype.gitPatch = function(git_patch, self) {
-    var temp = self.rmsync_root_dir + "/" + Math.random().toString(10).slice(2,3) + '.patch';
+    var patch_name = Math.random().toString(10).slice(2,5) + '.patch';
+    var temp = self.rmsync_root_dir + "/" + patch_name;
     try {
         fs.writeFileSync(temp, git_patch);
     } catch (err) {
         debug("[ERROR] ", err);
         return 1;
     }
-    self.VC.apply(temp);
+    self.VC.apply("../" + patch_name);
     fs.existsSync(temp) && fs.unlink(temp, function (err) {
         if (err) {
             debug("[ERROR] ", err);
