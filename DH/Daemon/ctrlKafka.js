@@ -2,6 +2,7 @@ const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
 const kafka = require('kafka-node');
 const Producer = kafka.Producer;
 const KeyedMessage = kafka.KeyedMessage;
+const deasync = require('deasync');
 const debug = require('debug')('sodas:kafka');
 
 class ctrlConsumer extends Consumer{
@@ -64,12 +65,18 @@ exports.ctrlProducer = function(kafkaHost){
 
 exports.ctrlProducer.prototype.createCtrlTopics = async function(){
     // create topics for DHDaemon
+    var IS_COMPLETED = false;
     await this.client.createTopics([
         { topic: 'recv.datahub', partitions: 1 , replicationFactor: 1},
         { topic: 'send.datahub', partitions: 1, replicationFactor: 1},
         { topic: 'recv.asset', partitions: 1 , replicationFactor: 1},
-        { topic: 'send.asset', partitions: 1, replicationFactor: 1}], function (err, data) {
-    });
+        { topic: 'send.asset', partitions: 1, replicationFactor: 1}],
+        function (err, data) {
+            debug('[SETTING] Complete to create ctrl topics');
+            IS_COMPLETED = true;
+        }
+    );
+    while ((IS_COMPLETED == false)){deasync.runLoopOnce();}
     debug('[Function Test / Init Process] creating control topics is completed');
 };
 

@@ -2,6 +2,7 @@ const ConfigParser = require('configparser');
 const { Worker, MessageChannel} = require("worker_threads");
 const rh = require('./RHDaemon');
 const kafka = require('kafka-node');
+const deasync = require('deasync');
 var msgChn = new MessageChannel();
 const debug = require('debug')('sodas:RHDaemon');
 
@@ -44,11 +45,17 @@ exports.RHDaemon = function(){
 exports.RHDaemon.prototype._createCtrlTopics = async function(){
 
     debug('CreateCtrlTopics is called');
+    var IS_COMPLETED = false;
     await this.kafka_client.createTopics([
         { topic: 'recv2.rdf', partitions: 1 , replicationFactor: 1}],
         function (err, data) {
-    });
+            debug('[SETTING] Complete to create ctrl topics');
+            IS_COMPLETED = true;
+        }
+    );
+    while ((IS_COMPLETED == false)){deasync.runLoopOnce();}
 };
+
 exports.RHDaemon.prototype.init = async function(){
     // todo: create kafka topic if doesn't exist
     self = this;

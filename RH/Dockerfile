@@ -13,6 +13,7 @@ RUN cd /tmp/git-* &&  \
     make prefix=/usr/local all &&  \
     make prefix=/usr/local install
 
+RUN echo "trick for docker-build"
 RUN git clone https://$REPO_TOKEN@github.com/EunjuYang/KAIST_SODAS.git
 WORKDIR /KAIST_SODAS
 RUN git checkout dh_daemon
@@ -22,4 +23,3 @@ WORKDIR /KAIST_SODAS/RH/Daemon
 ENV DEBUG=sodas:*
 RUN git config --global user.email sodas@kaist.ac.kr
 RUN git config --global user.name sodas
-ENTRYPOINT ["node", "RHDaemon.js"]
