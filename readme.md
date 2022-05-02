@@ -2,38 +2,108 @@
 
 ## 환경 요구사항
 - node.js (> version 15.1) : `worker_threads` 의존성으로 인한 노드 버전 제한.
+- git (> version 1.17) : version control 라이브러리로 인한 버전 제한.
 
 ## DHDaemon
 
-### 설치 방법 (TBD)
+### 설치 방법
 
-### 테스트 방법 (배포버전 업데이트 후 삭제 예정)
-#### 1) `DH/setting.cfg` 수정
-```editorconfig
-[ENV]
-DH_HOME={CurrentDIR (DH Folder)}
-[Daemon]
-name=KAIST
-ip=127.0.0.1
-portNum=50054
-[DHSearch]
-portNum=99098
-[ReferenceHub]
-bootstrap_ip=127.0.0.1
-bootstrap_portNum=50051
-referenceHub_ip=127.0.0.1
-referenceHub_portNum=50052
-[Kafka]
-ip=0.0.0.0:9092
-options={groupId: "sodas.ddh", commitOffsetsOnFirstJoin: false, autoCommit: false, fetchMaxWaitMs: 1000, fetchMaxBytes: 1024 * 1024 };
+### 테스트 방법 1. Standalone - Docker 기반
+> Tip for your debugging! Please run container environment bellow. You can copy your code to container for testing your updated code. (To give some freedom to your container, you can rebuild your container image without entry point, and run with /bin/bash ) Please test on your container using docker cp command. After finishing to test your all revision code, please commit your code to master code.
+
+
+> 디버깅을 위한 팁 ! 아래 명령어를 따라 standalone machine에서 테스트 수행. 수행 시, 자유로운 디버깅을 위해서는 컨테이너 이미지 entrypoint를 없애고 /bin/bash 로 진입하도록 실행한 후, 수정한 디버깅 코드를 docker cp 명령어를 통해 컨테이너로 옮겨서 동작 테스트를 해볼 수 있음. 컨테이너 상에서 동작을 모두 확인한 후 master 브랜치로 push해주세요.
+
+#### 1. Create SODAS network
+
+```bash
+docker network create sodas
 ```
 
-#### 2) 실행
-```shell script
-$ cd DH/
-$ npm install
-$ cd Daemon
-$ node DHDaemon.js
+#### 2. Build `DHDaemon`, `BootstrapServer`, `RH`
+
+
+
+- Build the Dockerfile
+
+```bash
+docker build -t sodas/dhdaemon:v01 --build-arg REPO_TOKEN={YOUR ACCESS TOKEN HERE} ./KAIST_SODAS/DH
+```
+
+```bash
+docker build -t sodas/rhdaemon:v01 --build-arg REPO_TOKEN={YOUR TOKEN} RH/RMSync/
+```
+
+```bash
+$ docker build -t sodas/bootstrap:v01 --build-arg REPO_TOKEN={YOUR TOKEN} RH/BootstrapServer/
+```
+
+#### 3. Run `zookeepr` , `kafka` as your own environment &  `RH` at your stand-alone server environment with docker-compose
+
+Install `docker-compose` first,
+
+```bash
+sudo apt-get install docker-compose
+```
+
+Run all pre-requisite containers with `docker-compose`
+
+```bash
+docker-compose up -d
+```
+
+You can run `zookeepr` and `kafka` with the following yaml file.
+
+- (I set the port number of kafka as 9093 (by default 9092 is commonly used, but I change the port number to prevent conflict between baremetal kafka (if exist))
+- `docker-compose.yaml` is written as follows. It runs both zookeeper and kafka with network and port setting.
+    
+    ```bash
+    ---
+    version: '2.2'
+    
+    networks:
+      default:
+        external:
+          name: sodas
+    
+    services:
+      sodas.zookeeper:
+        image: confluentinc/cp-zookeeper
+        container_name: sodas.zookeeper
+        environment:
+          ZOOKEEPER_CLIENT_PORT: 2181
+    
+      sodas.broker:
+        image: confluentinc/cp-kafka
+        container_name: sodas.broker
+        depends_on:
+          - sodas.zookeeper
+        ports:
+          - "9093:9092"
+        environment:
+          KAFKA_BROKER_ID: 1
+          KAFKA_ZOOKEEPER_CONNECT: sodas.zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://sodas.broker:9093
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_EXTERNAL_PORT: 9093
+    
+      sodas.referencehub:
+        image: sodas/rhdaemon:v01
+        container_name: sodas.referencehub
+    ```
+    
+
+#### 4. Run your `DataHub` with the following command line.
+
+```bash
+$ docker run --rm --network=sodas --name=sodas.datahub -it sodas/dhdaemon:v01
+```
+
+#### 5. Test Kafka Message with your container Kafka
+
+```bash
+$ docker run -it --rm --network sodas confluentinc/cp-kafka /bin/kafka-console-producer --bootstrap-server sodas.broker:9093 --topic send.datahub
+> { "operation": "START", "content": {} }
 ```
 
 ## DHClient
