@@ -7,22 +7,22 @@ networks:
       name: sodas
 
 services:
-  sodas.zookeeper:
+  sodas.rh.zookeeper:
     image: confluentinc/cp-zookeeper
-    container_name: sodas.zookeeper
+    container_name: sodas.rh.zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
 
-  sodas.broker:
+  sodas.rh.broker:
     image: confluentinc/cp-kafka
-    container_name: sodas.broker
+    container_name: sodas.rh.broker
     depends_on:
-      - sodas.zookeeper
+      - sodas.rh.zookeeper
     ports:
-      - "9093:9092"
+      - "9094:9092"
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: sodas.zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://sodas.broker:9093
+      KAFKA_ZOOKEEPER_CONNECT: sodas.rh.zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://sodas.rh.broker:9094
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_EXTERNAL_PORT: 9093
+      KAFKA_EXTERNAL_PORT: 9094
