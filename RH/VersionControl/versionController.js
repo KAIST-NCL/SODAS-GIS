@@ -17,14 +17,18 @@ class VC {
             .then((commnum) => {
                 //Create 2 folders for each rdf type
                 value = (' ' + commnum).slice(1);
-                fs.mkdir(this.vcRoot+'/'+'domain', function(err) {
-                    if (err) {
-                        console.log(err);
-                    }});
-                fs.mkdir(this.vcRoot+'/'+'domain_version', function(err) {
-                    if (err) {
-                        console.log(err);
-                    }});  
+                if (!fs.existsSync(this.vcRoot+'/'+'domain')){
+                    fs.mkdir(this.vcRoot+'/'+'domain', function(err) {
+                        if (err) {
+                            console.log(err);
+                        }});
+                };
+                if (!fs.existsSync(this.vcRoot+'/'+'domain_version')){
+                    fs.mkdir(this.vcRoot+'/'+'domain_version', function(err) {
+                        if (err) {
+                            console.log(err);
+                        }});  
+                }
             })
             .catch((e) => {debug(e)});
         this.isInit = true;
