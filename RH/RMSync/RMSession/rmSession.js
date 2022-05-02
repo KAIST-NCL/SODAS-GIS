@@ -42,6 +42,12 @@ exports.Session = function() {
             case 'INIT':
                 // gRPC client creation
                 this.grpc_client = new session_sync.RMSessionSync(this.target, grpc.credentials.createInsecure());
+                // Creat Init patch
+                var first_commit= this.VC.returnFirstCommit(this.VC, this.pubRM_dir);
+                this.extractInitPatch(first_commit).then((init_patch) => {
+                    debug(init_patch);
+                    this.Publish(init_patch);
+                });
                 break;
             // receive message from SessionManager
             case 'UPDATE_REFERENCE_MODEL':
@@ -65,6 +71,12 @@ exports.Session.prototype.prePublish = function(message) {
     this.extractGitDiff(topublish).then((git_diff) => {
         this.Publish(git_diff);
     });
+}
+
+exports.Session.prototype.extractInitPatch= async function(init_commit){
+    // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
+    var patch= execSync('cd ' + this.pubRM_dir + ' && git diff 4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD');
+    return patch;
 }
 
 /// Extract git diff using two git commit numbers
