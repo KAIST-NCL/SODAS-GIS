@@ -26,7 +26,7 @@ exports.RMSync = function () {
 
     // Settings for GitDB
     this.VC = new subscribeVC(this.rmsync_root_dir+'/gitDB');
-    this.VC.init();
+    this.VC.init().then(fs.unlink(this.rmsync_root_dir+'/gitDB/init.txt'));
 
     // gRPC Client to RH-RMSessionManager
     const rmSessionPackageDefinition = protoLoader.loadSync(
