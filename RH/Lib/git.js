@@ -14,8 +14,8 @@ class Git {
         !fs.existsSync(this.gitDIR_) && tools.mkdirSyncRecursive(this.gitDIR_);
 
         // if not initialized, then init the git
-        const stdout = execSync('cd ' + this.gitDIR_ + ' && git rev-parse --is-inside-work-tree');
-        if (stdout.toString().substring(0,4) !== 'true') {
+        const isInitialized = fs.existsSync(this.gitDIR_ + '/.git');
+        if (isInitialized) {
             // init
             execSync('cd ' + this.gitDIR_ + ' && git init');
             // configuration
@@ -85,7 +85,7 @@ class Git {
                 debug("Error: ", err);
             }
         });
-    }
+    }    
 }
 
 exports.Git = Git;
