@@ -15,8 +15,8 @@ exports.vcModule = function(){
     debug(workerData);
     ////////////////////////////////////////////////////////////////////////////////////////////////
     const gitDir = workerData.pubvc_root;
-    const kafkaHost = workerData.kafka; // update
-    const options = workerData.kafka_options; // update
+    const kafkaHost = workerData.kafkaHost; // update
+    const options = workerData.kafka; // update
 
     this.smPort = workerData.sm_port;
     this.vc = new publishVC(gitDir, workerData.rmsync_root_dir);
@@ -64,7 +64,9 @@ exports.vcModule.prototype.run = function(){
 };
 
 exports.vcModule.prototype.commit = async function(self, message) {
-    var fp = self.vc.vcRoot + '/';  
+    var fp = message;
+    // used for pooling method
+    // var fp = self.vc.vcRoot + '/';  
     await self.vc.commit(fp, message, self);
 };
 
