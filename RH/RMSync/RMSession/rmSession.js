@@ -32,7 +32,7 @@ exports.Session = function() {
     // Mutex_Flag for Git
     this.flag = workerData.mutex_flag;
     // FirstCommit Extraction from RM directiory
-    this._save_last_commit(this.VC.returnFirstCommit(this.VC, this.pubRM_dir));
+    if(!fs.existsSync(this.msg_storepath)) this._save_last_commit(this.VC.returnFirstCommit(this.VC, this.pubRM_dir));
     /// Thread Calls from Parent
     parentPort.on('message', message => {
         debug("[Session ID: " + this.id + "] Received Thread Msg ###");
@@ -43,10 +43,27 @@ exports.Session = function() {
                 // gRPC client creation
                 this.grpc_client = new session_sync.RMSessionSync(this.target, grpc.credentials.createInsecure());
                 // Creat Init patch
-                this.extractInitPatch().then((init_patch) => {
-                    debug(init_patch);
-                    this.Publish(init_patch);
-                });
+                // If the saved last commit and first commit from PubVC is the same - > server first operation
+                // If not the same - > server has been stopped and started again
+                var first_commit= this.VC.returnFirstCommit(this.VC, this.pubRM_dir);
+                var content = this.__read_dict();
+                debug("First Commit: " + first_commit);
+                debug("Previous LC: " + content.previous_last_commit);
+                if (first_commit == content.previous_last_commit) {
+                    // first add all the things in the folder and commit them
+                    execSync('cd ' + this.VC.vcRoot + " && git add ./");
+                    var stdout = execSync('cd ' + this.VC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
+                    var printed = stdout.toString().split('\n');
+                    printed.pop();
+                    var comm = printed.pop();
+                    content.stored = content.stored+1;
+                    content.commit_number.push(comm);
+                    this._save_last_commit(comm);
+                    this.extractGitDiff(content).then((git_diff) => {
+                        debug(git_diff);
+                        this.Publish(git_diff);
+                    });
+                }
                 break;
             // receive message from SessionManager
             case 'UPDATE_REFERENCE_MODEL':
@@ -72,10 +89,9 @@ exports.Session.prototype.prePublish = function(message) {
     });
 }
 
-exports.Session.prototype.extractInitPatch= async function(){
-    // The initial patch contains existing files in reference_model folder. Ref: https://stackoverflow.com/a/40884093
-    // Send these files to the counter DH RMSync Session
-    var patch= execSync('cd ' + this.pubRM_dir + ' && git diff 4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD');
+exports.Session.prototype.extractInitPatch= async function(init_commit){
+    // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
+    var patch= execSync('cd ' + this.pubRM_dir + ' && git diff ' + init_commit + ' HEAD');
     return patch;
 }
 
