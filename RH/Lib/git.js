@@ -15,7 +15,7 @@ class Git {
 
         // if not initialized, then init the git
         const isInitialized = fs.existsSync(this.gitDIR_ + '/.git');
-        if (isInitialized) {
+        if (!isInitialized) {
             // init
             execSync('cd ' + this.gitDIR_ + ' && git init');
             // configuration
