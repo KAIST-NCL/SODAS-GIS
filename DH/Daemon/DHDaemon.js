@@ -194,12 +194,14 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
         case 'UPDATE_REFERENCE_MODEL':
             debug('[DEBUG] UPDATE_REFERENCE_MODEL is passed. The reference models are transferred to ctrlProducer', message.data);
             for (var i = 0; i < message.data.path.length; i++) {
-                const rmPath = message.data.path[i];
+                const rmPath = self.rmSync_rootDir+ '/gitDB/' + message.data.path[i];
+                debug('[DEBUG] read ' + rmPath + ' file (reference models...)')
                 fs.readFile(rmPath, 'utf8', function(err, data){
                     self.ctrlProducer.sendUpdate(rmPath, data);
                 });
             }
             debug('[Function Test / UPDATE REFERENCE MODEL] UPDATE event is sent to Kafka');
+            this._vcUpdateReferenceModel(message.data.path);
             break;
         default:
             debug('[DAEMON/ERROR] Reference Model Listener Error !');
