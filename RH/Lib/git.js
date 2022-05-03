@@ -28,7 +28,7 @@ class Git {
 
     _first_commit(){
         execSync('cd '+ this.gitDIR_ + '&& touch init.txt');
-        var commnum = this.commit('./', 'initial commit');
+        var commnum = this.commit('./init.txt', 'initial commit');
         return commnum;
     }
 
