@@ -192,12 +192,13 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
     self = this;
     switch (message.event) {
         case 'UPDATE_REFERENCE_MODEL':
-            const rmPath = message.data.path;
-            const rmId = message.data.id;
-            fs.readFile(rmPath, 'utf8', function(err, data){
-                self.ctrlProducer.sendUpdate(rmId, data);
-            });
-            debug('[LOG] rmID from message', rmId);
+            debug('[DEBUG] UPDATE_REFERENCE_MODEL is passed. The reference models are transferred to ctrlProducer', message.data);
+            for (var i = 0; i < message.data.path.length; i++) {
+                const rmPath = message.data.path[i];
+                fs.readFile(rmPath, 'utf8', function(err, data){
+                    self.ctrlProducer.sendUpdate(rmPath, data);
+                });
+            }
             debug('[Function Test / UPDATE REFERENCE MODEL] UPDATE event is sent to Kafka');
             break;
         default:
