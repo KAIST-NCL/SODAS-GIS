@@ -43,8 +43,7 @@ exports.Session = function() {
                 // gRPC client creation
                 this.grpc_client = new session_sync.RMSessionSync(this.target, grpc.credentials.createInsecure());
                 // Creat Init patch
-                var first_commit= this.VC.returnFirstCommit(this.VC, this.pubRM_dir);
-                this.extractInitPatch(first_commit).then((init_patch) => {
+                this.extractInitPatch().then((init_patch) => {
                     debug(init_patch);
                     this.Publish(init_patch);
                 });
@@ -73,8 +72,9 @@ exports.Session.prototype.prePublish = function(message) {
     });
 }
 
-exports.Session.prototype.extractInitPatch= async function(init_commit){
-    // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
+exports.Session.prototype.extractInitPatch= async function(){
+    // The initial patch contains existing files in reference_model folder. Ref: https://stackoverflow.com/a/40884093
+    // Send these files to the counter DH RMSync Session
     var patch= execSync('cd ' + this.pubRM_dir + ' && git diff 4b825dc642cb6eb9a060e54bf8d69288fbee4904 HEAD');
     return patch;
 }
