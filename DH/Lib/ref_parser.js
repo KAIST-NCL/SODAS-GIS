@@ -11,7 +11,7 @@ class ref_parser {
     // message.related 양식: [{operation': '', 'id': '', 'type': ''}, {...}]
     constructor(root, refRootdir) {
         this.root = root; // gitDB의 root 디렉토리
-        this.refRootdir = refRootdir;
+        this.refRootdir = refRootdir + '/gitDB';
         this.referenceModel = []; // reference Model의 파일 경로
         // referenceModel로부터 뽑아낸 관계 정보가 담긴 linked list의 배열
         this.dom_related_list = [];
