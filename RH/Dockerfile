@@ -13,8 +13,7 @@ RUN cd /tmp/git-* &&  \
     make prefix=/usr/local all &&  \
     make prefix=/usr/local install
 
-RUN echo "trick for docker-build"
-RUN git clone https://$REPO_TOKEN@github.com/EunjuYang/KAIST_SODAS.git
+RUN echo "trick for docker-build!" && git clone https://$REPO_TOKEN@github.com/EunjuYang/KAIST_SODAS.git
 WORKDIR /KAIST_SODAS
 RUN git checkout dh_daemon
 WORKDIR /KAIST_SODAS/RH/
