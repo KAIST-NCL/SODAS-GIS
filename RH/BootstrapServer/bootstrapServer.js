@@ -46,8 +46,18 @@ exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
     var seedNode = call.request;
     debug("Access Bootstrap Server from");
     debug(seedNode);
+
+    if (bsServer.seedNodeList.length > 0) {
+        for (var i = 0; i < bsServer.seedNodeList.length; i++) {
+            if (bsServer.seedNodeList[i].node_id === seedNode.node_id) {
+                var target = bsServer.seedNodeList.splice(i, 1);
+            }
+        }
+    }
+
     callback(null, {nodes: bsServer.seedNodeList});
     bsServer.seedNodeList.unshift(seedNode);
+    debug(bsServer.seedNodeList);
     bsServer._dmUpdateSeedNodeList();
 };
 

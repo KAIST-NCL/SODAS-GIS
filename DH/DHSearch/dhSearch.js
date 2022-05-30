@@ -19,11 +19,12 @@ exports.DHSearch = function(){
     this.bootstrap_server_ip = workerData.bootstrap_ip + ':' + workerData.bootstrap_portNum;
 
     this.seedNode = dh.seedNodeInfo({address: this.ip, port: parseInt(workerData.ds_portNum), sl_portNum: parseInt(workerData.sl_portNum)});
-    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.ds_portNum), sl_portNum: parseInt(workerData.sl_portNum)});
+    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.ds_portNum), sl_portNum: parseInt(workerData.sl_portNum), sync_interest_list: []});
     this.node._updateContactEvent.on('update_contact', () => {
         this._dmUpdateBucketList()
     });
     this.seedNodeList = [];
+    this.old_bucket_list = [];
 
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH,{
@@ -41,7 +42,6 @@ exports.DHSearch = function(){
 };
 exports.DHSearch.prototype.run = function(){
     this._bootstrapProcess().then(r => {
-        this._closeBootstrapServerConnection();
         this._discoverProcess();
     });
 };
@@ -50,10 +50,10 @@ exports.DHSearch.prototype.run = function(){
 exports.DHSearch.prototype._dhDaemonListener = function(message){
     switch (message.event) {
         case 'UPDATE_INTEREST_TOPIC':
-            this.run()
-            this.sync_interest_list = message.data.sync_interest_list;
+            this.seedNode['sync_interest_list'] = message.data.sync_interest_list;
+            this.node.self.sync_interest_list = message.data.sync_interest_list;
             debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DHDaemon');
-            debug(this.sync_interest_list);
+            this.run()
             break;
         default:
             debug('[ERROR] DHDaemon Listener Error ! event:', message.event);
@@ -63,10 +63,13 @@ exports.DHSearch.prototype._dhDaemonListener = function(message){
 
 /* DHDaemon methods */
 exports.DHSearch.prototype._dmUpdateBucketList = function(){
-    parentPort.postMessage({
-        event: 'UPDATE_BUCKET_LIST',
-        data: this.node._buckets
-    });
+    if (this.old_bucket_list !== JSON.stringify(this.node._buckets)) {
+        parentPort.postMessage({
+            event: 'UPDATE_BUCKET_LIST',
+            data: this.node._buckets
+        });
+        this.old_bucket_list = JSON.parse(JSON.stringify(this.node._buckets));
+    }
 };
 
 /* gRPC methods */
@@ -92,15 +95,9 @@ exports.DHSearch.prototype._bootstrapProcess = async function() {
 exports.DHSearch.prototype._discoverProcess = async function() {
     debug('[LOG] Start distributed search')
     for (var seedNodeIndex of this.seedNodeList) {
-        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.sl_portNum);
-        // await new Promise((resolve, reject) => setTimeout(resolve, 2000));
+        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.sl_portNum, seedNodeIndex.sync_interest_list);
     }
-    await this._dmUpdateBucketList();
     return null;
-}
-exports.DHSearch.prototype._closeBootstrapServerConnection = function() {
-    grpc.closeClient(this.bootstrapClient);
-    debug('[LOG] gRPC session closed with bootstrap server');
 }
 exports.DHSearch.prototype._setInterestTopic = function() {
     // todo: InterestTopic 정보 받아와서 노드 ID 반영 및 kademlia set/get 수행 로직

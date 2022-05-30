@@ -17,6 +17,7 @@ message Node {
   string address = 2;
   int32 port = 3;
   int32 sl_portNum = 4;
+  repeated string sync_interest_list = 5;
 }
 
 message SeedNodeList {
