@@ -39,9 +39,10 @@ class ctrlConsumer extends Consumer{
                 break;
             case 'UPDATE':
                 debug(msg);
-                this.daemon._dhSearchUpdateInterestTopic(msg.interest);
-                this.daemon._vcUpdateReferenceModel(msg.reference_model);
-                this.daemon._smUpdateNegotiation(msg.sn_options);
+                debug(msg.interest.interest_list);
+                debug(msg.interest.reference_model);
+                this.daemon._dhSearchUpdateInterestTopic(msg.interest.interest_list);
+                // this.daemon._vcUpdateReferenceModel(msg.interest.reference_model);
                 debug('[Function Test / UPDATE Process] UPDATE event complete');
                 break;
             case 'SYNC_ON':
