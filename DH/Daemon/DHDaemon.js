@@ -131,12 +131,10 @@ exports.DHDaemon.prototype._dmServerListener = function(message){
         case 'UPDATE':
             // TODO: dmServer-side UPDATE should be implemented
             debug('[SETTING] UPDATE is called !');
-            var interest= message.data.interest;
-            var rm = message.data.reference_model;
-            var negotiationOption = message.data.negotiation_option;
+            var interest= message.data.interest.interest_list;
+            var rm = message.data.interest.reference_model;
             this._dhSearchUpdateInterestTopic(interest);
             this._vcUpdateReferenceModel(rm);
-            this._smUpdateNegotiation(negotiationOption);
             break;
         case 'UPDATE_INTEREST_TOPIC':
             debug('[SETTING] Interest Topic is Updated!');
