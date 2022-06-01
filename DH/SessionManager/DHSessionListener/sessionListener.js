@@ -24,7 +24,6 @@ exports.SessionListener = function () {
     this.sl_addr = workerData.sl_addr;
     this.sn_options = workerData.sn_options;
 
-
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH,{
             keepCase: true,
@@ -60,6 +59,10 @@ exports.SessionListener.prototype._smListener = function (message) {
             this.my_session_desc.session_id = message.data.sess_id;
             this.my_end_point.ip = message.data.sess_ip;
             this.my_end_point.port = message.data.sess_portNum;
+            break;
+        case 'UPDATE_INTEREST_LIST':
+            debug('[RX: UPDATE_INTEREST_LIST] from SessionManager');
+            this.sn_options.datamap_desc.sync_interest_list = message.data.sync_interest_list;
             break;
         case 'UPDATE_NEGOTIATION_OPTIONS':
             debug('[RX: UPDATE_NEGOTIATION_OPTIONS] from SessionManager');

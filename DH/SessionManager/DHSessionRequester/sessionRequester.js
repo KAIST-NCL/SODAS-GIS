@@ -28,6 +28,7 @@ exports.SessionRequester = function () {
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.SNproto = this.protoDescriptor.sessionNegotiation.SessionNegotiationBroker;
+
     debug('[SETTING] SessionRequester Created');
 
 }
@@ -53,6 +54,10 @@ exports.SessionRequester.prototype._smListener = function (message) {
             this.my_session_desc.session_id = message.data.sess_id;
             this.my_end_point.ip = message.data.sess_ip;
             this.my_end_point.port = message.data.sess_portNum;
+            break;
+        case 'UPDATE_INTEREST_LIST':
+            debug('[RX: UPDATE_INTEREST_LIST] from SessionManager');
+            this.sn_options.datamap_desc.sync_interest_list = message.data.sync_interest_list;
             break;
         case 'UPDATE_NEGOTIATION_OPTIONS':
             debug('[RX: UPDATE_NEGOTIATION_OPTIONS] from SessionManager');
@@ -80,9 +85,8 @@ exports.SessionRequester.prototype._closeConnection = function () {
 }
 exports.SessionRequester.prototype._snProcess = async function (bucketList) {
 
-    // todo: session 생성되어 있어야함. 즉, session_desc.session_id 가 null 이 아닐 경우 진행. null 이면 wait
-    // todo: 한번에 한번 request 요청 전송함. 끝나고 다음 요청 전송
-
+    // session 생성되어 있어야함. 즉, session_desc.session_id 가 null 이 아닐 경우 진행. null 이면 wait
+    // 한번에 한번 request 요청 전송함. 끝나고 다음 요청 전송
     const promiseFunc = (node) => {
         return new Promise((resolve, reject) => {
             setTimeout(async function checkCreateTempSession() {
