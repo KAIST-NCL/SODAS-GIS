@@ -65,6 +65,8 @@ exports.SessionManager.prototype._dhDaemonListener = function (message){
         case 'UPDATE_INTEREST_LIST':
             debug('[RX: UPDATE_INTEREST_LIST] from DHDaemon');
             this.sn_options.datamap_desc.sync_interest_list = message.data.sync_interest_list;
+            this._srUpdateInterestList();
+            this._slUpdateInterestList();
             break;
         // 세션 협상 정보 업데이트
         case 'UPDATE_NEGOTIATION_OPTIONS':
@@ -242,6 +244,12 @@ exports.SessionManager.prototype._srGetNewSessionInfo = function () {
         data: {'sess_id': sessionManager.srTempSession.session_id, 'sess_ip': sessionManager.srTempSession.my_ip, 'sess_portNum': sessionManager.srTempSession.my_port}
     });
 }
+exports.SessionManager.prototype._srUpdateInterestList = function () {
+    this.sessionRequester.postMessage({
+        event: "UPDATE_INTEREST_LIST",
+        data: {'sync_interest_list': sessionManager.sn_options.datamap_desc.sync_interest_list}
+    });
+}
 exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
     this.sessionRequester.postMessage({
         event: "UPDATE_NEGOTIATION_OPTIONS",
@@ -260,6 +268,12 @@ exports.SessionManager.prototype._slGetNewSessionInfo = function () {
     this.sessionListener.postMessage({
         event: "GET_NEW_SESSION_INFO",
         data: {'sess_id': sessionManager.slTempSession.session_id, 'sess_ip': sessionManager.slTempSession.my_ip, 'sess_portNum': sessionManager.slTempSession.my_port}
+    });
+}
+exports.SessionManager.prototype._slUpdateInterestList = function () {
+    this.sessionListener.postMessage({
+        event: "UPDATE_INTEREST_LIST",
+        data: {'sync_interest_list': sessionManager.sn_options.datamap_desc.sync_interest_list}
     });
 }
 exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
