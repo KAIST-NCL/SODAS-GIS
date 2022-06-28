@@ -264,7 +264,7 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     producer.on('ready', function() {
         for (var i=0; i < payload_list.length; i++) {
             var payloads = [
-                { topic: 'send.asset', messages:JSON.stringify(payload_list[i])}
+                { topic: 'recv.asset', messages:JSON.stringify(payload_list[i])}
             ];
             producer.send(payloads, function(err, result) {
                 debug('[LOG]', result);

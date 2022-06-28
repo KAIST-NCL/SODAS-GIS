@@ -5,7 +5,7 @@ const debug = require('debug')('sodas:vcConsumer');
 
 class vcConsumer extends Consumer{
     constructor(kafkaHost, options, VC) {
-        const topics = [ {topic:'recv.asset', partitions:0} ];
+        const topics = [ {topic:'send.asset', partitions:0} ];
         super(kafkaHost, topics, options); 
         this.VC = VC; 
     }
