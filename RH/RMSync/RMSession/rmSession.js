@@ -48,7 +48,10 @@ exports.Session = function() {
                 var first_commit= this.VC.returnFirstCommit(this.VC, this.pubRM_dir);
                 var content = this.__read_dict();
                 debug("First Commit: " + first_commit);
+
                 debug("Previous LC: " + content.previous_last_commit);
+
+                // DH1인경우
                 if (first_commit == content.previous_last_commit) {
                     // first add all the things in the folder and commit them
                     execSync('cd ' + this.VC.vcRoot + " && git add ./");
@@ -62,6 +65,13 @@ exports.Session = function() {
                     this.extractGitDiff(content).then((git_diff) => {
                         debug(git_diff);
                         this.Publish(git_diff);
+                    });
+                }
+                // DH2 이후인 경우
+                else {
+                    this.extractInitPatch(content.previous_last_commit, first_commit).then((patch) => {
+                        debug(patch.toString());
+                        this.Publish(patch);
                     });
                 }
                 break;
@@ -89,9 +99,9 @@ exports.Session.prototype.prePublish = function(message) {
     });
 }
 
-exports.Session.prototype.extractInitPatch= async function(init_commit){
+exports.Session.prototype.extractInitPatch= async function(last_commit, first_commit){
     // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
-    var patch= execSync('cd ' + this.pubRM_dir + ' && git diff ' + init_commit + ' HEAD');
+    var patch= execSync('cd ' + this.pubRM_dir + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
     return patch;
 }
 
