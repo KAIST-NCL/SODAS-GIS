@@ -37,6 +37,9 @@ class ctrlConsumer extends Consumer{
                 this.daemon._rmSyncInit();
                 debug('[Function Test / Init Process] START event');
                 break;
+            case 'STOP':
+                debug('아직 미구현 - STOP event');
+                break;
             case 'UPDATE':
                 debug(msg);
                 debug(msg.interest.interest_list);
@@ -50,6 +53,9 @@ class ctrlConsumer extends Consumer{
                     this.daemon._raiseError('UPDATE IS NOT YET COMPLETED');
                 else
                     this.daemon._smSyncOn();
+                break;
+            case 'SYNC_OFF':
+                debug('아직 미구현 - SYNC OFF event');
                 break;
             default:
                 break;
