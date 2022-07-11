@@ -134,6 +134,7 @@ exports.DHDaemon.prototype._dmServerListener = function(message){
             var interest= message.data.interest.interest_list;
             var rm = message.data.interest.reference_model;
             this._dhSearchUpdateInterestTopic(interest);
+            this._smUpdateInterestTopic(interest);
             this._vcUpdateReferenceModel(rm);
             break;
         case 'UPDATE_INTEREST_TOPIC':
@@ -228,6 +229,13 @@ exports.DHDaemon.prototype._smInit= function(){
         event: 'INIT',
         data: {}
     });
+};
+exports.DHDaemon.prototype._smUpdateInterestTopic = function(interestTopic){
+    this.sessionManager.postMessage({
+        event: 'UPDATE_INTEREST_TOPIC',
+        data: {sync_interest_list: interestTopic}
+    });
+    debug('[Function Test / UPDATE Process] UPDATE interest topic with ', interestTopic);
 };
 exports.DHDaemon.prototype._smUpdateNegotiation = function(session_negotiation_option){
     this.sessionManager.postMessage({
