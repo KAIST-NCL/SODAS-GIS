@@ -49,7 +49,7 @@ class ctrlConsumer extends Consumer{
                 debug(msg.interest.interest_list);
                 debug(msg.interest.reference_model);
                 this.daemon._dhSearchUpdateInterestTopic(msg.interest.interest_list);
-                this.daemon._smUpdateInterestTopic(msg.interest.reference_model);
+                this.daemon._smUpdateInterestTopic(msg.interest.interest_list);
                 // this.daemon._vcUpdateReferenceModel(msg.interest.reference_model);
                 debug('[Function Test / UPDATE Process] UPDATE event complete');
                 break;
