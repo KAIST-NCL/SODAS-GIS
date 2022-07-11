@@ -62,8 +62,8 @@ exports.SessionManager.prototype.run = function (){
 exports.SessionManager.prototype._dhDaemonListener = function (message){
     switch (message.event) {
         // interest_list 정보 업데이트
-        case 'UPDATE_INTEREST_LIST':
-            debug('[RX: UPDATE_INTEREST_LIST] from DHDaemon');
+        case 'UPDATE_INTEREST_TOPIC':
+            debug('[RX: UPDATE_INTEREST_TOPIC] from DHDaemon');
             this.sn_options.datamap_desc.sync_interest_list = message.data.sync_interest_list;
             this._srUpdateInterestList();
             this._slUpdateInterestList();
