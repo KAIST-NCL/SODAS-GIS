@@ -130,8 +130,8 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
     }
 
     for (let key in bucketList) {
-        for (let i = 0; i < bucketList[key].length; i++) {
-            const result = await promiseFunc(bucketList[key][i]);
+        for (let i = 0; i < bucketList[key]._contacts.length; i++) {
+            const result = await promiseFunc(bucketList[key]._contacts[i]);
             debug(result);
         }
     }
