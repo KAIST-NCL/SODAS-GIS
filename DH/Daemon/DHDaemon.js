@@ -4,7 +4,7 @@ const dm = require('./DHDaemon');
 const { ctrlConsumer, ctrlProducer } = require('./ctrlKafka');
 const debug = require('debug')('sodas:daemon');
 const fs = require("fs");
-
+const bucketparser = require('../Lib/bucketparser');
 'use strict';
 const { networkInterfaces } = require('os');
 const nets = networkInterfaces();
@@ -167,7 +167,7 @@ exports.DHDaemon.prototype._smListener = function(message){
         case 'GET_SESSION_LIST_INFO':
             this.sessionList = message.data;
             this._dmServerSetSessionList(this.sessionList);
-            this.ctrlProducer.produce({
+            this.ctrlProducer._produce( 'recv.sessionList', {
                 event: 'UPDATE_SESSION_LIST',
                 data: this.sessionList
             });
@@ -236,12 +236,14 @@ exports.DHDaemon.prototype._smUpdateNegotiation = function(session_negotiation_o
     });
     debug('[Function Test / UPDATE Process] UPDATE negotiation option ', session_negotiation_option);
 };
-exports.DHDaemon.prototype._smSyncOn = function(){
+exports.DHDaemon.prototype._smSyncOn = function(datahubs){
     debug('[Function Test / SYNCON Process] SYNC_ON event detected');
     if(this.bucketList == null) return -1;
+    // datahubs와 this.bucketList 비교해서 필요한 것만 추출하는 함수
+    _bucketList = bucketparser.nodeIDSearcher(this.bucketList, datahubs);
     this.sessionManager.postMessage({
         event:'SYNC_ON',
-        data: this.bucketList
+        data: _bucketList
     });
     return 1;
 };
