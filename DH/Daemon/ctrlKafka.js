@@ -49,6 +49,7 @@ class ctrlConsumer extends Consumer{
                 debug(msg.interest.interest_list);
                 debug(msg.interest.reference_model);
                 this.daemon._dhSearchUpdateInterestTopic(msg.interest.interest_list);
+                this.daemon._smUpdateInterestTopic(msg.interest.reference_model);
                 // this.daemon._vcUpdateReferenceModel(msg.interest.reference_model);
                 debug('[Function Test / UPDATE Process] UPDATE event complete');
                 break;
@@ -84,7 +85,7 @@ exports.ctrlProducer.prototype.createCtrlTopics = async function(){
         { topic: 'send.asset', partitions: 1, replicationFactor: 1},
         { topic: 'recv.referenceModel', partitions: 1, replicationFactor: 1},
         { topic: 'recv.vocabulary', partitions: 1, replicationFactor: 1},
-        { topic: 'recv.sessionList', partitions:1, replicationFactor: 1},    
+        { topic: 'recv.sessionList', partitions:1, replicationFactor: 1},
     ],
         function (err, data) {
             debug('[SETTING] Complete to create ctrl topics');
