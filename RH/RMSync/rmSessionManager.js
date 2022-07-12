@@ -6,6 +6,7 @@ const rmSM = require(__dirname+'/rmSessionManager');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const crypto = require("crypto");
+const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:rmSessionManager');
 
 exports.RMSessionManager = function () {
