@@ -58,7 +58,7 @@ exports.Session = function() {
 
 /// Publish to the counter DH RMSync Session
 // git_patch: string. Git diff Extraction result
-exports.Session.prototype.Publish = function(git_patch) {
+exports.Session.prototype.publish = function(git_patch) {
     debug("[LOG] Publish");
     // Make the message body to send
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
