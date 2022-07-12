@@ -43,14 +43,14 @@ exports.Session = function() {
                 // gRPC client creation
                 this.grpc_client = new session_sync.RMSessionSync(this.target, grpc.credentials.createInsecure());
                 // Init patch
-                this.publish(message.data.init_patch.patch);
+                this.publish(message.data.init_patch);
                 break;
             // receive message from SessionManager
             case 'UPDATE_REFERENCE_MODEL':
                 debug(message.data);
                 // data: {git_patch: git_patch}
                 // 바로 publish한다
-                this.publish(message.data.git_patch.patch);
+                this.publish(message.data.git_patch);
                 break;
         }
     });
