@@ -115,7 +115,7 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     rmSessionManager.rmSession_list_to_daemon.push(dhNode);
     rmSessionManager.rmSessionDict[dhNode.session_id] = rmSession;
 
-    this.session_init_patch().then((git_patch) => {
+    rmSessionManager.session_init_patch().then((git_patch) => {
         rmSession.postMessage({
             event: "INIT",
             data: {
@@ -129,27 +129,27 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
 // Session 최초 연결 시 최초 git_patch 보내는 함수
 exports.RMSessionManager.prototype.session_init_patch = async function() {
     debug("Session Init Patch");
-    var first_commit= this.pVC.returnFirstCommit(this.pVC, this.pubRM_dir);
-    var content = this.__read_dict();
+    var first_commit= rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvc_root);
+    var content = rmSessionManager.__read_dict();
     debug("First Commit: " + first_commit);
     debug("Previous LC: " + content.previous_last_commit);
 
     if (first_commit == content.previous_last_commit) {
         // first add all the things in the folder and commit them
-        execSync('cd ' + this.pVC.vcRoot + " && git add ./");
-        var stdout = execSync('cd ' + this.pVC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
+        execSync('cd ' + rmSessionManager.pVC.vcRoot + " && git add ./");
+        var stdout = execSync('cd ' + rmSessionManager.pVC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
         var printed = stdout.toString().split('\n');
         printed.pop();
         var comm = printed.pop();
         content.stored = content.stored+1;
         content.commit_number.push(comm);
-        this._save_last_commit(comm);
-        var git_patch = await this.extractGitDiff(content);
+        rmSessionManager._save_last_commit(comm);
+        var git_patch = await rmSessionManager.extractGitDiff(content);
         return git_patch;
     }
     // DH2 이후인 경우
     else {
-        var git_patch = await this.extractInitPatch(content.previous_last_commit, first_commit);
+        var git_patch = await rmSessionManager.extractInitPatch(content.previous_last_commit, first_commit);
         return git_patch;
     }
 }
@@ -164,7 +164,7 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
 // 1
 exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit, first_commit){
     // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
-    var patch= execSync('cd ' + this.pubRM_dir + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
+    var patch= execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
     return patch;
 }
 
@@ -175,7 +175,7 @@ exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
     }
     else {
         this.mutex_flag[0] = 1;
-        var git_diff = execSync('cd ' + this.pubRM_dir + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1]);
+        var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1]);
         this.mutex_flag[0] = 0;
         debug(git_diff);
         var to_return = {
