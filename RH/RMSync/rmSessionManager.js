@@ -116,6 +116,8 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     rmSessionManager.rmSessionDict[dhNode.session_id] = rmSession;
 
     rmSessionManager.session_init_patch().then((git_patch) => {
+        debug("git Patch")
+        debug(git_patch.toString());
         rmSession.postMessage({
             event: "INIT",
             data: {
@@ -166,6 +168,10 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
 exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit, first_commit){
     // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
     var patch= execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
+    var to_return = {
+        patch: patch,
+        commit_number: [first_commit, last_commit]
+    };
     return patch;
 }
 
