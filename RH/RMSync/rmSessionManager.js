@@ -22,7 +22,6 @@ exports.RMSessionManager = function () {
 
     this.pVC= new publishVC(this.pubvc_root);
     this.msg_storepath = this.pubvc_root+'/../msgStore.json'
-    if(!fs.existsSync(this.msg_storepath)) this._save_last_commit(this.pVC.returnFirstCommit(this.pVC, this.pubvc_root));
     const sharedArrayBuffer = new SharedArrayBuffer(Int8Array.BYTES_PER_ELEMENT);
     this.errorSession = new Int8Array(sharedArrayBuffer);
     this.errorSession[0] = 0;
@@ -131,6 +130,7 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
 exports.RMSessionManager.prototype.session_init_patch = async function() {
     debug("Session Init Patch");
     var first_commit= rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvc_root);
+    if(!fs.existsSync(rmSessionManager.msg_storepath)) rmSessionManager._save_last_commit(rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvc_root));
     var content = rmSessionManager.__read_dict();
     debug("First Commit: " + first_commit);
     debug("Previous LC: " + content.previous_last_commit);
