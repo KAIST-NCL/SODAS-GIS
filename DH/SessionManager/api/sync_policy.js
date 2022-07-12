@@ -22,7 +22,8 @@ exports.checkNegotiationOptions = function(my_sn_options, other_sn_options){
 exports._checkDatamapDesc = function (my_datamap_desc, other_datamap_desc){
     let status;
     let datamap_desc_result = {};
-    let sync_interest_list_result = my_datamap_desc.sync_interest_list.filter(x=> other_datamap_desc.sync_interest_list.includes(x))
+    let sync_interest_list_result = interestTopicDivider(my_datamap_desc.sync_interest_list).filter(x=> interestTopicDivider(other_datamap_desc.sync_interest_list).includes(x))
+    console.log(sync_interest_list_result)
     let data_catalog_vocab_result = my_datamap_desc.data_catalog_vocab.filter(x=> other_datamap_desc.data_catalog_vocab.includes(x))
 
     if (!isEmptyArr(sync_interest_list_result) && !isEmptyArr(data_catalog_vocab_result)){
@@ -65,4 +66,20 @@ function rangeToInteger (arr)  {
         temp.push(start);
     }
     return temp;
+}
+
+function interestTopicDivider (arr) {
+    var divider = [];
+    for (let i = 0; i < arr.length; i++) {
+        var temp_divider = arr[i].split("/");
+        for (let j = 0; j < temp_divider.length; j++) {
+            if (j == 0) {
+            }
+            else{
+                temp_divider[j] = temp_divider[j-1] + "/" + temp_divider[j]
+            }
+        }
+        divider = divider.concat(temp_divider)
+    }
+    return [...new Set(divider)]
 }
