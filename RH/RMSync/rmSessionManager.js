@@ -168,7 +168,7 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
 exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit, first_commit){
     // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
     var patch= execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
-    return patch;
+    return patch.toString();
 }
 
 exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
@@ -181,7 +181,7 @@ exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
         var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1]);
         this.mutex_flag[0] = 0;
         debug(git_diff);
-        return git_diff;
+        return git_diff.toString();
     }
 }
 
