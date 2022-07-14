@@ -157,6 +157,11 @@ exports.DHDaemon.prototype._dhSearchListener = function(message){
         case 'UPDATE_BUCKET_LIST':
             this.bucketList = message.data;
             this._dmServerSetBucketList(this.bucketList);
+            // datahublist Kafka Publish
+            this.ctrlProducer._produce('recv.dataHubList', {
+                event: 'UPDATE_DATAHUB_LIST',
+                data: this.bucketList
+            });
             break;
         default:
             debug('[ERROR] DH Search Listener Error ! event:', message.event);
