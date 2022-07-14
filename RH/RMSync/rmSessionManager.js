@@ -26,6 +26,9 @@ exports.RMSessionManager = function () {
     this.errorSession = new Int8Array(sharedArrayBuffer);
     this.errorSession[0] = 0;
 
+    this.delayed_commit_numbers = "";
+    this.pool_timer = null;
+
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH, {
             keepCase: true,
@@ -48,19 +51,21 @@ exports.RMSessionManager.prototype._vcListener = function (message){
             debug('[RX: UPDATE_REFERENCE_MODEL] from VersionControl');
             debug(message.data);
 
-            // GIT PATCH EXTRACTION
-            var content = this.__read_dict();
-            content.stored = content.stored + 1;
-            content.commit_number.push(message.data.commit_number);
-            this.__save_dict(content);
+            // 에러가 난 세션이 있을 경우엔 Queue에 추가한다
+            if (this.errorSession[0] > 0) {
+                // 주기적으로 에러 세션 전부 고쳐졌나 점검하는 함수
+                if(this.delayed_commit_numbers == "") this.delayed_updateHandler();
 
-            const topublish = this.__read_dict();
-            this._save_last_commit(topublish.commit_number[topublish.commit_number.length - 1]);
-            const git_patch = rmSessionManager.extractGitDiff(topublish);
-
-            // GIT PATCH BROADCAST
-            for (var key in rmSessionManager.rmSessionDict) {
-                rmSessionManager._rmSessionUpdateReferenceModel(rmSessionManager.rmSessionDict[key], git_patch)
+                // 마지막 Commit만 기억한다.
+                this.delayed_commit_numbers = message.data.commit_number;
+            }
+            else {
+                if(this.pool_timer != null) {
+                    clearTimeout(this.pool_timer);
+                    this.pool_timer = null;
+                    this.delayed_commit_numbers = "";
+                }
+                this.updateHandler(message.data.commit_number);
             }
             break;
     }
@@ -185,13 +190,33 @@ exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
     }
 }
 
-exports.RMSessionManager.prototype.updateHandler = async function(message) {
-    // Error가 발생한 세션이 있는 동안에는 작업을 대기한다.
-    if (this.errorSession > 0) {
-        
+exports.RMSessionManager.prototype.updateHandler = function(commit_number) {
+    // GIT PATCH EXTRACTION
+    var content = this.__read_dict();
+    content.stored = content.stored + 1;
+    content.commit_number.push(commit_number);
+    this.__save_dict(content);
+
+    const topublish = this.__read_dict();
+    this._save_last_commit(topublish.commit_number[topublish.commit_number.length - 1]);
+    const git_patch = rmSessionManager.extractGitDiff(topublish);
+
+    // GIT PATCH BROADCAST
+    for (var key in rmSessionManager.rmSessionDict) {
+        rmSessionManager._rmSessionUpdateReferenceModel(rmSessionManager.rmSessionDict[key], git_patch)
     }
 }
 
+exports.RMSessionManager.prototype.delayed_updateHandler = function() {
+    if (rmSessionManager.errorSession[0] > 0) {
+        rmSessionManager.pool_timer = setTimeout(rmSessionManager.delayed_updateHandler, 100);
+    }
+    else {
+        rmSessionManager.pool_timer = null;
+        rmSessionManager.updateHandler(delayed_commit_numbers);
+        rmSessionManager.delayed_commit_numbers = "";
+    }
+}
 
 // 3
 exports.RMSessionManager.prototype.__save_dict = function(content) {
