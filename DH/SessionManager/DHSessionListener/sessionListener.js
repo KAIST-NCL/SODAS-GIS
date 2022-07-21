@@ -89,8 +89,6 @@ exports.SessionListener.prototype._requestSN = function (call, callback) {
     let sn_result = policy.checkNegotiationOptions(sessionListener.sn_options, result.sn_options);
     debug('[LOG] Session Negotiation Result');
     debug(sn_result);
-    debug(sn_result.result.datamap_desc);
-    debug(sn_result.result.sync_desc);
     if (sn_result.status) {
         // todo: session 협상 결과 negotiation_result 값 반환해야함
         sessionListener.session_result = sn_result.result;

@@ -24,6 +24,8 @@ exports.SessionManager = function() {
     this.mutex_flag = workerData.mutex_flag;
     this.session_list = {};
     this.session_list_to_daemon = [];
+    this.srTempSession = {};
+    this.slTempSession = {};
 
     this.datahubInfo = {
         sodas_auth_key: crypto.randomBytes(20).toString('hex'),
@@ -34,15 +36,12 @@ exports.SessionManager = function() {
 };
 exports.SessionManager.prototype.run = function (){
 
-    // setEnvironmentData
     const srParam = {'sn_options': this.sn_options, 'dh_id': this.datahubInfo.datahub_id}
     const slParam = {'sn_options': this.sn_options, 'dh_id': this.datahubInfo.datahub_id, 'sl_addr': this.sl_addr}
 
-    // create SR, SL Thread
     this.sessionRequester = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js', {workerData: srParam});
     this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js', {workerData: slParam});
 
-    // setting on function
     this.sessionRequester.on('message', this._srListener);
     this.sessionListener.on('message', this._slListener);
 
@@ -65,14 +64,18 @@ exports.SessionManager.prototype._dhDaemonListener = function (message){
         case 'UPDATE_INTEREST_TOPIC':
             debug('[RX: UPDATE_INTEREST_TOPIC] from DHDaemon');
             this.sn_options.datamap_desc.sync_interest_list = message.data.sync_interest_list;
+            debug('[TX: UPDATE_INTEREST_TOPIC] to SessionRequester');
             this._srUpdateInterestList();
+            debug('[TX: UPDATE_INTEREST_TOPIC] to SessionListener');
             this._slUpdateInterestList();
             break;
         // 세션 협상 정보 업데이트
         case 'UPDATE_NEGOTIATION_OPTIONS':
             debug('[RX: UPDATE_NEGOTIATION_OPTIONS] from DHDaemon');
             this.sn_options = message.data;
+            debug('[TX: UPDATE_NEGOTIATION_OPTIONS] to SessionRequester');
             this._srUpdateNegotiationOptions();
+            debug('[TX: UPDATE_NEGOTIATION_OPTIONS] to SessionListener');
             this._slUpdateNegotiationOptions();
             break;
         // 동기화 시작 이벤트로, SessionRequester 에게 Bucket 정보와 함께 START_SESSION_CONNECTION 이벤트 전송
@@ -80,11 +83,13 @@ exports.SessionManager.prototype._dhDaemonListener = function (message){
             debug('[RX: SYNC_ON] from DHDaemon');
             debug('[TX: START_SESSION_CONNECTION] to SessionRequester');
             this._srStartSessionConnection(message.data);
-            this._createSession().then(value => {
-                this.srTempSession = value;
-                this._sessionInit(this.srTempSession.worker);
-                this._srGetNewSessionInfo();
-            });
+            if (this._isEmptyObj(this.srTempSession)){
+                this._createSession().then(value => {
+                    this.srTempSession = value;
+                    this._sessionInit(this.srTempSession.worker);
+                    this._srGetNewSessionInfo();
+                });
+            }
             break;
     }
 }
@@ -128,14 +133,7 @@ exports.SessionManager.prototype._srListener = function (message){
             sessionManager.srTempSession.other_port = message.data.end_point.port;
 
             // todo: daemon 에 GET_SESSION_LIST_INFO
-            let append_session = {};
-            append_session.session_id = sessionManager.srTempSession.session_id;
-            append_session.my_ip = sessionManager.srTempSession.my_ip;
-            append_session.my_port = sessionManager.srTempSession.my_port;
-            append_session.other_ip = sessionManager.srTempSession.other_ip;
-            append_session.other_port = sessionManager.srTempSession.other_port;
-            append_session.sn_result = sessionManager.srTempSession.sn_result;
-            sessionManager.session_list_to_daemon.push(append_session);
+            sessionManager.session_list_to_daemon.push(sessionManager._refactoringSessionInfo(sessionManager.srTempSession));
             sessionManager._dmGetSessionListInfo();
 
             // todo: srTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
@@ -150,7 +148,7 @@ exports.SessionManager.prototype._srListener = function (message){
                 sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.srTempSession)
             }
 
-            // todo: srTempSession, slTempSession 초기화
+            // todo: srTempSession 초기화
             sessionManager.srTempSession = {};
             sessionManager._createSession().then(value => {
                 sessionManager.srTempSession = value;
@@ -171,15 +169,7 @@ exports.SessionManager.prototype._slListener = function (message){
             sessionManager.slTempSession.other_ip = message.data.end_point.ip;
             sessionManager.slTempSession.other_port = message.data.end_point.port;
 
-            // todo: daemon 에 GET_SESSION_LIST_INFO
-            let append_session = {};
-            append_session.session_id = sessionManager.slTempSession.session_id;
-            append_session.my_ip = sessionManager.slTempSession.my_ip;
-            append_session.my_port = sessionManager.slTempSession.my_port;
-            append_session.other_ip = sessionManager.slTempSession.other_ip;
-            append_session.other_port = sessionManager.slTempSession.other_port;
-            append_session.sn_result = sessionManager.slTempSession.sn_result;
-            sessionManager.session_list_to_daemon.push(append_session);
+            sessionManager.session_list_to_daemon.push(sessionManager._refactoringSessionInfo(sessionManager.slTempSession));
             sessionManager._dmGetSessionListInfo();
 
             // todo: slTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
@@ -194,7 +184,7 @@ exports.SessionManager.prototype._slListener = function (message){
                 sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.slTempSession)
             }
 
-            // todo: srTempSession, slTempSession 초기화
+            // todo: slTempSession 초기화
             sessionManager.slTempSession = {};
             sessionManager._createSession().then(value => {
                 sessionManager.slTempSession = value;
@@ -323,6 +313,27 @@ exports.SessionManager.prototype._setSessionPort = async function () {
             debug('[ERROR]', err);
         });
     return detect();
+}
+
+exports.SessionManager.prototype._refactoringSessionInfo = function (tempSession) {
+    let append_session = {};
+
+    append_session.session_id = tempSession.session_id;
+    append_session.my_ip = tempSession.my_ip;
+    append_session.my_port = tempSession.my_port;
+    append_session.other_ip = tempSession.other_ip;
+    append_session.other_port = tempSession.other_port;
+    append_session.sn_result = tempSession.sn_result;
+
+    return append_session
+}
+
+exports.SessionManager.prototype._isEmptyObj = function (obj) {
+    if (obj.constructor === Object && Object.keys(obj).length === 0) {
+        return true;
+    }
+
+    return false;
 }
 
 const sessionManager = new sm.SessionManager()
