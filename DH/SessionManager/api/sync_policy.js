@@ -71,15 +71,23 @@ function rangeToInteger (arr)  {
 function interestTopicDivider (arr) {
     var divider = [];
     for (let i = 0; i < arr.length; i++) {
-        var temp_divider = arr[i].split("/");
-        for (let j = 0; j < temp_divider.length; j++) {
-            if (j == 0) {
-            }
-            else{
-                temp_divider[j] = temp_divider[j-1] + "/" + temp_divider[j]
-            }
-        }
-        divider = divider.concat(temp_divider)
+        divider = divider.concat(arr[i].split("/")[0])
     }
     return [...new Set(divider)]
 }
+
+// function interestTopicDivider (arr) {
+//     var divider = [];
+//     for (let i = 0; i < arr.length; i++) {
+//         var temp_divider = arr[i].split("/");
+//         for (let j = 0; j < temp_divider.length; j++) {
+//             if (j == 0) {
+//             }
+//             else{
+//                 temp_divider[j] = temp_divider[j-1] + "/" + temp_divider[j]
+//             }
+//         }
+//         divider = divider.concat(temp_divider)
+//     }
+//     return [...new Set(divider)]
+// }
