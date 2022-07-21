@@ -16,6 +16,7 @@ exports.SessionManager = function() {
     this.VC = workerData.vc_port;
     this.VC.on('message', this._vcListener);
 
+    this.dh_id = workerData.dh_id;
     this.dm_ip = workerData.dm_ip;
     this.sl_addr = workerData.dm_ip + ':' + workerData.sl_portNum;
     this.sn_options = workerData.sn_options;
@@ -23,21 +24,17 @@ exports.SessionManager = function() {
     this.subvc_root = workerData.subvc_root;
     this.mutex_flag = workerData.mutex_flag;
     this.session_list = {};
+    this.dh_list_with_session = [];
     this.session_list_to_daemon = [];
     this.srTempSession = {};
     this.slTempSession = {};
-
-    this.datahubInfo = {
-        sodas_auth_key: crypto.randomBytes(20).toString('hex'),
-        datahub_id: crypto.randomBytes(20).toString('hex')
-    };
 
     debug('[SETTING] SessionManager Created');
 };
 exports.SessionManager.prototype.run = function (){
 
-    const srParam = {'sn_options': this.sn_options, 'dh_id': this.datahubInfo.datahub_id}
-    const slParam = {'sn_options': this.sn_options, 'dh_id': this.datahubInfo.datahub_id, 'sl_addr': this.sl_addr}
+    const srParam = {'sn_options': this.sn_options, 'dh_id': this.dh_id}
+    const slParam = {'sn_options': this.sn_options, 'dh_id': this.dh_id, 'sl_addr': this.sl_addr}
 
     this.sessionRequester = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js', {workerData: srParam});
     this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js', {workerData: slParam});
@@ -82,6 +79,16 @@ exports.SessionManager.prototype._dhDaemonListener = function (message){
         case 'SYNC_ON':
             debug('[RX: SYNC_ON] from DHDaemon');
             debug('[TX: START_SESSION_CONNECTION] to SessionRequester');
+
+            // DH 간 중복 세션 협상 및 연동 방지를 위한 DH 리스트 체크
+            for (let key in message.data) {
+                for (let i = 0; i < message.data[key]._contacts.length; i++) {
+                    if (this.dh_list_with_session.includes(message.data[key]._contacts[i].nodeID)) {
+                        message.data[key]._contacts.splice(i, 1);
+                    }
+                }
+            }
+
             this._srStartSessionConnection(message.data);
             if (this._isEmptyObj(this.srTempSession)){
                 this._createSession().then(value => {
@@ -141,12 +148,17 @@ exports.SessionManager.prototype._srListener = function (message){
             sessionManager._sessionTransmitNegotiationResult(sessionManager.srTempSession.worker, message.data.end_point, message.data.session_desc, message.data.sn_result);
 
             // todo: sessionList 관리
-            if (message.data.sn_result.datamap_desc.sync_interest_list[0] in sessionManager.session_list) {
-                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.srTempSession)
-            } else {
-                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]] = [];
-                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.srTempSession)
+            for (let i = 0; i < message.data.sn_result.datamap_desc.sync_interest_list.length; i++) {
+                if (message.data.sn_result.datamap_desc.sync_interest_list[i] in sessionManager.session_list) {
+                    sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[i]].push(sessionManager.srTempSession)
+                } else {
+                    sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[i]] = [];
+                    sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[i]].push(sessionManager.srTempSession)
+                }
             }
+
+            // todo: dhList with session 관리
+            sessionManager.dh_list_with_session.push(message.data.session_desc.session_creator);
 
             // todo: srTempSession 초기화
             sessionManager.srTempSession = {};
@@ -177,12 +189,17 @@ exports.SessionManager.prototype._slListener = function (message){
             sessionManager._sessionTransmitNegotiationResult(sessionManager.slTempSession.worker, message.data.end_point, message.data.session_desc, message.data.sn_result);
 
             // todo: sessionList 관리
-            if (message.data.sn_result.datamap_desc.sync_interest_list[0] in sessionManager.session_list) {
-                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.slTempSession)
-            } else {
-                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]] = [];
-                sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[0]].push(sessionManager.slTempSession)
+            for (let i = 0; i < message.data.sn_result.datamap_desc.sync_interest_list.length; i++) {
+                if (message.data.sn_result.datamap_desc.sync_interest_list[i] in sessionManager.session_list) {
+                    sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[i]].push(sessionManager.slTempSession)
+                } else {
+                    sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[i]] = [];
+                    sessionManager.session_list[message.data.sn_result.datamap_desc.sync_interest_list[i]].push(sessionManager.slTempSession)
+                }
             }
+
+            // todo: dhList with session 관리
+            sessionManager.dh_list_with_session.push(message.data.session_desc.session_creator);
 
             // todo: slTempSession 초기화
             sessionManager.slTempSession = {};
