@@ -54,7 +54,7 @@ class ctrlConsumer extends Consumer{
                 debug('[Function Test / UPDATE Process] UPDATE event complete');
                 break;
             case 'SYNC_ON':
-                var sync_result = this.daemon._smSyncOn(msg.datahubs);
+                var sync_result = this.daemon._smSyncOn(msg.dh_list);
                 if (sync_result  === -1)
                     this.daemon._raiseError('UPDATE IS NOT YET COMPLETED');
                 break;

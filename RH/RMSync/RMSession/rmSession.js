@@ -22,17 +22,17 @@ const debug = require('debug')('sodas:session');
 exports.Session = function() {
     debug("[LOG] RH Session Created");
     debug(workerData);
+
+    // Workerdata 파싱
     this.id = workerData.session_id;
     this.target = workerData.dh_ip + ':' + workerData.dh_port;
     this.dh_id=workerData.dh_id;
     debug('[LOG] Target:' + this.target);
     this.pubRM_dir = workerData.pubvc_root;
     this.VC= new publishVC(this.pubRM_dir);
-    this.msg_storepath = this.pubRM_dir+'/../msgStore.json'
     // Mutex_Flag for Git
     this.flag = workerData.mutex_flag;
-    // FirstCommit Extraction from RM directiory
-    if(!fs.existsSync(this.msg_storepath)) this._save_last_commit(this.VC.returnFirstCommit(this.VC, this.pubRM_dir));
+
     /// Thread Calls from Parent
     parentPort.on('message', message => {
         debug("[Session ID: " + this.id + "] Received Thread Msg ###");
@@ -42,99 +42,23 @@ exports.Session = function() {
             case 'INIT':
                 // gRPC client creation
                 this.grpc_client = new session_sync.RMSessionSync(this.target, grpc.credentials.createInsecure());
-                // Creat Init patch
-                // If the saved last commit and first commit from PubVC is the same - > server first operation
-                // If not the same - > server has been stopped and started again
-                var first_commit= this.VC.returnFirstCommit(this.VC, this.pubRM_dir);
-                var content = this.__read_dict();
-                debug("First Commit: " + first_commit);
-
-                debug("Previous LC: " + content.previous_last_commit);
-
-                // DH1인경우
-                if (first_commit == content.previous_last_commit) {
-                    // first add all the things in the folder and commit them
-                    execSync('cd ' + this.VC.vcRoot + " && git add ./");
-                    var stdout = execSync('cd ' + this.VC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
-                    var printed = stdout.toString().split('\n');
-                    printed.pop();
-                    var comm = printed.pop();
-                    content.stored = content.stored+1;
-                    content.commit_number.push(comm);
-                    this._save_last_commit(comm);
-                    this.extractGitDiff(content).then((git_diff) => {
-                        debug(git_diff);
-                        this.Publish(git_diff);
-                    });
-                }
-                // DH2 이후인 경우
-                else {
-                    this.extractInitPatch(content.previous_last_commit, first_commit).then((patch) => {
-                        debug(patch.toString());
-                        this.Publish(patch);
-                    });
-                }
+                // Init patch
+                this.publish(message.data.init_patch);
                 break;
             // receive message from SessionManager
             case 'UPDATE_REFERENCE_MODEL':
                 debug(message.data);
-                this.prePublish(message);
+                // data: {git_patch: git_patch}
+                // 바로 publish한다
+                this.publish(message.data.git_patch);
                 break;
         }
     });
 }
 
-exports.Session.prototype.prePublish = function(message) {
-    // save information in message in a file as log
-    var content = this.__read_dict();
-    content.stored = content.stored + 1;
-    content.commit_number.push(message.data.commit_number);
-    this.__save_dict(content);
-    //publish things to the counter DH RMSync
-    const topublish = this.__read_dict();
-    this._save_last_commit(topublish.commit_number[topublish.commit_number.length - 1]);
-    // git diff extraction
-    this.extractGitDiff(topublish).then((git_diff) => {
-        this.Publish(git_diff);
-    });
-}
-
-exports.Session.prototype.extractInitPatch= async function(last_commit, first_commit){
-    // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
-    var patch= execSync('cd ' + this.pubRM_dir + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
-    return patch;
-}
-
-/// Extract git diff using two git commit numbers
-exports.Session.prototype.extractGitDiff = async function(topublish) {
-    if (this.flag[0] == 1) {
-        // retry git diff
-        const timeOut = 100;
-        setTimeout(this.extractGitDiff.bind(this), timeOut, topublish);
-    }
-    else {
-        this.flag[0] = 1;
-        var git_diff = execSync('cd ' + this.pubRM_dir + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1]);
-        this.flag[0] = 0;
-        debug(git_diff);
-        return git_diff;
-    }
-}
-
-// last_commit: string. commit # of last git commit
-exports.Session.prototype._save_last_commit = function(last_commit) {
-    var lc = (typeof last_commit  === 'undefined') ? "" : last_commit;
-    const content = {
-        stored: 0,
-        commit_number: [],
-        previous_last_commit: lc
-    }
-    this.__save_dict(content);
-}
-
 /// Publish to the counter DH RMSync Session
 // git_patch: string. Git diff Extraction result
-exports.Session.prototype.Publish = function(git_patch) {
+exports.Session.prototype.publish = function(git_patch) {
     debug("[LOG] Publish");
     // Make the message body to send
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
