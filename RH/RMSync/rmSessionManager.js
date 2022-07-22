@@ -123,12 +123,12 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
 
     rmSessionManager.session_init_patch().then((git_patch) => {
         debug("git Patch")
-        debug(git_patch.patch.toString());
+        debug(git_patch.commit_numbers);
         rmSession.postMessage({
             event: "INIT",
             data: {
                 patch: git_patch.patch,
-                commit_numbers: git_patch.commitnumbers
+                commit_numbers: git_patch.commit_numbers
             }
         });
     });
