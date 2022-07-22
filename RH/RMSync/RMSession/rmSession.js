@@ -49,7 +49,7 @@ exports.Session = function() {
                 // get the first_commit
                 this.last_commit_number = this.VC.returnFirstCommit(this.VC, this.pubRM_dir);
                 // Init patch
-                this.publish(message.data.init_patch);
+                this.publish(message.data);
                 break;
             // receive message from SessionManager
             case 'UPDATE_REFERENCE_MODEL':
