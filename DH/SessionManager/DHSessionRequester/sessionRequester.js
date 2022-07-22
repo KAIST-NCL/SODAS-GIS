@@ -124,7 +124,7 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                         });
                 }
                 await sessionRequester._closeConnection();
-                await resolve(node.port + '와의 세션 협상 종료 =========================')
+                await resolve(node.nodeID + '와의 세션 협상 종료 =========================')
             }, 2000);
         })
     }
