@@ -56,7 +56,7 @@ exports.Session = function() {
                 debug(message.data);
                 // data: {git_patch: git_patch}
                 // 바로 publish한다
-                this.publish(message.data.git_patch);
+                this.publish(message.data);
                 break;
         }
     });
@@ -110,7 +110,7 @@ exports.Session.prototype.publish = function(git_patch) {
 }
 
 // Extract Git Diff
-exports.RMSessionManager.prototype.extractGitDiff= async function(first_commit, last_commit){
+exports.Session.prototype.extractGitDiff= async function(first_commit, last_commit){
     if (this.mutex_flag[0] == 1) {
         const timeOut = 100;
         setTimeout(this.extractGitDiff.bind(this), timeOut, first_commit, last_commit);
