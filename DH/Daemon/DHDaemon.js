@@ -308,5 +308,3 @@ process.on('SIGTERM', () => {
     daemon.stop();
     process.exit();
 });
-
-

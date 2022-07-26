@@ -122,5 +122,3 @@ exports.SessionListener.prototype._setListenerServer = function () {
 };
 
 const sessionListener = new sl.SessionListener();
-
-

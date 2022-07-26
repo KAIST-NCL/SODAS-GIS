@@ -71,7 +71,7 @@ class ctrlConsumer extends Consumer{
 exports.ctrlProducer = function(kafkaHost){
     this.client = new kafka.KafkaClient({kafkaHost: kafkaHost});
     this.producer = new Producer(this.client);
-    this.topic = 'recv.dataHubList';
+    this.topic = 'recv.referenceModel';
 };
 
 exports.ctrlProducer.prototype.createCtrlTopics = async function(){

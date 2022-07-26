@@ -26,6 +26,9 @@ exports.RMSessionManager = function () {
     this.errorSession = new Int8Array(sharedArrayBuffer);
     this.errorSession[0] = 0;
 
+    this.delayed_commit_numbers = "";
+    this.pool_timer = null;
+
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH, {
             keepCase: true,
@@ -48,19 +51,21 @@ exports.RMSessionManager.prototype._vcListener = function (message){
             debug('[RX: UPDATE_REFERENCE_MODEL] from VersionControl');
             debug(message.data);
 
-            // GIT PATCH EXTRACTION
-            var content = this.__read_dict();
-            content.stored = content.stored + 1;
-            content.commit_number.push(message.data.commit_number);
-            this.__save_dict(content);
+            // 에러가 난 세션이 있을 경우엔 Queue에 추가한다
+            if (this.errorSession[0] > 0) {
+                // 주기적으로 에러 세션 전부 고쳐졌나 점검하는 함수
+                if(this.delayed_commit_numbers == "") this.delayed_updateHandler();
 
-            const topublish = this.__read_dict();
-            this._save_last_commit(topublish.commit_number[topublish.commit_number.length - 1]);
-            const git_patch = rmSessionManager.extractGitDiff(topublish);
-
-            // GIT PATCH BROADCAST
-            for (var key in rmSessionManager.rmSessionDict) {
-                rmSessionManager._rmSessionUpdateReferenceModel(rmSessionManager.rmSessionDict[key], git_patch)
+                // 마지막 Commit만 기억한다.
+                this.delayed_commit_numbers = message.data.commit_number;
+            }
+            else {
+                if(this.pool_timer != null) {
+                    clearTimeout(this.pool_timer);
+                    this.pool_timer = null;
+                    this.delayed_commit_numbers = "";
+                }
+                this.updateHandler(message.data.commit_number);
             }
             break;
     }
@@ -69,7 +74,10 @@ exports.RMSessionManager.prototype._vcListener = function (message){
 exports.RMSessionManager.prototype._rmSessionUpdateReferenceModel = function (rmSessionWorker, git_patch) {
     rmSessionWorker.postMessage({
         event: "UPDATE_REFERENCE_MODEL",
-        data: { git_patch: git_patch }
+        data: { 
+            patch: git_patch,
+            commit_numbers: git_patch.commit_numbers
+        }
     });
 }
 
@@ -107,7 +115,8 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
         dh_ip: dhNode.dh_ip,
         dh_port: dhNode.dh_port,
         pubvc_root: this.pubvc_root,
-        mutex_flag: this.mutex_flag
+        mutex_flag: this.mutex_flag,
+        error_flag: this.errorSession
     };
     debug('Create New RMSession');
     debug(rmSessParam);
@@ -117,11 +126,12 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
 
     rmSessionManager.session_init_patch().then((git_patch) => {
         debug("git Patch")
-        debug(git_patch.toString());
+        debug(git_patch.commit_numbers);
         rmSession.postMessage({
             event: "INIT",
             data: {
-                init_patch: git_patch
+                patch: git_patch.patch,
+                commit_numbers: git_patch.commit_numbers
             }
         });
     });
@@ -168,7 +178,11 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
 exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit, first_commit){
     // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
     var patch= execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
-    return patch.toString();
+    var toreturn = {
+        patch: patch.toString(),
+        commit_numbers: [first_commit, last_commit]
+    };
+    return toreturn;
 }
 
 exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
@@ -181,17 +195,41 @@ exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
         var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1]);
         this.mutex_flag[0] = 0;
         debug(git_diff);
-        return git_diff.toString();
+        var toreturn = {
+            patch: git_diff.toString(),
+            commit_numbers: [topublish.previous_last_commit, topublish.commit_number[topublish.stored - 1]]
+        }
+        return toreturn;
     }
 }
 
-exports.RMSessionManager.prototype.updateHandler = async function(message) {
-    // Error가 발생한 세션이 있는 동안에는 작업을 대기한다.
-    if (this.errorSession > 0) {
-        
+exports.RMSessionManager.prototype.updateHandler = function(commit_number) {
+    // GIT PATCH EXTRACTION
+    var content = this.__read_dict();
+    content.stored = content.stored + 1;
+    content.commit_number.push(commit_number);
+    this.__save_dict(content);
+
+    const topublish = this.__read_dict();
+    this._save_last_commit(topublish.commit_number[topublish.commit_number.length - 1]);
+    const git_patch = rmSessionManager.extractGitDiff(topublish);
+
+    // GIT PATCH BROADCAST
+    for (var key in rmSessionManager.rmSessionDict) {
+        rmSessionManager._rmSessionUpdateReferenceModel(rmSessionManager.rmSessionDict[key], git_patch)
     }
 }
 
+exports.RMSessionManager.prototype.delayed_updateHandler = function() {
+    if (rmSessionManager.errorSession[0] > 0) {
+        rmSessionManager.pool_timer = setTimeout(rmSessionManager.delayed_updateHandler, 100);
+    }
+    else {
+        rmSessionManager.pool_timer = null;
+        rmSessionManager.updateHandler(delayed_commit_numbers);
+        rmSessionManager.delayed_commit_numbers = "";
+    }
+}
 
 // 3
 exports.RMSessionManager.prototype.__save_dict = function(content) {
