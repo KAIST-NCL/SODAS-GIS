@@ -74,7 +74,10 @@ exports.RMSessionManager.prototype._vcListener = function (message){
 exports.RMSessionManager.prototype._rmSessionUpdateReferenceModel = function (rmSessionWorker, git_patch) {
     rmSessionWorker.postMessage({
         event: "UPDATE_REFERENCE_MODEL",
-        data: { git_patch: git_patch }
+        data: { 
+            patch: git_patch,
+            commit_numbers: git_patch.commit_numbers
+        }
     });
 }
 
