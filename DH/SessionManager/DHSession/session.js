@@ -208,14 +208,15 @@ exports.Session.prototype.Subscribe = function(self, call, callback) {
 // (2): Apply the git patch received through gRPC
 exports.Session.prototype.gitPatch = function(git_patch, self) {
     // save git patch as a temporal file
-    var temp = self.rootDir + "/" + Math.random().toString(10).slice(2,5) + '.patch';
+    var patch = Math.random().toString(10).slice(2,5) + '.patch';
+    var temp = self.rootDir + "/" + patch;
     try {
         fs.writeFileSync(temp, git_patch);
     } catch (err) {
         debug("[ERROR] ", err);
         return 1;
     }
-    self.VC.apply(temp);
+    self.VC.apply("../" + patch);
     // remove the temporal file
     fs.existsSync(temp) && fs.unlink(temp, function (err) {
         if (err) {
