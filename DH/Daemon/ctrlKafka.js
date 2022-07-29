@@ -11,7 +11,7 @@ const debug = require('debug')('sodas:kafka');
 
 class ctrlConsumer extends Consumer{
     constructor(kafkaHost, options, dhDaemon, conf){
-        const topics = [ {topic:'send.datahub', partitions:0 } ];
+        const topics = [ {topic:'send.dataHub', partitions:0 } ];
         super(kafkaHost, topics, options);
         this.daemon = dhDaemon;
         this.conf = conf;
@@ -46,7 +46,7 @@ class ctrlConsumer extends Consumer{
                 break;
             case 'UPDATE':
                 debug(msg);
-                debug(msg.interest.interest_list);
+                debug(msg.interest.interest_list); // need to be edited.
                 debug(msg.interest.reference_model);
                 this.daemon._dhSearchUpdateInterestTopic(msg.interest.interest_list);
                 this.daemon._smUpdateInterestTopic(msg.interest.interest_list);
@@ -80,11 +80,11 @@ exports.ctrlProducer.prototype.createCtrlTopics = async function(){
     await this.client.createTopics([
         { topic: 'recv.dataHubList', partitions: 1 , replicationFactor: 1},
         // send.datahub - > send.dataHub로 변경해야함
-        { topic: 'send.datahub', partitions: 1, replicationFactor: 1},
+        { topic: 'send.dataHub', partitions: 1, replicationFactor: 1},
         { topic: 'recv.asset', partitions: 1 , replicationFactor: 1},
         { topic: 'send.asset', partitions: 1, replicationFactor: 1},
         { topic: 'recv.referenceModel', partitions: 1, replicationFactor: 1},
-        { topic: 'recv.vocabulary', partitions: 1, replicationFactor: 1},
+        { topic: 'recv.dictionary', partitions: 1, replicationFactor: 1},
         { topic: 'recv.sessionList', partitions:1, replicationFactor: 1},
     ],
         function (err, data) {
