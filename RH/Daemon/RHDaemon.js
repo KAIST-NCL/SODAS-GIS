@@ -47,7 +47,10 @@ exports.RHDaemon.prototype._createCtrlTopics = async function(){
     debug('CreateCtrlTopics is called');
     var IS_COMPLETED = false;
     await this.kafka_client.createTopics([
-        { topic: 'recv2.rdf', partitions: 1 , replicationFactor: 1}],
+        { topic: 'send.governanceSystem', partitions: 1 , replicationFactor: 1},
+        { topic: 'send.referenceModel', partitions: 1 , replicationFactor: 1},
+        { topic: 'send.dictionary', partitions: 1 , replicationFactor: 1}
+    ],
         function (err, data) {
             debug('[SETTING] Complete to create ctrl topics');
             IS_COMPLETED = true;

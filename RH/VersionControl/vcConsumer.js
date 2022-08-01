@@ -3,7 +3,7 @@ const debug = require('debug')('sodas:vcConsumer');
 
 class vcConsumer extends Consumer{
     constructor(kafkaHost, options, VC) {
-        const topics = [ {topic:'recv2.rdf', partitions:0} ];
+        const topics = [ {topic:'send.referenceModel', partitions:0} ];
         console.log(kafkaHost,topics,options);
         super(kafkaHost, topics, options); 
         this.VC = VC; 
