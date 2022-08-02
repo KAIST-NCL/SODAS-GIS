@@ -22,7 +22,7 @@ class vcConsumer extends Consumer{
         const event = message_.operation;
         const filepath = self.VC.vc.vcRoot + '/' + message_.type+ '/'+ message_.id + '.rdf';
         // do the operation right away
-        self.VC.editFile(event, filepath,message_.type, message_.contents).then(() => {
+        self.VC.editFile(event, filepath,message_.type, message_.content).then(() => {
             const commitMessage = message_.id;
             self.VC.commit(self.VC, filepath, commitMessage, message_);
         });

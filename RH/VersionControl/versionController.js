@@ -29,6 +29,7 @@ class VC {
                             console.log(err);
                         }});  
                 }
+                // 추후 group, taxonomy, taxonomyVersion으로 수정할 필요 있음
             })
             .catch((e) => {debug(e)});
         this.isInit = true;

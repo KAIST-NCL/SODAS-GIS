@@ -5,6 +5,7 @@ const kafka = require('kafka-node');
 const deasync = require('deasync');
 var msgChn = new MessageChannel();
 const debug = require('debug')('sodas:RHDaemon');
+const { ctrlConsumer } = require('./RHctrlKafka');
 
 'use strict';
 const { networkInterfaces } = require('os');
@@ -41,28 +42,30 @@ exports.RHDaemon = function(){
     this.bs_ip = ips[this.rh_network][0];
     this.sm_ip = ips[this.rh_network][0];
 
+    this.ctrlKafka = new ctrlConsumer(this.kafka, this.kafka_options, this, this.conf);
 };
-exports.RHDaemon.prototype._createCtrlTopics = async function(){
 
-    debug('CreateCtrlTopics is called');
-    var IS_COMPLETED = false;
-    await this.kafka_client.createTopics([
-        { topic: 'send.governanceSystem', partitions: 1 , replicationFactor: 1},
-        { topic: 'send.referenceModel', partitions: 1 , replicationFactor: 1},
-        { topic: 'send.dictionary', partitions: 1 , replicationFactor: 1}
-    ],
-        function (err, data) {
-            debug('[SETTING] Complete to create ctrl topics');
-            IS_COMPLETED = true;
-        }
-    );
-    while ((IS_COMPLETED == false)){deasync.runLoopOnce();}
-};
+// exports.RHDaemon.prototype._createCtrlTopics = async function(){
+
+//     debug('CreateCtrlTopics is called');
+//     var IS_COMPLETED = false;
+//     await this.kafka_client.createTopics([
+//         { topic: 'send.governanceSystem', partitions: 1 , replicationFactor: 1},
+//         { topic: 'send.referenceModel', partitions: 1 , replicationFactor: 1},
+//         { topic: 'send.dictionary', partitions: 1 , replicationFactor: 1}
+//     ],
+//         function (err, data) {
+//             debug('[SETTING] Complete to create ctrl topics');
+//             IS_COMPLETED = true;
+//         }
+//     );
+//     while ((IS_COMPLETED == false)){deasync.runLoopOnce();}
+// };
 
 exports.RHDaemon.prototype.init = async function(){
     // todo: create kafka topic if doesn't exist
     self = this;
-    await this._createCtrlTopics()
+    await this.ctrlKafka._createCtrlTopics()
         .then(() => {
             debug('[SETTING] init');
             debug('complete to create topics')

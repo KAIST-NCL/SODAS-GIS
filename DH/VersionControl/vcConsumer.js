@@ -30,7 +30,7 @@ class vcConsumer extends Consumer{
         */
 
         // Comment below for Pooling
-        self.VC.editFile(event, filepath, message_.contents).then(() => {
+        self.VC.editFile(event, filepath, message_.content).then(() => {
             const commitMessage = message_.id;
             self.VC.commit(self.VC, filepath, commitMessage, message_);
         });
