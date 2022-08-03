@@ -44,16 +44,19 @@ class ctrlConsumer extends Consumer{
                 debug('아직 미구현 - STOP event');
                 break;
             case 'UPDATE':
+                // content 내용이 수정되어서 extras, interests 두개로 이뤄짐
+                // extras: [{'key': 'k1', 'value': 'v2'}, ... ]
+                // interests: ['d1', 'd1/t1', 'd2/t2/c2/c21']
                 debug(msg);
-                debug(msg.interest.interest_list); // need to be edited.
-                debug(msg.interest.reference_model);
-                this.daemon._dhSearchUpdateInterestTopic(msg.interest.interest_list);
-                this.daemon._smUpdateInterestTopic(msg.interest.interest_list);
-                // this.daemon._vcUpdateReferenceModel(msg.interest.reference_model);
+                debug(msg.extras);
+                debug(msg.interests);
+                this.daemon._dhSearchUpdateInsertTopic(msg.interests);
+                this.daemon._smUpdateInterestTopic(msg.interests);
                 debug('[Function Test / UPDATE Process] UPDATE event complete');
                 break;
             case 'SYNC_ON':
-                var sync_result = this.daemon._smSyncOn(msg.dh_list);
+                // contents - > datahubs로 바뀜
+                var sync_result = this.daemon._smSyncOn(msg.datahubs);
                 if (sync_result  === -1)
                     this.daemon._raiseError('UPDATE IS NOT YET COMPLETED');
                 break;
@@ -65,7 +68,6 @@ class ctrlConsumer extends Consumer{
         }
     };
 }
-
 
 exports.ctrlProducer = function(kafkaHost){
     this.client = new kafka.KafkaClient({kafkaHost: kafkaHost});

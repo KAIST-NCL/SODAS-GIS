@@ -9,7 +9,6 @@ class ctrlConsumer extends Consumer{
     constructor(kafkaHost, options, dhDaemon, conf){
         const topics = [ 
             { topic: 'send.governanceSystem', partitions: 1 , replicationFactor: 1},
-            { topic: 'send.referenceModel', partitions: 1 , replicationFactor: 1},
             { topic: 'send.dictionary', partitions: 1 , replicationFactor: 1}
         ];
         super(kafkaHost, topics, options);
@@ -31,9 +30,6 @@ class ctrlConsumer extends Consumer{
                 switch(topic_) {
                     case 'send.governanceSystem':
                         governanceSystemHandler(message_);
-                        break;
-                    case 'send.referenceModel':
-                        referenceModelHandler(message_);
                         break;
                     case 'send.dictionary':
                         dictionaryHandler(message_);
@@ -68,29 +64,6 @@ class ctrlConsumer extends Consumer{
                 break;
         }
     };
-
-    // Topic: send.referenceModel
-    referenceModelHandler = function(msg) {
-        // event Type: CREATE / UPDATE / DELETE
-        // Type: doamin / group / taxonomy / taxonomyVersion
-        const content = JSON.parse(msg.content);
-        const type = msg.type;
-        switch(msg.operation) {
-            case 'CREATE':
-                debug("referenceModel - CREATE");
-                break;
-            case 'UPDATE':
-                debug("referenceModel - UPDATE");
-                break;
-            case 'DELETE':
-                debug("referenceModel - DELETE");
-                if (type != domain) debug("group / taxonomy / taxonomyVersion do not support DELETE");
-                break;
-            default:
-                debug("Wrong type of operation");
-                break;
-        }
-    }
 
     // Topic: send.dictionary
     dictionaryHandler = function(msg) {

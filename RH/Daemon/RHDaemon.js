@@ -45,7 +45,7 @@ exports.RHDaemon = function(){
     this.ctrlKafka = new ctrlConsumer(this.kafka, this.kafka_options, this, this.conf);
 };
 
-// exports.RHDaemon.prototype._createCtrlTopics = async function(){
+// exports.RHDaemon.prototype._createCtrlTopics = async function() {
 
 //     debug('CreateCtrlTopics is called');
 //     var IS_COMPLETED = false;
