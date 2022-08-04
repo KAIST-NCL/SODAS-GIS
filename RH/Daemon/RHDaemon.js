@@ -48,7 +48,7 @@ exports.RHDaemon = function(){
 exports.RHDaemon.prototype.init = async function(){
     // todo: create kafka topic if doesn't exist
     self = this;
-    await this.ctrlKafka._createCtrlTopics()
+    await this.ctrlKafka._createCtrolTopics()
         .then(() => {
             debug('[SETTING] init');
             debug('complete to create topics')
