@@ -44,7 +44,8 @@ class ctrlConsumer extends Consumer{
                 debug('아직 미구현 - STOP event');
                 break;
             case 'UPDATE':
-                // content 내용이 수정되어서 extras, interests 두개로 이뤄짐
+                // content 내용이 수정되어서 name, extras, interests 세 개로 이뤄짐
+                // name: 'dh' -> 무슨 용도?
                 // extras: [{'key': 'k1', 'value': 'v2'}, ... ]
                 // interests: ['d1', 'd1/t1', 'd2/t2/c2/c21']
                 debug(msg);
@@ -98,7 +99,8 @@ exports.ctrlProducer.prototype.createCtrlTopics = async function(){
 };
 
 exports.ctrlProducer.prototype._produce = function(topic, msg){
-    const payloads = [{ topic, messages: msg , partition: 0}];
+    msg_ = JSON.stringify(msg);
+    const payloads = [{ topic, messages: msg_ , partition: 0}];
     this.producer.send(payloads, function(err, data){
         if(err) debug(err);
     });
