@@ -19,7 +19,7 @@ exports.rdf_parser.prototype._check_update = function(Ref) {
 
     // Reference Model을 파싱하여 폴더 트리를 생성하는 함수
 exports.rdf_parser.prototype._createReferenceDir = function(Ref) {
-    this.referenceModel.push(Ref);
+    this.ref.referenceModel.push(Ref);
     // Reference Model을 읽어드린 후 Pre-Process ==> <rdf:Description> 구역 단위로 파티션들을 만든다.
     var content = fs.readFileSync(Ref).toString();
     var partition = this._partition(content.split('\n'));

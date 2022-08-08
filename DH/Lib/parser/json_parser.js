@@ -7,7 +7,7 @@ exports.json_parser = function(ref) {
 
 exports.json_parser.prototype._createReferenceDir = function(Ref) {
     // ReferenceModel을 파싱해서 폴더 트리를 생성하는 함수
-    this.referenceModel.push(Ref);
+    this.ref.referenceModel.push(Ref);
     var content = fs.readFileSync(Ref).toString();
     // JSON이니까 parse
     var jc = JSON.parse(content);
@@ -28,10 +28,10 @@ exports.json_parser.prototype._createReferenceDir = function(Ref) {
 
     if (this._linked_list_correction_all(temp_dom, temp_tax, temp_cat)) return false;
     else {
-        this.dom_related_list.push(...temp_dom);
-        this.tax_related_list.push(...temp_tax);
-        this.cat_related_list.push(...temp_cat);
-        this._mkdir_from_list();
+        this.ref.dom_related_list.push(...temp_dom);
+        this.ref.tax_related_list.push(...temp_tax);
+        this.ref.cat_related_list.push(...temp_cat);
+        this.ref._mkdir_from_list();
     }
 }
 
@@ -139,43 +139,4 @@ exports.json_parser.prototype._linked_list_correction = function(LL,temp_dom,tem
     if (LL.next.some((element) => { return (typeof(element) === 'string'); })) noFault = false;
     if (LL.prev != null) noFault = noFault && LL._checkRelation();
     return noFault;
-}
-
-// linked list들로부터 파일 트리 정보가 담긴 array를 만든다.
-exports.json_parser.prototype._mkdirarray = function(LL) {
-    var temp_dir_list = [LL.id];
-    // prev가 null일 때까지 검색해 들어가면서 temp_dir_list에 [상위, .. , 하위] 순서로 id를 쌓는다.
-    if (LL.prev) temp_dir_list = this._mkdirarray(LL.prev).concat(temp_dir_list);
-    return temp_dir_list;
-}
-
-// dir_list를 갖고 root 폴더 아래에 폴더들을 만든다.
-exports.json_parser.prototype._mkdir_from_list = function() {
-    var dir_list = [];
-    // next가 없는 category만 갖고 우선 디렉토리를 뽑아낸다.
-    this.cat_related_list.forEach((element) => {
-        if (element.next.length == 0) {
-            dir_list.push(this._mkdirarray(element));
-        }
-    });
-    // next가 없는 taxonomy만 갖고 우선 디렉토리를 뽑아낸다.
-    this.tax_related_list.forEach((element) => {
-        if (element.next.length == 0) {
-            dir_list.push(this._mkdirarray(element));
-        }
-    });
-    // next가 없는 domain만 갖고 우선 디렉토리를 뽑아낸다.
-    this.dom_related_list.forEach((element) => {
-        if (element.next.length == 0) {
-            dir_list.push(this._mkdirarray(element));
-        }
-    });
-
-    dir_list.forEach((dirarray) => {
-        var folder_dir = this.root
-        dirarray.forEach((element) => {
-            folder_dir = folder_dir + '/' + element;
-            this._folder_create(folder_dir);
-        });
-    });
 }

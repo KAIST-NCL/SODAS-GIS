@@ -1,6 +1,6 @@
 // RDF 및 JSON parser
-const rdf_parser = require('./parser/rdf_parser');
-const json_parser = require('./parser/json_parser');
+const { rdf_parser } = require('./parser/rdf_parser');
+const { json_parser } = require('./parser/json_parser');
 const { linked_list } = require('./parser/linked_list');
 const path = require('path');
 const { forEach } = require('async');
@@ -10,6 +10,9 @@ const debug = require('debug')('sodas:lib:ref-parser');
 class ref_parser {
     // message.related 양식: [{operation': '', 'id': '', 'type': ''}, {...}]
     constructor(root, refRootdir) {
+        this.json_parser = new json_parser(this);
+        this.rdf_parser = new rdf_parser(this);
+
         this.root = root; // gitDB의 root 디렉토리
         this.refRootdir = refRootdir + '/gitDB';
 
@@ -28,15 +31,15 @@ class ref_parser {
             // console.log("list");
             ReferenceModel.forEach((element) => {
                 debug(this.refRootdir + '/' + element);
-                if(path.extname(element) == '.json') json_parser._createReferenceDir(this.refRootdir + '/' + element, self);
-                else if (path.extname(element) == '.rdf') rdf_parser._createReferenceDir(this.refRootdir + '/' + element, self);
+                if(path.extname(element) == '.json') this.json_parser._createReferenceDir(this.refRootdir + '/' + element, self);
+                else if (path.extname(element) == '.rdf') this.rdf_parser._createReferenceDir(this.refRootdir + '/' + element, self);
             });
         }
         // String이 입력되면 추가
         else if (typeof ReferenceModel === 'string') {
             // console.log(this.refRootdir + '/' + ReferenceModel);
-            if(path.extname(ReferenceModel) == '.json') json_parser._createReferenceDir(this.refRootdir + '/' + ReferenceModel, self);
-            else if (path.extname(ReferenceModel) == '.rdf') rdf_parser._createReferenceDir(this.refRootdir + '/' + ReferenceModel, self);
+            if(path.extname(ReferenceModel) == '.json') this.json_parser._createReferenceDir(this.refRootdir + '/' + ReferenceModel, self);
+            else if (path.extname(ReferenceModel) == '.rdf') this.rdf_parser._createReferenceDir(this.refRootdir + '/' + ReferenceModel, self);
         }
         else {
             // console.log("Error on Input Type");
@@ -122,3 +125,5 @@ class ref_parser {
         });
     }
 }
+
+exports.ref_parser = ref_parser;
