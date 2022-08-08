@@ -1,6 +1,7 @@
 const { forEach } = require('async');
 const fs = require('fs');
 const debug = require('debug')('sodas:lib:ref-parser');
+const { linked_list } = require('./linked_list');
 
 exports.rdf_parser = function(ref) {
     this.ref = ref;

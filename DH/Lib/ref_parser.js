@@ -1,6 +1,7 @@
 // RDF 및 JSON parser
 const rdf_parser = require('./parser/rdf_parser');
 const json_parser = require('./parser/json_parser');
+const { linked_list } = require('./parser/linked_list');
 const path = require('path');
 const { forEach } = require('async');
 const fs = require('fs');

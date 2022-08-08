@@ -1,4 +1,5 @@
 const { forEach } = require('async');
+const { linked_list } = require('./linked_list');
 
 exports.json_parser = function(ref) {
     this.ref = ref;
