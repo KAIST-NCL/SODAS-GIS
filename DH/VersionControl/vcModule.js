@@ -14,14 +14,14 @@ exports.vcModule = function(){
     debug("[LOG] workerData ");
     debug(workerData);
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    const gitDir = workerData.pubvc_root;
+    const gitDir = workerData.pubvcRoot;
     const kafkaHost = workerData.kafka; // update
-    const options = workerData.kafka_options; // update
+    const options = workerData.kafkaOptions; // update
 
-    this.smPort = workerData.sm_port;
-    this.vc = new publishVC(gitDir, workerData.rmsync_root_dir);
+    this.smPort = workerData.smPort;
+    this.vc = new publishVC(gitDir, workerData.rmsyncRootDir);
     this.consumer = new vcConsumer(kafkaHost, options, this);
-    this.flag = workerData.mutex_flag; // mutex flag
+    this.flag = workerData.mutexFlag; // mutex flag
 
     /* Uncomment for Pooling
     this.last_commit_time = new Date().getTime();
@@ -49,9 +49,9 @@ exports.vcModule.prototype.init = async function(){
     var self = this;
     this.unlockMutex(self);
     await this.vc.init()
-        .then((commit_number) => {
-            debug("[LOG] initiation done: commit_number:  ", commit_number);
-            if (typeof commit_number !== 'undefined') {
+        .then((commitNumber) => {
+            debug("[LOG] initiation done: commit_number:  ", commitNumber);
+            if (typeof commitNumber !== 'undefined') {
                 // fs.writeFileSync(self.)
                 }
         })

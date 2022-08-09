@@ -14,15 +14,15 @@ exports.SessionListener = function () {
     self = this;
     parentPort.on('message', function(message) {self._smListener(message)});
 
-    this.my_session_desc = {};
-    this.my_end_point = {};
-    this.other_session_desc = {};
-    this.other_end_point = {};
-    this.session_result = {};
+    this.mySessionDesc = {};
+    this.myEndPoint = {};
+    this.otherSessionDesc = {};
+    this.otherEndPoint = {};
+    this.sessionResult = {};
 
-    this.my_session_desc.session_creator = workerData.dh_id;
-    this.sl_addr = workerData.sl_addr;
-    this.sn_options = workerData.sn_options;
+    this.mySessionDesc.sessionCreator = workerData.dhId;
+    this.slAddr = workerData.slAddr;
+    this.snOptions = workerData.snOptions;
 
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH,{
@@ -40,9 +40,9 @@ exports.SessionListener = function () {
 }
 exports.SessionListener.prototype.run = function () {
     this.sessionListenerServer = this._setListenerServer();
-    this.sessionListenerServer.bindAsync(this.sl_addr,
+    this.sessionListenerServer.bindAsync(this.slAddr,
         grpc.ServerCredentials.createInsecure(), () => {
-            debug('[LOG] Session Listener gRPC Server running at ' + this.sl_addr)
+            debug('[LOG] Session Listener gRPC Server running at ' + this.slAddr)
             this.sessionListenerServer.start();
         });
 }
@@ -56,17 +56,17 @@ exports.SessionListener.prototype._smListener = function (message) {
             break;
         case 'GET_NEW_SESSION_INFO':
             debug('[RX: GET_NEW_SESSION_INFO] from SessionManager');
-            this.my_session_desc.session_id = message.data.sess_id;
-            this.my_end_point.ip = message.data.sess_ip;
-            this.my_end_point.port = message.data.sess_portNum;
+            this.mySessionDesc.sessionId = message.data.sessId;
+            this.myEndPoint.ip = message.data.sessIp;
+            this.myEndPoint.port = message.data.sessPortNum;
             break;
         case 'UPDATE_INTEREST_LIST':
             debug('[RX: UPDATE_INTEREST_LIST] from SessionManager');
-            this.sn_options.datamap_desc.sync_interest_list = message.data.sync_interest_list;
+            this.snOptions.datamapDesc.syncInterestList = message.data.syncInterestList;
             break;
         case 'UPDATE_NEGOTIATION_OPTIONS':
             debug('[RX: UPDATE_NEGOTIATION_OPTIONS] from SessionManager');
-            this.sn_options = message.data
+            this.snOptions = message.data
             break;
     }
 }
@@ -76,7 +76,7 @@ exports.SessionListener.prototype._smTransmitNegotiationResult = function (end_p
     debug('[TX: TRANSMIT_NEGOTIATION_RESULT] to SessionManager');
     parentPort.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
-        data: { end_point: end_point, session_desc: session_desc, sn_result: sn_result }
+        data: { endPoint: end_point, sessionDesc: session_desc, snResult: sn_result }
     });
 }
 
@@ -86,30 +86,30 @@ exports.SessionListener.prototype._requestSN = function (call, callback) {
     let result = call.request;
     debug(result);
     // todo: check_negotiation_options 이후, sn_options 정해야됨
-    let sn_result = policy.checkNegotiationOptions(sessionListener.sn_options, result.sn_options);
+    let snResult = policy.checkNegotiationOptions(sessionListener.snOptions, result.snOptions);
     debug('[LOG] Session Negotiation Result');
-    debug(sn_result);
-    if (sn_result.status) {
+    debug(snResult);
+    if (snResult.status) {
         // todo: session 협상 결과 negotiation_result 값 반환해야함
-        sessionListener.session_result = sn_result.result;
+        sessionListener.sessionResult = snResult.result;
         callback(null, {
             status: true,
-            end_point: sessionListener.my_end_point,
-            session_desc: sessionListener.my_session_desc,
-            sn_options: sessionListener.session_result
+            endPoint: sessionListener.myEndPoint,
+            sessionDesc: sessionListener.mySessionDesc,
+            snOptions: sessionListener.sessionResult
         });
-        sessionListener.other_session_desc = result.session_desc;
+        sessionListener.otherSessionDesc = result.sessionDesc;
     }
 };
 exports.SessionListener.prototype._ackSN = function (call, callback) {
     let result = call.request;
     debug("[gRPC Call] CheckNegotiation");
     debug(result);
-    sessionListener.other_end_point = result.end_point;
+    sessionListener.otherEndPoint = result.endPoint;
 
-    sessionListener._smTransmitNegotiationResult(sessionListener.other_end_point, sessionListener.other_session_desc, sessionListener.session_result);
-    sessionListener.my_session_desc.session_id = null;
-    debug(sessionListener.my_session_desc.session_id)
+    sessionListener._smTransmitNegotiationResult(sessionListener.otherEndPoint, sessionListener.otherSessionDesc, sessionListener.sessionResult);
+    sessionListener.mySessionDesc.sessionId = null;
+    debug(sessionListener.mySessionDesc.sessionId)
 };
 /* SessionListener methods */
 exports.SessionListener.prototype._setListenerServer = function () {

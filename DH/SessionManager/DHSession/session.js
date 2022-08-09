@@ -26,17 +26,17 @@ const tools = require('../../Lib/tools');
 exports.Session = function() {
     debug("[LOG] Session Created");
     debug(workerData);
-    this.count_msg = 0;
+    this.countMsg = 0;
 
-    this.pubvc_root = workerData.pubvc_root;
+    this.pubvcRoot = workerData.pubvcRoot;
     // Root Dir Creation
-    this.id = workerData.my_session_id;
-    this.rootDir = workerData.subvc_root+'/'+this.id;
+    this.id = workerData.mySessionId;
+    this.rootDir = workerData.subvcRoot+'/'+this.id;
     !fs.existsSync(this.rootDir) && tools.mkdirSyncRecursive(this.rootDir);
 
     // Settings for storing thread call information
-    this.msg_storepath = this.rootDir+'/msgStore.json'
-    this.last_commit_time = new Date().getTime();
+    this.msgStorepath = this.rootDir+'/msgStore.json'
+    this.lastCommitTime = new Date().getTime();
     this.timeOut = 5;
 
     // Settings for GitDB
@@ -44,14 +44,14 @@ exports.Session = function() {
     this.VC.init();
     
     // Mutex_Flag for Git
-    this.flag = workerData.mutex_flag; // mutex flag
+    this.flag = workerData.mutexFlag; // mutex flag
 
     // FirstCommit Extraction from PubVC
-    this._reset_count(this.VC.returnFirstCommit(this.VC, this.pubvc_root));
+    this._reset_count(this.VC.returnFirstCommit(this.VC, this.pubvcRoot));
 
     // Run gRPC Server
-    this.ip = workerData.my_ip;
-    this.my_port = workerData.my_portNum;
+    this.ip = workerData.myIp;
+    this.myPort = workerData.myPortNum;
     this.server = new grpc.Server();
     var self = this;
     this.server.addService(session_sync.SessionSync.service, {
@@ -73,12 +73,12 @@ exports.Session = function() {
             // Information about counter session
             case 'TRANSMIT_NEGOTIATION_RESULT':
                 // Get the counter session's address + port
-                this.target = message.data.end_point.ip + ':' + message.data.end_point.port;
+                this.target = message.data.endPoint.ip + ':' + message.data.endPoint.port;
                 debug('[LOG] Target:' + this.target);
                 // gRPC client creation
                 this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
-                this.session_desc = message.data.session_desc;
-                this.sn_options = message.data.sn_options; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
+                this.sessionDesc = message.data.sessionDesc;
+                this.snOptions = message.data.snOptions; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
                 this.run(this);
                 break;
             // Things to publsih
@@ -92,7 +92,7 @@ exports.Session = function() {
 
 /// Initiate Session
 exports.Session.prototype._init = function(self) {
-    const addr = self.ip+':'+self.my_port;
+    const addr = self.ip+':'+self.myPort;
     self.server.bindAsync(addr, grpc.ServerCredentials.createInsecure(), ()=> {
         self.server.start();
     });
@@ -106,9 +106,9 @@ exports.Session.prototype.prePublish = function(self, message) {
     // ToDo: Rather than calling this function whenever receiving the thread call from SM, call this function just like the vcModule calls commit function
     var content = self.__read_dict();
     content.stored = content.stored + 1;
-    content.commit_number.push(message.commit_number);
+    content.commitNumber.push(message.commitNumber);
     self.__save_dict(content);
-    if (self.count_msg >= self.sn_options.sync_desc.sync_count[0]) {
+    if (self.countMsg >= self.snOptions.syncDesc.syncCount[0]) {
         debug("[LOG] Sync_count reached - clearTimeOout");
         clearTimeout(self.setTimeoutID);
         self.run(self);
@@ -121,7 +121,7 @@ exports.Session.prototype.onMaxCount = async function(self) {
     debug("[LOG] onMaxCount");
     // Read file first and reset the file
     const topublish = self.__read_dict();
-    self._reset_count(topublish.commit_number[topublish.commit_number.length - 1]);
+    self._reset_count(topublish.commitNumber[topublish.commitNumber.length - 1]);
     // git diff extraction
     git_diff = await self.extractGitDiff(topublish)
     // Send gRPC message 
@@ -141,10 +141,10 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
         // mutex on
         this.flag[0] = 1;
         var diff_directories = ' --';
-        for (var i = 0; i < this.sn_options.datamap_desc.sync_interest_list.length; i++) {
-            diff_directories = diff_directories + ' ' + this.sn_options.datamap_desc.sync_interest_list[i];
+        for (var i = 0; i < this.sn_options.datamapDesc.syncInterestList.length; i++) {
+            diff_directories = diff_directories + ' ' + this.sn_options.datamapDesc.syncInterestList[i];
         }
-        var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1] + diff_directories);
+        var git_diff = execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1] + diff_directories);
         this.flag[0] = 0;
         // mutex off
         return git_diff;
@@ -159,8 +159,8 @@ exports.Session.prototype._reset_count = function(last_commit) {
     // 파일 초기화
     const content = {
         stored: 0,
-        commit_number: [],
-        previous_last_commit: lc
+        commitNumber: [],
+        previousLastCommit: lc
     }
     this.__save_dict(content);
 }
@@ -174,7 +174,7 @@ exports.Session.prototype.Publish = function(git_patch) {
     // Make the message body to send
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
                   'git_patch': git_patch,
-                  'receiver_id': this.session_desc.session_id};
+                  'receiver_id': this.sessionDesc.sessionId};
 
     // gRPC transmittion
     this.grpc_client.SessionComm(toSend, function(err, response) {
@@ -265,7 +265,7 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     producer.on('ready', function() {
         for (var i=0; i < payload_list.length; i++) {
             var payloads = [
-                { topic: 'recv.asset', messages:JSON.stringify(payload_list[i])}
+                { topic: 'recv.asset', messages:payload_list[i]}
             ];
             producer.send(payloads, function(err, result) {
                 debug('[LOG]', result);
@@ -288,8 +288,8 @@ exports.Session.prototype.__read_dict = function() {
 
 exports.Session.prototype.run = function(self) {
     now = new Date().getTime();
-    var condition_time = self.count_msg >= 1 && now - self.last_commit_time >= self.sn_options.sync_desc.sync_time[0];
-    var condition_count = (self.count_msg >= self.sn_options.sync_desc.sync_count[0]);
+    var condition_time = self.countMsg >= 1 && now - self.lastCommitTime >= self.snOptions.syncDesc.syncTime[0];
+    var condition_count = (self.countMsg >= self.snOptions.syncDesc.syncCount[0]);
     if (condition_time || condition_count) {
         // Sync_time 초과 시 강제 진행
         self.onMaxCount(self);
