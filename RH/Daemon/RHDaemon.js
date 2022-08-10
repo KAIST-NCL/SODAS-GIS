@@ -17,15 +17,15 @@ exports.RHDaemon = function(){
     this.conf = new ConfigParser();
     this.conf.read('../setting.cfg');
     this.name = this.conf.get('Daemon', 'name');
-    this.rh_network = this.conf.get('Daemon', 'networkInterface');
-    this.bs_ip = this.conf.get('BootstrapServer', 'ip');
-    this.bs_portNum = this.conf.get('BootstrapServer', 'portNum');
-    this.sm_ip = this.conf.get('RMSessionManager', 'ip');
-    this.sm_portNum = this.conf.get('RMSessionManager', 'portNum');
+    this.rhNetwork = this.conf.get('Daemon', 'networkInterface');
+    this.bsIp = this.conf.get('BootstrapServer', 'ip');
+    this.bsPortNum = this.conf.get('BootstrapServer', 'portNum');
+    this.smIp = this.conf.get('RMSessionManager', 'ip');
+    this.smPortNum = this.conf.get('RMSessionManager', 'portNum');
     this.kafka = this.conf.get('Kafka', 'ip');
-    this.kafka_options = this.conf.get('Kafka', 'options');
-    this.pubvc_root = __dirname + this.conf.get('VersionControl', 'pubvc_root');
-    this.kafka_client = new kafka.KafkaClient({kafkaHost: this.kafka});
+    this.kafkaOptions = this.conf.get('Kafka', 'options');
+    this.pubvcRoot = __dirname + this.conf.get('VersionControl', 'pubvc_root');
+    this.kafkaClient = new kafka.KafkaClient({kafkaHost: this.kafka});
 
     // get ip from local
     for (const name of Object.keys(nets)) {
@@ -42,7 +42,7 @@ exports.RHDaemon = function(){
     this.bs_ip = ips[this.rh_network][0];
     this.sm_ip = ips[this.rh_network][0];
 
-    this.ctrlKafka = new ctrlConsumer(this.kafka, this.kafka_options, this, this.conf);
+    this.ctrlKafka = new ctrlConsumer(this.kafka, this.kafkaOptions, this, this.conf);
 };
 
 exports.RHDaemon.prototype.init = async function(){
@@ -67,9 +67,9 @@ exports.RHDaemon.prototype.run = function(){
     self = this;
 
     // setEnvironmentData
-    const bsParam = {'bs_ip': this.bs_ip, 'bs_portNum': this.bs_portNum};
-    const smParam = {'vc_port': msgChn.port1, 'sm_ip': this.sm_ip, 'sm_portNum': this.sm_portNum, 'pubvc_root': this.pubvc_root, 'mutex_flag': mutex_flag};
-    const vcParam = {'sm_port': msgChn.port2, 'kafka': this.kafka, 'kafka_options':this.kafka_options, 'pubvc_root': this.pubvc_root, 'mutex_flag': mutex_flag};
+    const bsParam = {'bsIp': this.bs_ip, 'bsPortNum': this.bs_portNum};
+    const smParam = {'vcPort': msgChn.port1, 'smIp': this.smIp, 'smPortNum': this.smPortNum, 'pubvcRoot': this.pubvcRoot, 'mutexFlag': mutexFlag};
+    const vcParam = {'smPort': msgChn.port2, 'kafka': this.kafka, 'kafkaOptions':this.kafkaOptions, 'pubvcRoot': this.pubvcRoot, 'mutexFlag': mutexFlag};
 
     // run daemonServer
     this.bootstrapServer = new Worker('../BootstrapServer/bootstrapServer.js', { workerData: bsParam });

@@ -16,18 +16,18 @@ exports.RMSessionManager = function () {
     this.VC = workerData.vc_port;
     this.VC.on('message', this._vcListener);
 
-    this.rm_sm_addr = workerData.sm_ip + ':' + workerData.sm_portNum;
-    this.pubvc_root = workerData.pubvc_root;
-    this.mutex_flag = workerData.mutex_flag;
+    this.rmSmAddr = workerData.smIp + ':' + workerData.smPortNum;
+    this.pubvcRoot = workerData.pubvcRoot;
+    this.mutexFlag = workerData.mutexFlag;
 
-    this.pVC= new publishVC(this.pubvc_root);
-    this.msg_storepath = this.pubvc_root+'/../msgStore.json'
+    this.pVC= new publishVC(this.pubvcRoot);
+    this.msgStorepath = this.pubvcRoot+'/../msgStore.json'
     const sharedArrayBuffer = new SharedArrayBuffer(Int8Array.BYTES_PER_ELEMENT);
     this.errorSession = new Int8Array(sharedArrayBuffer);
     this.errorSession[0] = 0;
 
-    this.delayed_commit_numbers = "";
-    this.pool_timer = null;
+    this.delayedCommitNumbers = "";
+    this.poolTimer = null;
 
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH, {
@@ -40,7 +40,7 @@ exports.RMSessionManager = function () {
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.rmSessionproto = this.protoDescriptor.RMSession.RMSessionBroker;
     this.rmSessionDict = {};
-    this.rmSession_list_to_daemon = [];
+    this.rmSessionListToDaemon = [];
     debug('RMSessionManager thread is running')
 };
 
@@ -54,18 +54,18 @@ exports.RMSessionManager.prototype._vcListener = function (message){
             // 에러가 난 세션이 있을 경우엔 Queue에 추가한다
             if (this.errorSession[0] > 0) {
                 // 주기적으로 에러 세션 전부 고쳐졌나 점검하는 함수
-                if(this.delayed_commit_numbers == "") this.delayed_updateHandler();
+                if(this.delayedCommitNumbers == "") this.delayed_updateHandler();
 
                 // 마지막 Commit만 기억한다.
-                this.delayed_commit_numbers = message.data.commit_number;
+                this.delayedCommitNumbers = message.data.commitNumber;
             }
             else {
                 if(this.pool_timer != null) {
-                    clearTimeout(this.pool_timer);
-                    this.pool_timer = null;
-                    this.delayed_commit_numbers = "";
+                    clearTimeout(this.poolTimer);
+                    this.poolTimer = null;
+                    this.delayedCommitNumbers = "";
                 }
-                this.updateHandler(message.data.commit_number);
+                this.updateHandler(message.data.commitNumber);
             }
             break;
     }
@@ -76,7 +76,7 @@ exports.RMSessionManager.prototype._rmSessionUpdateReferenceModel = function (rm
         event: "UPDATE_REFERENCE_MODEL",
         data: { 
             patch: git_patch,
-            commit_numbers: git_patch.commit_numbers
+            commit_numbers: git_patch.commitNumbers
         }
     });
 }
@@ -87,7 +87,7 @@ exports.RMSessionManager.prototype._requestRMSession = function (call, callback)
     debug("Request RMSession Connection from DH-RMSync");
     debug(dhNode);
     rmSessionManager._createNewRMSession(dhNode);
-    callback(null, {result: 'OK', rm_session_id: rmSessionManager.rmSession_list_to_daemon[0].session_id})
+    callback(null, {result: 'OK', rm_session_id: rmSessionManager.rmSessionListToDaemon[0].sessionId})
 };
 
 exports.RMSessionManager.prototype._setRMSessionManager = function () {
@@ -110,13 +110,13 @@ exports.RMSessionManager.prototype.run = function () {
 exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     dhNode['session_id'] = crypto.randomBytes(20).toString('hex')
     var rmSessParam = {
-        session_id: dhNode.session_id,
-        dh_id: dhNode.dh_id,
-        dh_ip: dhNode.dh_ip,
-        dh_port: dhNode.dh_port,
-        pubvc_root: this.pubvc_root,
-        mutex_flag: this.mutex_flag,
-        error_flag: this.errorSession
+        sessionId: dhNode.sessionId,
+        dhId: dhNode.dhId,
+        dhIp: dhNode.dhIp,
+        dhPort: dhNode.dhPort,
+        pubvcRoot: this.pubvcRoot,
+        mutexFlag: this.mutexFlag,
+        errorFlag: this.errorSession
     };
     debug('Create New RMSession');
     debug(rmSessParam);
@@ -131,7 +131,7 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
             event: "INIT",
             data: {
                 patch: git_patch.patch,
-                commit_numbers: git_patch.commit_numbers
+                commitNumbers: git_patch.commitNumbers
             }
         });
     });
@@ -145,7 +145,7 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
     if(!fs.existsSync(rmSessionManager.msg_storepath)) rmSessionManager._save_last_commit(rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvc_root));
     var content = rmSessionManager.__read_dict();
     debug("First Commit: " + first_commit);
-    debug("Previous LC: " + content.previous_last_commit);
+    debug("Previous LC: " + content.previousLastCommit);
 
     if (first_commit == content.previous_last_commit) {
         // first add all the things in the folder and commit them
@@ -162,7 +162,7 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
     }
     // DH2 이후인 경우
     else {
-        var git_patch = await rmSessionManager.extractInitPatch(content.previous_last_commit, first_commit);
+        var git_patch = await rmSessionManager.extractInitPatch(content.previousLastCommit, first_commit);
         return git_patch;
     }
 }
@@ -186,18 +186,18 @@ exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit,
 }
 
 exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
-    if (this.mutex_flag[0] == 1) {
+    if (this.mutexFlag[0] == 1) {
         const timeOut = 100;
         setTimeout(this.extractGitDiff.bind(this), timeOut, topublish);
     }
     else {
-        this.mutex_flag[0] = 1;
-        var git_diff = execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + topublish.previous_last_commit + ' ' + topublish.commit_number[topublish.stored - 1]);
-        this.mutex_flag[0] = 0;
+        this.mutexFlag[0] = 1;
+        var git_diff = execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1]);
+        this.mutexFlag[0] = 0;
         debug(git_diff);
         var toreturn = {
             patch: git_diff.toString(),
-            commit_numbers: [topublish.previous_last_commit, topublish.commit_number[topublish.stored - 1]]
+            commit_numbers: [topublish.previousLastCommit, topublish.commitNumber[topublish.stored - 1]]
         }
         return toreturn;
     }
@@ -211,7 +211,7 @@ exports.RMSessionManager.prototype.updateHandler = function(commit_number) {
     this.__save_dict(content);
 
     const topublish = this.__read_dict();
-    this._save_last_commit(topublish.commit_number[topublish.commit_number.length - 1]);
+    this._save_last_commit(topublish.commitNumber[topublish.commitNumber.length - 1]);
     const git_patch = rmSessionManager.extractGitDiff(topublish);
 
     // GIT PATCH BROADCAST
@@ -226,27 +226,27 @@ exports.RMSessionManager.prototype.delayed_updateHandler = function() {
     }
     else {
         rmSessionManager.pool_timer = null;
-        rmSessionManager.updateHandler(delayed_commit_numbers);
-        rmSessionManager.delayed_commit_numbers = "";
+        rmSessionManager.updateHandler(delayedCommitNumbers);
+        rmSessionManager.delayedCommitNumbers = "";
     }
 }
 
 // 3
 exports.RMSessionManager.prototype.__save_dict = function(content) {
     const contentJSON = JSON.stringify(content);
-    fs.writeFileSync(this.msg_storepath, contentJSON);
+    fs.writeFileSync(this.msgStorepath, contentJSON);
 }
 
 exports.RMSessionManager.prototype.__read_dict = function() {
-    return JSON.parse(fs.readFileSync(this.msg_storepath.toString()));
+    return JSON.parse(fs.readFileSync(this.msgStorepath.toString()));
 }
 
 exports.RMSessionManager.prototype._save_last_commit = function(last_commit) {
     var lc = (typeof last_commit  === 'undefined') ? "" : last_commit;
     const content = {
         stored: 0,
-        commit_number: [],
-        previous_last_commit: lc
+        commitNumber: [],
+        previousLastCommit: lc
     }
     this.__save_dict(content);
 }
