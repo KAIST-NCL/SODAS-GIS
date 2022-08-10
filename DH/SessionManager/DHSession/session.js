@@ -141,8 +141,8 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
         // mutex on
         this.flag[0] = 1;
         var diff_directories = ' --';
-        for (var i = 0; i < this.sn_options.datamapDesc.syncInterestList.length; i++) {
-            diff_directories = diff_directories + ' ' + this.sn_options.datamapDesc.syncInterestList[i];
+        for (var i = 0; i < this.snOptions.datamapDesc.syncInterestList.length; i++) {
+            diff_directories = diff_directories + ' ' + this.snOptions.datamapDesc.syncInterestList[i];
         }
         var git_diff = execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1] + diff_directories);
         this.flag[0] = 0;
@@ -154,7 +154,7 @@ exports.Session.prototype.extractGitDiff = async function(topublish) {
 /// Reset count after publish
 // last_commit: string. commit # of last git commit
 exports.Session.prototype._reset_count = function(last_commit) {
-    this.count_msg = 0;
+    this.countMsg = 0;
     var lc = (typeof last_commit  === 'undefined') ? "" : last_commit;
     // 파일 초기화
     const content = {
@@ -278,11 +278,11 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
 // Data Storing
 exports.Session.prototype.__save_dict = function(content) {
     const contentJSON = JSON.stringify(content);
-    fs.writeFileSync(this.msg_storepath, contentJSON);
+    fs.writeFileSync(this.msgStorepath, contentJSON);
 }
 
 exports.Session.prototype.__read_dict = function() {
-    return JSON.parse(fs.readFileSync(this.msg_storepath.toString()));
+    return JSON.parse(fs.readFileSync(this.msgStorepath.toString()));
 }
 
 
