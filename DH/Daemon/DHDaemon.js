@@ -92,7 +92,7 @@ exports.DHDaemon.prototype.run = function(){
     msgChn = new MessageChannel();
     // vc git flag
     const sharedArrayBuffer = new SharedArrayBuffer(Int8Array.BYTES_PER_ELEMENT);
-    const mutex_flag = new Int8Array(sharedArrayBuffer);
+    const mutexFlag = new Int8Array(sharedArrayBuffer);
     self = this;
 
     // setEnvironmentData

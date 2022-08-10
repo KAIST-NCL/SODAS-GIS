@@ -13,7 +13,7 @@ exports.SessionManager = function() {
     self = this;
     parentPort.on('message', function(message) {self._dhDaemonListener(message)});
 
-    this.VC = workerData.vc_port;
+    this.VC = workerData.vcPort;
     this.VC.on('message', this._vcListener);
 
     this.dhId = workerData.dhId;
