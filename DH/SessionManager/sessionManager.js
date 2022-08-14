@@ -33,8 +33,8 @@ exports.SessionManager = function() {
 };
 exports.SessionManager.prototype.run = function (){
 
-    const srParam = {'sn_options': this.snOptions, 'dh_id': this.dhId}
-    const slParam = {'sn_options': this.snOptions, 'dh_id': this.dhId, 'sl_addr': this.slAddr}
+    const srParam = {'snOptions': this.snOptions, 'dhId': this.dhId}
+    const slParam = {'snOptions': this.snOptions, 'dhId': this.dhId, 'slAddr': this.slAddr}
 
     this.sessionRequester = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js', {workerData: srParam});
     this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js', {workerData: slParam});
