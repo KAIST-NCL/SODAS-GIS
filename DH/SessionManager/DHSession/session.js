@@ -83,7 +83,7 @@ exports.Session = function() {
                 break;
             // Things to publsih
             case 'UPDATE_PUB_ASSET':
-                this.count_msg += 1;
+                this.countMsg += 1;
                 this.prePublish(this, message.data);
                 break;
         }
@@ -282,7 +282,7 @@ exports.Session.prototype.__save_dict = function(content) {
 }
 
 exports.Session.prototype.__read_dict = function() {
-    return JSON.parse(fs.readFileSync(this.msgStorepath.toString()));
+    return JSON.parse(fs.readFileSync(this.msgStorepath).toString());
 }
 
 

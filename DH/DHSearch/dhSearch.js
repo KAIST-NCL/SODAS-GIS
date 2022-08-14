@@ -13,7 +13,7 @@ exports.DHSearch = function(){
     self = this;
     parentPort.on('message', function(message) {self._dhDaemonListener(message)});
 
-    this.ip = workerData.dm_ip;
+    this.ip = workerData.dmIp;
     this.dsPortNum = workerData.dsPortNum;
     this.slPortNum = workerData.slPortNum;
     this.bootstrapServerIp = workerData.bootstrapIp + ':' + workerData.bootstrapPortNum;
