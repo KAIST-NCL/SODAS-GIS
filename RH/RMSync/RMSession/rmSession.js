@@ -24,18 +24,18 @@ exports.Session = function() {
     debug(workerData);
 
     // Workerdata 파싱
-    this.id = workerData.session_id;
-    this.target = workerData.dh_ip + ':' + workerData.dh_port;
-    this.dh_id=workerData.dh_id;
+    this.id = workerData.sessionId;
+    this.target = workerData.dhIp + ':' + workerData.dhPort;
+    this.dhId=workerData.dhId;
     debug('[LOG] Target:' + this.target);
-    this.pubRM_dir = workerData.pubvc_root;
-    this.VC = new publishVC(this.pubRM_dir);
+    this.pubRMDir = workerData.pubvcRoot;
+    this.VC = new publishVC(this.pubRMDir);
     // Mutex_Flag for Git
-    this.flag = workerData.mutex_flag;
-    this.errorflag = workerData.error_flag;
+    this.flag = workerData.mutexFlag;
+    this.errorflag = workerData.errorFlag;
 
     // Last Commit History
-    this.last_commit_number = "";
+    this.lastCommitNumber = "";
 
     /// Thread Calls from Parent
     parentPort.on('message', message => {
@@ -47,7 +47,7 @@ exports.Session = function() {
                 // gRPC client creation
                 this.grpc_client = new session_sync.RMSessionSync(this.target, grpc.credentials.createInsecure());
                 // get the first_commit
-                this.last_commit_number = this.VC.returnFirstCommit(this.VC, this.pubRM_dir);
+                this.lastCommitNumber = this.VC.returnFirstCommit(this.VC, this.pubRMDir);
                 // Init patch
                 this.publish(message.data);
                 break;
@@ -66,12 +66,12 @@ exports.Session = function() {
 // git_patch: string. Git diff Extraction result
 exports.Session.prototype.publish = function(git_patch) {
     // first check verification
-    if (this.last_commit_number == git_patch.commit_numbers[0]) {  
+    if (this.lastCommitNumber == git_patch.commitNumbers[0]) {  
         debug("[LOG] Publish");
         // Make the message body to send
         var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
                     'git_patch': git_patch.patch,
-                    'receiver_id': this.dh_id};
+                    'receiver_id': this.dhId};
 
         // gRPC transmittion
         this.grpc_client.SessionComm(toSend, function(err, response) {
@@ -83,16 +83,16 @@ exports.Session.prototype.publish = function(git_patch) {
                 debug("[ERROR] Error on Publish Communication");
             }
         });
-        this.last_commit_number = git_patch.commit_numbers[1];
+        this.lastCommitNumber = git_patch.commitNumbers[1];
     }
     else {
         // Report Error
         this.errorflag[0] = this.errorflag[0] + 1;
         // Start ErrorHandling
-        this.extractGitDiff(this.last_commit_number, git_patch.commit_numbers[1]).then((git_patch) => {
+        this.extractGitDiff(this.lastCommitNumber, git_patch.commitNumbers[1]).then((git_patch) => {
             var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
                     'git_patch': git_patch.patch,
-                    'receiver_id': this.dh_id};
+                    'receiver_id': this.dhId};
             // gRPC transmittion
             this.grpc_client.SessionComm(toSend, function(err, response) {
                 if (err) throw err;
@@ -103,7 +103,7 @@ exports.Session.prototype.publish = function(git_patch) {
                     debug("[ERROR] Error on Publish Communication");
                 }
             });
-            this.last_commit_number = git_patch.commit_numbers[1];
+            this.lastCommitNumber = git_patch.commitNumbers[1];
             this.errorflag[0] = this.errorflag - 1;
         });
     }
@@ -111,14 +111,14 @@ exports.Session.prototype.publish = function(git_patch) {
 
 // Extract Git Diff
 exports.Session.prototype.extractGitDiff= async function(first_commit, last_commit){
-    if (this.mutex_flag[0] == 1) {
+    if (this.flag[0] == 1) {
         const timeOut = 100;
         setTimeout(this.extractGitDiff.bind(this), timeOut, first_commit, last_commit);
     }
     else {
-        this.mutex_flag[0] = 1;
-        var patch= execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
-        this.mutex_flag[0] = 0;
+        this.flag[0] = 1;
+        var patch= execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
+        this.flag[0] = 0;
         var toreturn = {
             patch: patch.toString(),
             commit_numbers: [first_commit, last_commit]
@@ -130,11 +130,11 @@ exports.Session.prototype.extractGitDiff= async function(first_commit, last_comm
 // Data Storing
 exports.Session.prototype.__save_dict = function(content) {
     const contentJSON = JSON.stringify(content);
-    fs.writeFileSync(this.msg_storepath, contentJSON);
+    fs.writeFileSync(this.msgStorepath, contentJSON);
 }
 
 exports.Session.prototype.__read_dict = function() {
-    return JSON.parse(fs.readFileSync(this.msg_storepath.toString()));
+    return JSON.parse(fs.readFileSync(this.msgStorepath).toString());
 }
 
 const ss = new session.Session();

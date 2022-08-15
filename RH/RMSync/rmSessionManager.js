@@ -100,7 +100,7 @@ exports.RMSessionManager.prototype._setRMSessionManager = function () {
 
 exports.RMSessionManager.prototype.run = function () {
     this.rmSMServer = this._setRMSessionManager();
-    this.rmSMServer.bindAsync('0.0.0.0:' + workerData.sm_portNum,
+    this.rmSMServer.bindAsync('0.0.0.0:' + workerData.smPortNum,
         grpc.ServerCredentials.createInsecure(), () => {
             debug('gRPC Server running at ' + this.rm_sm_addr);
             this.rmSMServer.start();
@@ -122,11 +122,11 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     debug(rmSessParam);
     var rmSession = new Worker(__dirname+'/RMSession/rmSession.js', {workerData: rmSessParam});
     rmSessionManager.rmSession_list_to_daemon.push(dhNode);
-    rmSessionManager.rmSessionDict[dhNode.session_id] = rmSession;
+    rmSessionManager.rmSessionDict[dhNode.sessionId] = rmSession;
 
     rmSessionManager.session_init_patch().then((git_patch) => {
         debug("git Patch")
-        debug(git_patch.commit_numbers);
+        debug(git_patch.commitNumbers);
         rmSession.postMessage({
             event: "INIT",
             data: {
@@ -141,8 +141,8 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
 // Session 최초 연결 시 최초 git_patch 보내는 함수
 exports.RMSessionManager.prototype.session_init_patch = async function() {
     debug("Session Init Patch");
-    var first_commit= rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvc_root);
-    if(!fs.existsSync(rmSessionManager.msg_storepath)) rmSessionManager._save_last_commit(rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvc_root));
+    var first_commit= rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot);
+    if(!fs.existsSync(rmSessionManager.msgStorepath)) rmSessionManager._save_last_commit(rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot));
     var content = rmSessionManager.__read_dict();
     debug("First Commit: " + first_commit);
     debug("Previous LC: " + content.previousLastCommit);
@@ -155,7 +155,7 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
         printed.pop();
         var comm = printed.pop();
         content.stored = content.stored+1;
-        content.commit_number.push(comm);
+        content.commitNumber.push(comm);
         rmSessionManager._save_last_commit(comm);
         var git_patch = await rmSessionManager.extractGitDiff(content);
         return git_patch;
@@ -177,7 +177,7 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
 // 1
 exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit, first_commit){
     // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
-    var patch= execSync('cd ' + this.pubvc_root + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
+    var patch= execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
     var toreturn = {
         patch: patch.toString(),
         commit_numbers: [first_commit, last_commit]
@@ -207,7 +207,7 @@ exports.RMSessionManager.prototype.updateHandler = function(commit_number) {
     // GIT PATCH EXTRACTION
     var content = this.__read_dict();
     content.stored = content.stored + 1;
-    content.commit_number.push(commit_number);
+    content.commitNumber.push(commit_number);
     this.__save_dict(content);
 
     const topublish = this.__read_dict();
@@ -222,7 +222,7 @@ exports.RMSessionManager.prototype.updateHandler = function(commit_number) {
 
 exports.RMSessionManager.prototype.delayed_updateHandler = function() {
     if (rmSessionManager.errorSession[0] > 0) {
-        rmSessionManager.pool_timer = setTimeout(rmSessionManager.delayed_updateHandler, 100);
+        rmSessionManager.poolTimer = setTimeout(rmSessionManager.delayed_updateHandler, 100);
     }
     else {
         rmSessionManager.pool_timer = null;
