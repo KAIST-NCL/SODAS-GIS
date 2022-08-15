@@ -315,7 +315,7 @@ exports.SessionManager.prototype._createSession = async function () {
     var session = {};
     session.sessionId = crypto.randomBytes(20).toString('hex');
     session.myIp = this.dmIp
-    await this._setSessionPort().then(value => session.my_port = value);
+    await this._setSessionPort().then(value => session.myPort = value);
     session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'mySessionId': session.sessionId, 'myIp': session.myIp, 'myPortNum': session.myPort, 'pubvcRoot': sessionManager.pubvcRoot, 'subvcRoot': sessionManager.subvcRoot, 'mutexFlag': sessionManager.mutexFlag} });
     session.worker.on('message', this._sessionListener);
 
