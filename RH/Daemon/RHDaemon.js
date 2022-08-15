@@ -39,8 +39,8 @@ exports.RHDaemon = function(){
             }
         }
     }
-    this.bs_ip = ips[this.rh_network][0];
-    this.sm_ip = ips[this.rh_network][0];
+    this.bsIp = ips[this.rhNetwork][0];
+    this.smIp = ips[this.rhNetwork][0];
 
     this.ctrlKafka = new ctrlConsumer(this.kafka, this.kafkaOptions, this, this.conf);
 };
