@@ -117,7 +117,7 @@ exports.Session.prototype.prePublish = function(self, message) {
 
 /// If the count / sync time reaches some point, extract the git diff and publish it to other session
 exports.Session.prototype.onMaxCount = async function(self) {
-    self.count_msg = 0;
+    self.countMsg = 0;
     debug("[LOG] onMaxCount");
     // Read file first and reset the file
     const topublish = self.__read_dict();
