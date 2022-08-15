@@ -57,11 +57,11 @@ exports.SessionRequester.prototype._smListener = function (message) {
             break;
         case 'UPDATE_INTEREST_LIST':
             debug('[RX: UPDATE_INTEREST_LIST] from SessionManager');
-            this.sn_options.datamapDesc.syncInterestList = message.data.syncInterestList;
+            this.snOptions.datamapDesc.syncInterestList = message.data.syncInterestList;
             break;
         case 'UPDATE_NEGOTIATION_OPTIONS':
             debug('[RX: UPDATE_NEGOTIATION_OPTIONS] from SessionManager');
-            this.sn_options = message.data
+            this.snOptions = message.data
             break;
     }
 }
@@ -110,7 +110,7 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                                     sessionRequester.mySessionDesc.sessionId = null;
                                     debug(sessionRequester.mySessionDesc.sessionId)
                                     debug('SessionRequester send CheckNegotiation to SessionListener with ' + node.slPortNum);
-                                    sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, endPoint: sessionRequester.myEndPoint}, (error, response) => {
+                                    sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, end_point: sessionRequester.myEndPoint}, (error, response) => {
                                         if (!error) {
                                             debug('SessionRequester send AckSessionNegotiation to SessionListener with ' + node.slPortNum);
                                         } else {
