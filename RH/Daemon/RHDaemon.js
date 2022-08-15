@@ -67,7 +67,7 @@ exports.RHDaemon.prototype.run = function(){
     self = this;
 
     // setEnvironmentData
-    const bsParam = {'bsIp': this.bs_ip, 'bsPortNum': this.bs_portNum};
+    const bsParam = {'bsIp': this.bsIp, 'bsPortNum': this.bsPortNum};
     const smParam = {'vcPort': msgChn.port1, 'smIp': this.smIp, 'smPortNum': this.smPortNum, 'pubvcRoot': this.pubvcRoot, 'mutexFlag': mutexFlag};
     const vcParam = {'smPort': msgChn.port2, 'kafka': this.kafka, 'kafkaOptions':this.kafkaOptions, 'pubvcRoot': this.pubvcRoot, 'mutexFlag': mutexFlag};
 

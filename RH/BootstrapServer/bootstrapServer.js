@@ -8,7 +8,7 @@ const debug = require('debug')('sodas:bootstrap_server');
 exports.BootstrapServer = function () {
 
     // de-coment the below code when you use bare-metal version
-    this.bootstrapServerIP = workerData.bs_ip + ':' + workerData.bs_portNum;
+    this.bootstrapServerIP = workerData.bsIp + ':' + workerData.bsPortNum;
     const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
         keepCase: true,
         longs: String,
