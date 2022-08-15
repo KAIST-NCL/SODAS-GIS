@@ -15,7 +15,7 @@ exports.SessionRequester = function () {
     this.mySessionDesc = {};
     this.myEndPoint = {};
 
-    this.mySession_desc.sessionCreator = workerData.dhId;
+    this.mySessionDesc.sessionCreator = workerData.dhId;
     this.snOptions = workerData.snOptions;
 
     const packageDefinition = protoLoader.loadSync(
