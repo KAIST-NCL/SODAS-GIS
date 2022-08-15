@@ -121,7 +121,7 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     debug('Create New RMSession');
     debug(rmSessParam);
     var rmSession = new Worker(__dirname+'/RMSession/rmSession.js', {workerData: rmSessParam});
-    rmSessionManager.rmSession_list_to_daemon.push(dhNode);
+    rmSessionManager.rmSessionListToDaemon.push(dhNode);
     rmSessionManager.rmSessionDict[dhNode.sessionId] = rmSession;
 
     rmSessionManager.session_init_patch().then((git_patch) => {
