@@ -33,7 +33,7 @@ exports.DHDaemon = function(){
     this.syncTime = this.conf.get('Session', 'sync_time');
     this.syncCount = this.conf.get('Session', 'sync_count');
     this.transferInterface = this.conf.get('Session', 'transfer_interface');
-    this.sn_options = {
+    this.snOptions = {
         datamapDesc:{
             syncInterestList: this.syncInterestList.split(','),
             dataCatalogVocab: this.dataCatalogVocab.split(',')
