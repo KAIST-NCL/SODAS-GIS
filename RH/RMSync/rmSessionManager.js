@@ -147,7 +147,7 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
     debug("First Commit: " + first_commit);
     debug("Previous LC: " + content.previousLastCommit);
 
-    if (first_commit == content.previous_last_commit) {
+    if (first_commit == content.previousLastCommit) {
         // first add all the things in the folder and commit them
         execSync('cd ' + rmSessionManager.pVC.vcRoot + " && git add ./");
         var stdout = execSync('cd ' + rmSessionManager.pVC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
