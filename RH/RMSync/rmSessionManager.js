@@ -108,9 +108,9 @@ exports.RMSessionManager.prototype.run = function () {
 }
 
 exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
-    dhNode['session_id'] = crypto.randomBytes(20).toString('hex')
+    dhNode['sessionId'] = crypto.randomBytes(20).toString('hex')
     var rmSessParam = {
-        sessionId: dhNode.rmsessionId,
+        sessionId: dhNode.sessionId,
         dhId: dhNode.dhId,
         dhIp: dhNode.dhIp,
         dhPort: dhNode.dhPort,
@@ -225,7 +225,7 @@ exports.RMSessionManager.prototype.delayed_updateHandler = function() {
         rmSessionManager.poolTimer = setTimeout(rmSessionManager.delayed_updateHandler, 100);
     }
     else {
-        rmSessionManager.pool_timer = null;
+        rmSessionManager.poolTimer = null;
         rmSessionManager.updateHandler(delayedCommitNumbers);
         rmSessionManager.delayedCommitNumbers = "";
     }
@@ -238,7 +238,7 @@ exports.RMSessionManager.prototype.__save_dict = function(content) {
 }
 
 exports.RMSessionManager.prototype.__read_dict = function() {
-    return JSON.parse(fs.readFileSync(this.msgStorepath.toString()));
+    return JSON.parse(fs.readFileSync(this.msgStorepath).toString());
 }
 
 exports.RMSessionManager.prototype._save_last_commit = function(last_commit) {
