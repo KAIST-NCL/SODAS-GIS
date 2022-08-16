@@ -110,7 +110,7 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                                     sessionRequester.mySessionDesc.sessionId = null;
                                     debug(sessionRequester.mySessionDesc.sessionId)
                                     debug('SessionRequester send CheckNegotiation to SessionListener with ' + node.slPortNum);
-                                    sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, end_point: sessionRequester.myEndPoint}, (error, response) => {
+                                    sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, endPoint: sessionRequester.myEndPoint}, (error, response) => {
                                         if (!error) {
                                             debug('SessionRequester send AckSessionNegotiation to SessionListener with ' + node.slPortNum);
                                         } else {

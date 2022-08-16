@@ -16,8 +16,8 @@ message Void {} // Response or Reply Message 내용이 필요 없을 때를 위�
 message PublishDatamap {
   string transID = 1; // 트랜잭션 번호 {Timestamp} + {Datamap Filename} + 'SEND'
   // content - > json string. related, filepath
-  string git_patch = 2; // git_patch 파일
-  string receiver_id = 3;
+  string gitPatch = 2; // git_patch 파일
+  string receiverId = 3;
 }
 
 // ACK 메시지

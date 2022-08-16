@@ -49,7 +49,7 @@ exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
 
     if (bsServer.seedNodeList.length > 0) {
         for (var i = 0; i < bsServer.seedNodeList.length; i++) {
-            if (bsServer.seedNodeList[i].node_id === seedNode.node_id) {
+            if (bsServer.seedNodeList[i].node_id === seedNode.nodeId) {
                 var target = bsServer.seedNodeList.splice(i, 1);
             }
         }

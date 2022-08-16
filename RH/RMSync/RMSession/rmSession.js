@@ -70,8 +70,8 @@ exports.Session.prototype.publish = function(git_patch) {
         debug("[LOG] Publish");
         // Make the message body to send
         var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
-                    'git_patch': git_patch.patch,
-                    'receiver_id': this.dhId};
+                    'gitPatch': git_patch.patch,
+                    'receiverId': this.dhId};
 
         // gRPC transmittion
         this.grpc_client.SessionComm(toSend, function(err, response) {
@@ -91,8 +91,8 @@ exports.Session.prototype.publish = function(git_patch) {
         // Start ErrorHandling
         this.extractGitDiff(this.lastCommitNumber, git_patch.commitNumbers[1]).then((git_patch) => {
             var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
-                    'git_patch': git_patch.patch,
-                    'receiver_id': this.dhId};
+                    'gitPatch': git_patch.patch,
+                    'receiverId': this.dhId};
             // gRPC transmittion
             this.grpc_client.SessionComm(toSend, function(err, response) {
                 if (err) throw err;
@@ -121,7 +121,7 @@ exports.Session.prototype.extractGitDiff= async function(first_commit, last_comm
         this.flag[0] = 0;
         var toreturn = {
             patch: patch.toString(),
-            commit_numbers: [first_commit, last_commit]
+            commitNumbers: [first_commit, last_commit]
         };
         return toreturn;
     }

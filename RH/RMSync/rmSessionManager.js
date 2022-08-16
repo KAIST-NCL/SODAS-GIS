@@ -76,7 +76,7 @@ exports.RMSessionManager.prototype._rmSessionUpdateReferenceModel = function (rm
         event: "UPDATE_REFERENCE_MODEL",
         data: { 
             patch: git_patch,
-            commit_numbers: git_patch.commitNumbers
+            commitNumbers: git_patch.commitNumbers
         }
     });
 }
@@ -87,7 +87,7 @@ exports.RMSessionManager.prototype._requestRMSession = function (call, callback)
     debug("Request RMSession Connection from DH-RMSync");
     debug(dhNode);
     rmSessionManager._createNewRMSession(dhNode);
-    callback(null, {result: 'OK', rm_session_id: rmSessionManager.rmSessionListToDaemon[0].sessionId})
+    callback(null, {result: 'OK', rmSessionId: rmSessionManager.rmSessionListToDaemon[0].sessionId})
 };
 
 exports.RMSessionManager.prototype._setRMSessionManager = function () {
@@ -102,7 +102,7 @@ exports.RMSessionManager.prototype.run = function () {
     this.rmSMServer = this._setRMSessionManager();
     this.rmSMServer.bindAsync('0.0.0.0:' + workerData.smPortNum,
         grpc.ServerCredentials.createInsecure(), () => {
-            debug('gRPC Server running at ' + this.rm_sm_addr);
+            debug('gRPC Server running at ' + this.rmSmAddr);
             this.rmSMServer.start();
         });
 }
@@ -180,7 +180,7 @@ exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit,
     var patch= execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
     var toreturn = {
         patch: patch.toString(),
-        commit_numbers: [first_commit, last_commit]
+        commitNumbers: [first_commit, last_commit]
     };
     return toreturn;
 }
@@ -197,7 +197,7 @@ exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
         debug(git_diff);
         var toreturn = {
             patch: git_diff.toString(),
-            commit_numbers: [topublish.previousLastCommit, topublish.commitNumber[topublish.stored - 1]]
+            commitNumbers: [topublish.previousLastCommit, topublish.commitNumber[topublish.stored - 1]]
         }
         return toreturn;
     }

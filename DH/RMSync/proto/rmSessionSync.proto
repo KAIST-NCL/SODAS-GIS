@@ -10,8 +10,8 @@ message Void {}
 
 message PublishRefMap {
     string transID = 1; // 트랜잭션 번호 {Timestamp} + {Datamap Filename} + 'SEND'
-    string git_patch = 2; // git_patch 파일
-    string receiver_id = 3;
+    string gitPatch = 2; // git_patch 파일
+    string receiverId = 3;
 }
 
 message ACKMessage {

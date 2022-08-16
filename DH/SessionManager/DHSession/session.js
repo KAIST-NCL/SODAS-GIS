@@ -191,17 +191,17 @@ exports.Session.prototype.Publish = function(git_patch) {
 /// (1): Subscribe from the other session
 // Change Log -> seperated from the constructor as an function
 exports.Session.prototype.Subscribe = function(self, call, callback) {
-    debug('[LOG] Server: ' + self.id + ' gRPC Received: to ' + call.request.receiver_id);
+    debug('[LOG] Server: ' + self.id + ' gRPC Received: to ' + call.request.receiverId);
     // Only process the things when sender's id is the same one with the counter session's id
-    if (call.request.receiver_id == self.id) {
+    if (call.request.receiverId == self.id) {
         debug("[LOG] Git Patch Start");
         // git Patch apply
-        var result = self.gitPatch(call.request.git_patch, self);
+        var result = self.gitPatch(call.request.gitPatch, self);
         // ACK Transimittion
         // If no problem, result is 0. Otherwise is not defined yet.
         callback(null, {transID: call.request.transID, result: result})
         // Producing the Kafka message and publish it.
-        self.kafkaProducer(call.request.git_patch, self);
+        self.kafkaProducer(call.request.gitPatch, self);
     }
 }
 

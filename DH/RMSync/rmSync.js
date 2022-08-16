@@ -98,7 +98,7 @@ exports.RMSync.prototype.referenceModelSync = function(call, callback) {
     rmSync._dmUpdateReferenceModel(call.request.id, targetFilePath)
 }
 exports.RMSync.prototype.requestRMSession = function() {
-    rmSync.rmSessionClient.RequestRMSession({'dh_id': crypto.randomBytes(20).toString('hex'), dh_ip: rmSync.dhIp, dh_port: rmSync.rmPort}, (error, response) => {
+    rmSync.rmSessionClient.RequestRMSession({'dh_id': crypto.randomBytes(20).toString('hex'), dhIp: rmSync.dhIp, dhPort: rmSync.rmPort}, (error, response) => {
         if (!error) {
             debug('[LOG] Request RMSession Connection to RH-RMSessionManager');
             debug('[LOG] Get response from RH-RMSessionManager');
@@ -121,14 +121,14 @@ exports.RMSync.prototype._setRMSyncServer = function() {
 };
 
 exports.RMSync.prototype.Subscribe = function(self, call, callback) {
-    debug('[LOG] Server: RMSync gRPC Received: to ' + call.request.receiver_id);
+    debug('[LOG] Server: RMSync gRPC Received: to ' + call.request.receiverId);
     debug("[LOG] Git Patch Start");
 
     // git Patch 적용
-    var result = self.gitPatch(call.request.git_patch, self);
+    var result = self.gitPatch(call.request.gitPatch, self);
     callback(null, {transID: call.request.transID, result: result});
 
-    var filepath_list = diff_parser.parse_git_patch(call.request.git_patch);
+    var filepath_list = diff_parser.parse_git_patch(call.request.gitPatch);
     rmSync._dmUpdateReferenceModel(filepath_list)
 }
 
