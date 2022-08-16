@@ -110,7 +110,7 @@ exports.RMSessionManager.prototype.run = function () {
 exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     dhNode['session_id'] = crypto.randomBytes(20).toString('hex')
     var rmSessParam = {
-        sessionId: dhNode.sessionId,
+        sessionId: dhNode.rmsessionId,
         dhId: dhNode.dhId,
         dhIp: dhNode.dhIp,
         dhPort: dhNode.dhPort,

@@ -98,7 +98,7 @@ exports.RMSync.prototype.referenceModelSync = function(call, callback) {
     rmSync._dmUpdateReferenceModel(call.request.id, targetFilePath)
 }
 exports.RMSync.prototype.requestRMSession = function() {
-    rmSync.rmSessionClient.RequestRMSession({'dh_id': crypto.randomBytes(20).toString('hex'), dhIp: rmSync.dhIp, dhPort: rmSync.rmPort}, (error, response) => {
+    rmSync.rmSessionClient.RequestRMSession({'dhId': crypto.randomBytes(20).toString('hex'), dhIp: rmSync.dhIp, dhPort: rmSync.rmPort}, (error, response) => {
         if (!error) {
             debug('[LOG] Request RMSession Connection to RH-RMSessionManager');
             debug('[LOG] Get response from RH-RMSessionManager');
