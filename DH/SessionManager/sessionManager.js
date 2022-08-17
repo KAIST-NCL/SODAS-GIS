@@ -300,7 +300,7 @@ exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
 exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (sessionWorker, end_point, session_desc, sn_options) {
     sessionWorker.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
-        data: { endPoint: end_point, sessionDesc: sessionDesc, snOptions: sn_options }
+        data: { endPoint: end_point, sessionDesc: session_desc, snOptions: sn_options }
     });
 }
 exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorker, commit_number) {
