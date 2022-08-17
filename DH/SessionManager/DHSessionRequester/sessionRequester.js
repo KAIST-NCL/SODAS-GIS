@@ -100,13 +100,13 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
                 }
                 else {
                     await sessionRequester.sessionNegotiationClient.RequestSessionNegotiation(
-                        {session_desc: sessionRequester.mySessionDesc, sn_options: sessionRequester.snOptions}, (error, response) => {
+                        {sessionDesc: sessionRequester.mySessionDesc, snOptions: sessionRequester.snOptions}, (error, response) => {
                             if (!error) {
                                 debug('SessionRequester send RequestSessionNegotiation to SessionListener with ' + node.slPortNum);
                                 if (response.status) {
                                     debug('Session Negotiation Completed!!');
                                     debug('SessionRequester thread send [TRANSMIT_NEGOTIATION_RESULT] event to SessionManager')
-                                    sessionRequester._smTransmitNegotiationResult(response.end_point, response.sessionDesc, response.snOptions)
+                                    sessionRequester._smTransmitNegotiationResult(response.endPoint, response.sessionDesc, response.snOptions)
                                     sessionRequester.mySessionDesc.sessionId = null;
                                     debug(sessionRequester.mySessionDesc.sessionId)
                                     debug('SessionRequester send CheckNegotiation to SessionListener with ' + node.slPortNum);
