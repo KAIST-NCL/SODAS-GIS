@@ -77,7 +77,7 @@ exports.vcModule.prototype.reportCommit = function(self, commitNumber){
     const msg = {
         event: 'UPDATE_PUB_ASSET',
         data: {
-            commit_number: commitNumber,
+            commitNumber: commitNumber,
             filepath: filepath_list
         }
     };
