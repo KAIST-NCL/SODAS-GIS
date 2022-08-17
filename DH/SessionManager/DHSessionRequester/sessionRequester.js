@@ -71,7 +71,7 @@ exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_
     debug('[TX: TRANSMIT_NEGOTIATION_RESULT] to SessionManager');
     parentPort.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
-        data: { endPoint: end_point, sessionDesc: sessionDesc, snResult: sn_result }
+        data: { endPoint: end_point, sessionDesc: session_desc, snResult: sn_result }
     });
 }
 
