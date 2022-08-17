@@ -189,7 +189,7 @@ exports.SessionManager.prototype._slListener = function (message){
             sessionManager._sessionTransmitNegotiationResult(sessionManager.slTempSession.worker, message.data.endPoint, message.data.sessionDesc, message.data.snResult);
 
             // todo: sessionList 관리
-            for (let i = 0; i < message.data.snResult.datamap_desc.syncInterestList.length; i++) {
+            for (let i = 0; i < message.data.snResult.datamapDesc.syncInterestList.length; i++) {
                 if (message.data.snResult.datamapDesc.syncInterestList[i] in sessionManager.sessionList) {
                     sessionManager.sessionList[message.data.snResult.datamapDesc.syncInterestList[i]].push(sessionManager.slTempSession)
                 } else {
