@@ -57,8 +57,8 @@ class ctrlConsumer extends Consumer{
                 break;
             case 'SYNC_ON':
                 // contents - > datahubs로 바뀜
-                var sync_result = this.daemon._smSyncOn(msg.datahubs);
-                if (sync_result  === -1)
+                var syncResult = this.daemon._smSyncOn(msg.datahubs);
+                if (syncResult  === -1)
                     this.daemon._raiseError('UPDATE IS NOT YET COMPLETED');
                 break;
             case 'SYNC_OFF':

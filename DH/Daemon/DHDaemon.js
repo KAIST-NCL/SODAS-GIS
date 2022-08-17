@@ -214,7 +214,7 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
 exports.DHDaemon.prototype._dhSearchUpdateInterestTopic = function(interestTopic){
     this.dhSearch.postMessage({
         event: 'UPDATE_INTEREST_TOPIC',
-        data: {sync_interest_list: interestTopic}
+        data: {syncInterestList: interestTopic}
     });
     debug('[Function Test / UPDATE Process] UPDATE interest topic with ', interestTopic);
 };

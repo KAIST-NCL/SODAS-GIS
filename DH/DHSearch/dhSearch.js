@@ -63,7 +63,7 @@ exports.DHSearch.prototype._dhDaemonListener = function(message){
 
 /* DHDaemon methods */
 exports.DHSearch.prototype._dmUpdateBucketList = function(){
-    if (this.old_bucket_list !== JSON.stringify(this.node._buckets)) {
+    if (this.oldBucketList !== JSON.stringify(this.node._buckets)) {
         parentPort.postMessage({
             event: 'UPDATE_BUCKET_LIST',
             data: this.node._buckets
