@@ -173,8 +173,8 @@ exports.Session.prototype.Publish = function(git_patch) {
 
     // Make the message body to send
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
-                  'git_patch': git_patch,
-                  'receiver_id': this.sessionDesc.sessionId};
+                  'gitPatch': git_patch,
+                  'receiverId': this.sessionDesc.sessionId};
 
     // gRPC transmittion
     this.grpc_client.SessionComm(toSend, function(err, response) {
