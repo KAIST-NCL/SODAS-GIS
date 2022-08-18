@@ -13,14 +13,14 @@ exports.vcModule = function(){
     debug("[LOG] workerData ");
     debug(workerData);
 
-    const RMgitDir = workerData.pubvc_root;
+    const RMgitDir = workerData.pubvcRoot;
     const kafkaHost = workerData.kafka; 
-    const options = workerData.kafka_options; 
-    this.smPort = workerData.sm_port;
+    const options = workerData.kafkaOptions; 
+    this.smPort = workerData.smPort;
     // Create VC 
     this.vc = new publishVC(RMgitDir);
     this.consumer = new vcConsumer(kafkaHost, options, this);
-    this.flag = workerData.mutex_flag; // mutex flag
+    this.flag = workerData.mutexFlag; // mutex flag
 };
 
 exports.vcModule.prototype.init = async function(){
@@ -61,8 +61,8 @@ exports.vcModule.prototype.editFile = async function(option, filepath, type, con
             this.vc.git.editFile(fp, content);
             break;
         case 'DELETE':
-            if (type == 'domain_version'){
-                console.log("domain-version file cannot be deleted");
+            if (type != 'domain'){
+                console.log("group/taxonomy/taxonomyVersion file cannot be deleted");
                 break;
             }
             this.vc.git.deleteFile(fp);

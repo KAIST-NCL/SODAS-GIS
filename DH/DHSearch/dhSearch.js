@@ -13,18 +13,18 @@ exports.DHSearch = function(){
     self = this;
     parentPort.on('message', function(message) {self._dhDaemonListener(message)});
 
-    this.ip = workerData.dm_ip;
-    this.ds_portNum = workerData.ds_portNum;
-    this.sl_portNum = workerData.sl_portNum;
-    this.bootstrap_server_ip = workerData.bootstrap_ip + ':' + workerData.bootstrap_portNum;
+    this.ip = workerData.dmIp;
+    this.dsPortNum = workerData.dsPortNum;
+    this.slPortNum = workerData.slPortNum;
+    this.bootstrapServerIp = workerData.bootstrapIp + ':' + workerData.bootstrapPortNum;
 
-    this.seedNode = dh.seedNodeInfo({address: this.ip, port: parseInt(workerData.ds_portNum), sl_portNum: parseInt(workerData.sl_portNum)});
-    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.ds_portNum), sl_portNum: parseInt(workerData.sl_portNum), sync_interest_list: []});
+    this.seedNode = dh.seedNodeInfo({address: this.ip, port: parseInt(workerData.dsPortNum), slPortNum: parseInt(workerData.slPortNum)});
+    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.dsPortNum), slPortNum: parseInt(workerData.slPortNum), syncInterestList: []});
     this.node._updateContactEvent.on('update_contact', () => {
         this._dmUpdateBucketList()
     });
     this.seedNodeList = [];
-    this.old_bucket_list = [];
+    this.oldBucketList = [];
 
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH,{
@@ -36,8 +36,8 @@ exports.DHSearch = function(){
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.BSproto = this.protoDescriptor.bootstrap.BootstrapBroker;
-    this.bootstrapClient = new this.BSproto(this.bootstrap_server_ip, grpc.credentials.createInsecure());
-    debug('[SETTING] DHSearch is running with %s:%s', this.ip, this.ds_portNum);
+    this.bootstrapClient = new this.BSproto(this.bootstrapServerIp, grpc.credentials.createInsecure());
+    debug('[SETTING] DHSearch is running with %s:%s', this.ip, this.dsPortNum);
 
 };
 exports.DHSearch.prototype.run = function(){
@@ -50,8 +50,8 @@ exports.DHSearch.prototype.run = function(){
 exports.DHSearch.prototype._dhDaemonListener = function(message){
     switch (message.event) {
         case 'UPDATE_INTEREST_TOPIC':
-            this.seedNode['sync_interest_list'] = message.data.sync_interest_list;
-            this.node.self.sync_interest_list = message.data.sync_interest_list;
+            this.seedNode['syncInterestList'] = message.data.syncInterestList;
+            this.node.self.syncInterestList = message.data.syncInterestList;
             debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DHDaemon');
             this.run()
             break;
@@ -63,12 +63,12 @@ exports.DHSearch.prototype._dhDaemonListener = function(message){
 
 /* DHDaemon methods */
 exports.DHSearch.prototype._dmUpdateBucketList = function(){
-    if (this.old_bucket_list !== JSON.stringify(this.node._buckets)) {
+    if (this.oldBucketList !== JSON.stringify(this.node._buckets)) {
         parentPort.postMessage({
             event: 'UPDATE_BUCKET_LIST',
             data: this.node._buckets
         });
-        this.old_bucket_list = JSON.parse(JSON.stringify(this.node._buckets));
+        this.oldBucketList = JSON.parse(JSON.stringify(this.node._buckets));
     }
 };
 
@@ -95,7 +95,7 @@ exports.DHSearch.prototype._bootstrapProcess = async function() {
 exports.DHSearch.prototype._discoverProcess = async function() {
     debug('[LOG] Start distributed search')
     for (var seedNodeIndex of this.seedNodeList) {
-        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.sl_portNum, seedNodeIndex.sync_interest_list);
+        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.slPortNum, seedNodeIndex.syncInterestList);
     }
     return null;
 }

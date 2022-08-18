@@ -19,9 +19,9 @@ dServer = function(){
         });
     this.protoDescriptor = grpc.loadPackageDefinition(packageDefinition);
     this.ds = this.protoDescriptor.daemonServer;
-    this.port = workerData.dm_portNum;
-    this.ip = workerData.dm_ip;
-    this.known_hosts = workerData.known_hosts;
+    this.port = workerData.dmPortNum;
+    this.ip = workerData.dmIp;
+    this.knownHosts = workerData.knownHosts;
     this.name = workerData.name;
     this.dhList = [];
     this.sessList = [];

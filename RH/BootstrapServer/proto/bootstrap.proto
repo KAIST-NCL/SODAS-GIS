@@ -13,11 +13,11 @@ service BootstrapBroker{
 }
 
 message Node {
-  string node_id = 1;
+  string nodeId = 1;
   string address = 2;
   int32 port = 3;
-  int32 sl_portNum = 4;
-  repeated string sync_interest_list = 5;
+  int32 slPortNum = 4;
+  repeated string syncInterestList = 5;
 }
 
 message SeedNodeList {

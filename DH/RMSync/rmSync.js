@@ -17,15 +17,15 @@ exports.RMSync = function () {
     self = this;
     parentPort.on('message', function(message) {self._dhDaemonListener(message)});
 
-    this.dh_ip = workerData.dm_ip;
-    this.rm_port = workerData.rm_port;
-    this.dh_rm_sync_ip = this.dh_ip + ':' + this.rm_port;
-    this.rh_rm_sm_ip = workerData.rh_ip + ':' + workerData.rh_portNum;
-    this.rmsync_root_dir = workerData.rmsync_root_dir;
-    !fs.existsSync(this.rmsync_root_dir) && fs.mkdirSync(this.rmsync_root_dir);
+    this.dhIp = workerData.dmIp;
+    this.rmPort = workerData.rmPort;
+    this.dhRmSyncIp = this.dhIp + ':' + this.rmPort;
+    this.rhRmSmIp = workerData.rhIp + ':' + workerData.rhPortNum;
+    this.rmsyncRootDir = workerData.rmsyncRootDir;
+    !fs.existsSync(this.rmsyncRootDir) && fs.mkdirSync(this.rmsyncRootDir);
 
     // Settings for GitDB
-    this.VC = new subscribeVC(this.rmsync_root_dir+'/gitDB');
+    this.VC = new subscribeVC(this.rmsyncRootDir+'/gitDB');
     this.VC.init();
 
     // gRPC Client to RH-RMSessionManager
@@ -39,7 +39,7 @@ exports.RMSync = function () {
         });
     this.rmSessionprotoDescriptor = grpc.loadPackageDefinition(rmSessionPackageDefinition);
     this.rmSessionproto = this.rmSessionprotoDescriptor.RMSession.RMSessionBroker;
-    this.rmSessionClient = new this.rmSessionproto(this.rh_rm_sm_ip, grpc.credentials.createInsecure());
+    this.rmSessionClient = new this.rmSessionproto(this.rhRmSmIp, grpc.credentials.createInsecure());
 
     // gRPC Server from RH-RMSession
     const rmSessionSyncPackageDefinition = protoLoader.loadSync(
@@ -56,9 +56,9 @@ exports.RMSync = function () {
 };
 exports.RMSync.prototype.run = function() {
     this.rmSyncServer = this._setRMSyncServer();
-    this.rmSyncServer.bindAsync(this.dh_rm_sync_ip,
+    this.rmSyncServer.bindAsync(this.dhRmSyncIp,
         grpc.ServerCredentials.createInsecure(), () => {
-            debug('[SETTING] RMSync gRPC Server running at ' + this.dh_rm_sync_ip)
+            debug('[SETTING] RMSync gRPC Server running at ' + this.dhRmSyncIp)
             this.rmSyncServer.start();
         });
     this.requestRMSession();
@@ -98,7 +98,7 @@ exports.RMSync.prototype.referenceModelSync = function(call, callback) {
     rmSync._dmUpdateReferenceModel(call.request.id, targetFilePath)
 }
 exports.RMSync.prototype.requestRMSession = function() {
-    rmSync.rmSessionClient.RequestRMSession({'dh_id': crypto.randomBytes(20).toString('hex'), dh_ip: rmSync.dh_ip, dh_port: rmSync.rm_port}, (error, response) => {
+    rmSync.rmSessionClient.RequestRMSession({'dhId': crypto.randomBytes(20).toString('hex'), dhIp: rmSync.dhIp, dhPort: rmSync.rmPort}, (error, response) => {
         if (!error) {
             debug('[LOG] Request RMSession Connection to RH-RMSessionManager');
             debug('[LOG] Get response from RH-RMSessionManager');
@@ -121,20 +121,20 @@ exports.RMSync.prototype._setRMSyncServer = function() {
 };
 
 exports.RMSync.prototype.Subscribe = function(self, call, callback) {
-    debug('[LOG] Server: RMSync gRPC Received: to ' + call.request.receiver_id);
+    debug('[LOG] Server: RMSync gRPC Received: to ' + call.request.receiverId);
     debug("[LOG] Git Patch Start");
 
     // git Patch 적용
-    var result = self.gitPatch(call.request.git_patch, self);
+    var result = self.gitPatch(call.request.gitPatch, self);
     callback(null, {transID: call.request.transID, result: result});
 
-    var filepath_list = diff_parser.parse_git_patch(call.request.git_patch);
+    var filepath_list = diff_parser.parse_git_patch(call.request.gitPatch);
     rmSync._dmUpdateReferenceModel(filepath_list)
 }
 
 exports.RMSync.prototype.gitPatch = function(git_patch, self) {
     var patch_name = Math.random().toString(10).slice(2,5) + '.patch';
-    var temp = self.rmsync_root_dir + "/" + patch_name;
+    var temp = self.rmsyncRootDir + "/" + patch_name;
     try {
         fs.writeFileSync(temp, git_patch);
     } catch (err) {

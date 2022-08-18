@@ -12,41 +12,41 @@ message EndPoint {
 }
 
 message SessionDescription {
-  string session_creator = 1;
-  string session_id = 2;
+  string sessionCreator = 1;
+  string sessionId = 2;
 }
 
 message DatamapDescription {
-  repeated string sync_interest_list = 1;
-  string data_catalog_vocab = 2;
+  repeated string syncInterestList = 1;
+  string dataCatalogVocab = 2;
 }
 
 message SynchronizationDescription {
-  repeated int32 sync_time = 1;
-  repeated int32 sync_count = 2;
-  repeated string transfer_interface = 3;
+  repeated int32 syncTime = 1;
+  repeated int32 syncCount = 2;
+  repeated string transferInterface = 3;
 }
 
 message SessionNegotiation {
-  DatamapDescription datamap_desc = 1;
-  SynchronizationDescription sync_desc = 2;
+  DatamapDescription datamapDesc = 1;
+  SynchronizationDescription syncDesc = 2;
 }
 
 message RequestSN {
-  SessionDescription session_desc = 1;
-  SessionNegotiation sn_options = 2;
+  SessionDescription sessionDesc = 1;
+  SessionNegotiation snOptions = 2;
 }
 
 message ResultSN {
   bool status = 1;
-  EndPoint end_point = 2;
-  SessionDescription session_desc = 3;
-  SessionNegotiation sn_options = 4;
+  EndPoint endPoint = 2;
+  SessionDescription sessionDesc = 3;
+  SessionNegotiation snOptions = 4;
 }
 
 message Ack {
   bool status = 1;
-  EndPoint end_point = 2;
+  EndPoint endPoint = 2;
 }
 
 message Null {

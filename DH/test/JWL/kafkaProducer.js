@@ -173,7 +173,7 @@ for (var i = 0; i < eventCount; i++) {
         "operation": "UPDATE",
         "type": "asset",
         "related": related,
-        "contents": rdf_content_generator()
+        "content": rdf_content_generator()
     };
 
     payload_list.push(eventMessage);

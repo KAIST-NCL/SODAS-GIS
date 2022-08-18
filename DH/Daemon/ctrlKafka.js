@@ -6,8 +6,7 @@ const deasync = require('deasync');
 const debug = require('debug')('sodas:kafka');
 
 
-// 해야할 일: recv.dataHubList, recv.sessionList 구현
-// bucketList 핸들러 구현
+// KAFKA 관련 변경 사항: content는 무조건 string 포맷으로
 
 class ctrlConsumer extends Consumer{
     constructor(kafkaHost, options, dhDaemon, conf){
@@ -27,7 +26,7 @@ class ctrlConsumer extends Consumer{
             try {
                 const message_ = JSON.parse(message.value);
                 const event = message_.operation;
-                const msg = message_.content;
+                const msg = JSON.parse(message_.content);
                 that.eventSwitch(event, msg);
             } catch (e){
                 debug(e);
@@ -45,17 +44,21 @@ class ctrlConsumer extends Consumer{
                 debug('아직 미구현 - STOP event');
                 break;
             case 'UPDATE':
+                // content 내용이 수정되어서 name, extras, interests 세 개로 이뤄짐
+                // name: 'dh' -> 무슨 용도?
+                // extras: [{'key': 'k1', 'value': 'v2'}, ... ]
+                // interests: ['d1', 'd1/t1', 'd2/t2/c2/c21']
                 debug(msg);
-                debug(msg.interest.interest_list); // need to be edited.
-                debug(msg.interest.reference_model);
-                this.daemon._dhSearchUpdateInterestTopic(msg.interest.interest_list);
-                this.daemon._smUpdateInterestTopic(msg.interest.interest_list);
-                // this.daemon._vcUpdateReferenceModel(msg.interest.reference_model);
+                debug(msg.extras);
+                debug(msg.interests);
+                this.daemon._dhSearchUpdateInterestTopic(msg.interests);
+                this.daemon._smUpdateInterestTopic(msg.interests);
                 debug('[Function Test / UPDATE Process] UPDATE event complete');
                 break;
             case 'SYNC_ON':
-                var sync_result = this.daemon._smSyncOn(msg.dh_list);
-                if (sync_result  === -1)
+                // contents - > datahubs로 바뀜
+                var syncResult = this.daemon._smSyncOn(msg.datahubs);
+                if (syncResult  === -1)
                     this.daemon._raiseError('UPDATE IS NOT YET COMPLETED');
                 break;
             case 'SYNC_OFF':
@@ -66,7 +69,6 @@ class ctrlConsumer extends Consumer{
         }
     };
 }
-
 
 exports.ctrlProducer = function(kafkaHost){
     this.client = new kafka.KafkaClient({kafkaHost: kafkaHost});
@@ -97,7 +99,8 @@ exports.ctrlProducer.prototype.createCtrlTopics = async function(){
 };
 
 exports.ctrlProducer.prototype._produce = function(topic, msg){
-    const payloads = [{ topic, messages: msg , partition: 0}];
+    msg_ = JSON.stringify(msg);
+    const payloads = [{ topic, messages: msg_ , partition: 0}];
     this.producer.send(payloads, function(err, data){
         if(err) debug(err);
     });
@@ -108,7 +111,7 @@ exports.ctrlProducer.prototype.sendError = function(errorCode){
 };
 
 exports.ctrlProducer.prototype.sendUpdate = function(id, data){
-    const msg = {'operation':'UPDATE', 'content':{'id':id, 'data':data}};
+    const msg = {'operation':'UPDATE', 'content':JSON.stringify({'id':id, 'data':data})};
     debug('\x1b[36m%s\x1b[0m', '[Function Test / UPDATE REFERENCE MODEL Process] sending message to Kafka', msg);
     this._produce(this.topic, msg);
 };

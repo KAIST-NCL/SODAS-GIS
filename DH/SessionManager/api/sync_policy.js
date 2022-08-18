@@ -4,56 +4,56 @@ exports.checkNegotiationOptions = function(my_sn_options, other_sn_options){
     // todo: myOptions, otherOptions 비교 결과를 리턴하는 로직 구현
     console.log("[ * Check Session Negotiation * ]")
     let status;
-    let sn_result = {};
-    let datamap_desc_result = this._checkDatamapDesc(my_sn_options.datamap_desc, other_sn_options.datamap_desc)
-    let sync_desc_result = this._checkSynchronizationDesc(my_sn_options.sync_desc, other_sn_options.sync_desc)
+    let snResult = {};
+    let datamapDescResult = this._checkDatamapDesc(my_sn_options.datamapDesc, other_sn_options.datamapDesc)
+    let syncDescResult = this._checkSynchronizationDesc(my_sn_options.syncDesc, other_sn_options.syncDesc)
 
-    if (datamap_desc_result.status && sync_desc_result.status) {
-        sn_result.datamap_desc = datamap_desc_result.result;
-        sn_result.sync_desc = sync_desc_result.result;
+    if (datamapDescResult.status && syncDescResult.status) {
+        snResult.datamapDesc = datamapDescResult.result;
+        snResult.syncDesc = syncDescResult.result;
         status = true;
     } else {
         status = false;
     }
 
-    return {status: status, result: sn_result}
+    return {status: status, result: snResult}
 };
 
 exports._checkDatamapDesc = function (my_datamap_desc, other_datamap_desc){
     let status;
-    let datamap_desc_result = {};
-    let sync_interest_list_result = interestTopicDivider(my_datamap_desc.sync_interest_list).filter(x=> interestTopicDivider(other_datamap_desc.sync_interest_list).includes(x))
-    console.log(sync_interest_list_result)
-    let data_catalog_vocab_result = my_datamap_desc.data_catalog_vocab.filter(x=> other_datamap_desc.data_catalog_vocab.includes(x))
+    let datamapDescResult = {};
+    let syncInterestListResult = interestTopicDivider(my_datamap_desc.syncInterestList).filter(x=> interestTopicDivider(other_datamap_desc.syncInterestList).includes(x))
+    console.log(syncInterestListResult)
+    let dataCatalogVocabResult = my_datamap_desc.dataCatalogVocab.filter(x=> other_datamap_desc.dataCatalogVocab.includes(x))
 
-    if (!isEmptyArr(sync_interest_list_result) && !isEmptyArr(data_catalog_vocab_result)){
-        datamap_desc_result.sync_interest_list = sync_interest_list_result;
-        datamap_desc_result.data_catalog_vocab = data_catalog_vocab_result;
+    if (!isEmptyArr(syncInterestListResult) && !isEmptyArr(dataCatalogVocabResult)){
+        datamapDescResult.syncInterestList = syncInterestListResult;
+        datamapDescResult.dataCatalogVocab = dataCatalogVocabResult;
         status = true;
     } else {
         status = false;
     }
 
-    return {status: status, result: datamap_desc_result}
+    return {status: status, result: datamapDescResult}
 }
 
 exports._checkSynchronizationDesc = function (my_sync_desc, other_sync_desc){
     let status;
-    let sync_desc_result = {};
-    let sync_time_result = rangeToInteger(my_sync_desc.sync_time).filter(x=> rangeToInteger(other_sync_desc.sync_time).includes(x));
-    let sync_count_result = rangeToInteger(my_sync_desc.sync_count).filter(x=> rangeToInteger(other_sync_desc.sync_count).includes(x));
-    let transfer_interface_result = my_sync_desc.transfer_interface.filter(x=> other_sync_desc.transfer_interface.includes(x))
+    let syncDescResult = {};
+    let syncTimeResult = rangeToInteger(my_sync_desc.syncTime).filter(x=> rangeToInteger(other_sync_desc.syncTime).includes(x));
+    let syncCountResult = rangeToInteger(my_sync_desc.syncCount).filter(x=> rangeToInteger(other_sync_desc.syncCount).includes(x));
+    let transferInterfaceResult = my_sync_desc.transferInterface.filter(x=> other_sync_desc.transferInterface.includes(x))
 
-    if (!isEmptyArr(sync_time_result) && !isEmptyArr(sync_count_result) && !isEmptyArr(transfer_interface_result)){
-        sync_desc_result.sync_time = sync_time_result;
-        sync_desc_result.sync_count = sync_count_result;
-        sync_desc_result.transfer_interface = transfer_interface_result;
+    if (!isEmptyArr(syncTimeResult) && !isEmptyArr(syncCountResult) && !isEmptyArr(transferInterfaceResult)){
+        syncDescResult.syncTime = syncTimeResult;
+        syncDescResult.syncCount = syncCountResult;
+        syncDescResult.transferInterface = transferInterfaceResult;
         status = true;
     } else {
         status = false;
     }
 
-    return {status: status, result: sync_desc_result};
+    return {status: status, result: syncDescResult};
 }
 
 function isEmptyArr (arr)  {

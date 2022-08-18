@@ -5,6 +5,7 @@ const kafka = require('kafka-node');
 const deasync = require('deasync');
 var msgChn = new MessageChannel();
 const debug = require('debug')('sodas:RHDaemon');
+const { ctrlConsumer } = require('./RHctrlKafka');
 
 'use strict';
 const { networkInterfaces } = require('os');
@@ -16,15 +17,15 @@ exports.RHDaemon = function(){
     this.conf = new ConfigParser();
     this.conf.read('../setting.cfg');
     this.name = this.conf.get('Daemon', 'name');
-    this.rh_network = this.conf.get('Daemon', 'networkInterface');
-    this.bs_ip = this.conf.get('BootstrapServer', 'ip');
-    this.bs_portNum = this.conf.get('BootstrapServer', 'portNum');
-    this.sm_ip = this.conf.get('RMSessionManager', 'ip');
-    this.sm_portNum = this.conf.get('RMSessionManager', 'portNum');
+    this.rhNetwork = this.conf.get('Daemon', 'networkInterface');
+    this.bsIp = this.conf.get('BootstrapServer', 'ip');
+    this.bsPortNum = this.conf.get('BootstrapServer', 'portNum');
+    this.smIp = this.conf.get('RMSessionManager', 'ip');
+    this.smPortNum = this.conf.get('RMSessionManager', 'portNum');
     this.kafka = this.conf.get('Kafka', 'ip');
-    this.kafka_options = this.conf.get('Kafka', 'options');
-    this.pubvc_root = __dirname + this.conf.get('VersionControl', 'pubvc_root');
-    this.kafka_client = new kafka.KafkaClient({kafkaHost: this.kafka});
+    this.kafkaOptions = this.conf.get('Kafka', 'options');
+    this.pubvcRoot = __dirname + this.conf.get('VersionControl', 'pubvc_root');
+    this.kafkaClient = new kafka.KafkaClient({kafkaHost: this.kafka});
 
     // get ip from local
     for (const name of Object.keys(nets)) {
@@ -38,31 +39,16 @@ exports.RHDaemon = function(){
             }
         }
     }
-    this.bs_ip = ips[this.rh_network][0];
-    this.sm_ip = ips[this.rh_network][0];
+    this.bsIp = ips[this.rhNetwork][0];
+    this.smIp = ips[this.rhNetwork][0];
 
-};
-exports.RHDaemon.prototype._createCtrlTopics = async function(){
-
-    debug('CreateCtrlTopics is called');
-    var IS_COMPLETED = false;
-    await this.kafka_client.createTopics([
-        { topic: 'send.governanceSystem', partitions: 1 , replicationFactor: 1},
-        { topic: 'send.referenceModel', partitions: 1 , replicationFactor: 1},
-        { topic: 'send.dictionary', partitions: 1 , replicationFactor: 1}
-    ],
-        function (err, data) {
-            debug('[SETTING] Complete to create ctrl topics');
-            IS_COMPLETED = true;
-        }
-    );
-    while ((IS_COMPLETED == false)){deasync.runLoopOnce();}
+    this.ctrlKafka = new ctrlConsumer(this.kafka, this.kafkaOptions, this, this.conf);
 };
 
 exports.RHDaemon.prototype.init = async function(){
     // todo: create kafka topic if doesn't exist
     self = this;
-    await this._createCtrlTopics()
+    await this.ctrlKafka._createCtrolTopics()
         .then(() => {
             debug('[SETTING] init');
             debug('complete to create topics')
@@ -77,13 +63,13 @@ exports.RHDaemon.prototype.run = function(){
 
     // vc git flag
     const sharedArrayBuffer = new SharedArrayBuffer(Int8Array.BYTES_PER_ELEMENT);
-    const mutex_flag = new Int8Array(sharedArrayBuffer);
+    const mutexFlag = new Int8Array(sharedArrayBuffer);
     self = this;
 
     // setEnvironmentData
-    const bsParam = {'bs_ip': this.bs_ip, 'bs_portNum': this.bs_portNum};
-    const smParam = {'vc_port': msgChn.port1, 'sm_ip': this.sm_ip, 'sm_portNum': this.sm_portNum, 'pubvc_root': this.pubvc_root, 'mutex_flag': mutex_flag};
-    const vcParam = {'sm_port': msgChn.port2, 'kafka': this.kafka, 'kafka_options':this.kafka_options, 'pubvc_root': this.pubvc_root, 'mutex_flag': mutex_flag};
+    const bsParam = {'bsIp': this.bsIp, 'bsPortNum': this.bsPortNum};
+    const smParam = {'vcPort': msgChn.port1, 'smIp': this.smIp, 'smPortNum': this.smPortNum, 'pubvcRoot': this.pubvcRoot, 'mutexFlag': mutexFlag};
+    const vcParam = {'smPort': msgChn.port2, 'kafka': this.kafka, 'kafkaOptions':this.kafkaOptions, 'pubvcRoot': this.pubvcRoot, 'mutexFlag': mutexFlag};
 
     // run daemonServer
     this.bootstrapServer = new Worker('../BootstrapServer/bootstrapServer.js', { workerData: bsParam });
@@ -94,6 +80,8 @@ exports.RHDaemon.prototype.run = function(){
     this.bootstrapServer.on('message', function(message){self._bsServerListener(message)});
     this.rmSessionManager.on('message', function(message) {self._rmSessionManagerListener(message)});
     this.VC.on('message', function(message) {self._vcListener(message)});
+
+    this.ctrlKafka.onMessage();
 
 };
 

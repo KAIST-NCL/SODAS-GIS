@@ -12,11 +12,11 @@ exports.SessionRequester = function () {
     self = this;
     parentPort.on('message', function(message) {self._smListener(message)});
 
-    this.my_session_desc = {};
-    this.my_end_point = {};
+    this.mySessionDesc = {};
+    this.myEndPoint = {};
 
-    this.my_session_desc.session_creator = workerData.dh_id;
-    this.sn_options = workerData.sn_options;
+    this.mySessionDesc.sessionCreator = workerData.dhId;
+    this.snOptions = workerData.snOptions;
 
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH,{
@@ -51,17 +51,17 @@ exports.SessionRequester.prototype._smListener = function (message) {
         case 'GET_NEW_SESSION_INFO':
             debug('[RX: GET_NEW_SESSION_INFO] from SessionManager');
             debug(message.data)
-            this.my_session_desc.session_id = message.data.sess_id;
-            this.my_end_point.ip = message.data.sess_ip;
-            this.my_end_point.port = message.data.sess_portNum;
+            this.mySessionDesc.sessionId = message.data.sessId;
+            this.myEndPoint.ip = message.data.sessIp;
+            this.myEndPoint.port = message.data.sessPortNum;
             break;
         case 'UPDATE_INTEREST_LIST':
             debug('[RX: UPDATE_INTEREST_LIST] from SessionManager');
-            this.sn_options.datamap_desc.sync_interest_list = message.data.sync_interest_list;
+            this.snOptions.datamapDesc.syncInterestList = message.data.syncInterestList;
             break;
         case 'UPDATE_NEGOTIATION_OPTIONS':
             debug('[RX: UPDATE_NEGOTIATION_OPTIONS] from SessionManager');
-            this.sn_options = message.data
+            this.snOptions = message.data
             break;
     }
 }
@@ -71,7 +71,7 @@ exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_
     debug('[TX: TRANSMIT_NEGOTIATION_RESULT] to SessionManager');
     parentPort.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
-        data: { end_point: end_point, session_desc: session_desc, sn_result: sn_result }
+        data: { endPoint: end_point, sessionDesc: session_desc, snResult: sn_result }
     });
 }
 
@@ -91,28 +91,28 @@ exports.SessionRequester.prototype._snProcess = async function (bucketList) {
         return new Promise((resolve, reject) => {
             setTimeout(async function checkCreateTempSession() {
                 debug(node);
-                let sl_addr = node.address + ':' + node.sl_portNum;
+                let sl_addr = node.address + ':' + node.slPortNum;
                 sessionRequester.sessionNegotiationClient = await sessionRequester._initConnection(sl_addr);
-                debug(sessionRequester.my_session_desc.session_id);
-                if ( sessionRequester.my_session_desc.session_id == null ) {
+                debug(sessionRequester.mySessionDesc.sessionId);
+                if ( sessionRequester.mySessionDesc.sessionId == null ) {
                     debug("srTempSession is not yet Created")
                     setTimeout(checkCreateTempSession, 1000);
                 }
                 else {
                     await sessionRequester.sessionNegotiationClient.RequestSessionNegotiation(
-                        {session_desc: sessionRequester.my_session_desc, sn_options: sessionRequester.sn_options}, (error, response) => {
+                        {sessionDesc: sessionRequester.mySessionDesc, snOptions: sessionRequester.snOptions}, (error, response) => {
                             if (!error) {
-                                debug('SessionRequester send RequestSessionNegotiation to SessionListener with ' + node.sl_portNum);
+                                debug('SessionRequester send RequestSessionNegotiation to SessionListener with ' + node.slPortNum);
                                 if (response.status) {
                                     debug('Session Negotiation Completed!!');
                                     debug('SessionRequester thread send [TRANSMIT_NEGOTIATION_RESULT] event to SessionManager')
-                                    sessionRequester._smTransmitNegotiationResult(response.end_point, response.session_desc, response.sn_options)
-                                    sessionRequester.my_session_desc.session_id = null;
-                                    debug(sessionRequester.my_session_desc.session_id)
-                                    debug('SessionRequester send CheckNegotiation to SessionListener with ' + node.sl_portNum);
-                                    sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, end_point: sessionRequester.my_end_point}, (error, response) => {
+                                    sessionRequester._smTransmitNegotiationResult(response.endPoint, response.sessionDesc, response.snOptions)
+                                    sessionRequester.mySessionDesc.sessionId = null;
+                                    debug(sessionRequester.mySessionDesc.sessionId)
+                                    debug('SessionRequester send CheckNegotiation to SessionListener with ' + node.slPortNum);
+                                    sessionRequester.sessionNegotiationClient.AckSessionNegotiation({status: true, endPoint: sessionRequester.myEndPoint}, (error, response) => {
                                         if (!error) {
-                                            debug('SessionRequester send AckSessionNegotiation to SessionListener with ' + node.sl_portNum);
+                                            debug('SessionRequester send AckSessionNegotiation to SessionListener with ' + node.slPortNum);
                                         } else {
                                             console.error(error);
                                         }

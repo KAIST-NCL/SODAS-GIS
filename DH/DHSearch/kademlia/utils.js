@@ -141,13 +141,13 @@ exports.message_contact = function(message) {
     if (!message.port || typeof message.port !== 'number')
         return null;
 
-    if (!message.sl_portNum || typeof message.sl_portNum !== 'number')
+    if (!message.slPortNum || typeof message.slPortNum !== 'number')
         return null;
 
-    if (!message.sync_interest_list || typeof message.sync_interest_list !== 'object')
+    if (!message.syncInterestList || typeof message.syncInterestList !== 'object')
         return null;
 
-    return { nodeID: message.nodeID, address: message.address, port: message.port, sl_portNum: message.sl_portNum, sync_interest_list: message.sync_interest_list};
+    return { nodeID: message.nodeID, address: message.address, port: message.port, slPortNum: message.slPortNum, syncInterestList: message.syncInterestList};
 }
 
 exports.message_rpcID = function(message) {
@@ -157,5 +157,5 @@ exports.message_rpcID = function(message) {
 }
 
 exports.make_contact = function(address, port, sl_portNum, sync_interest_list) {
-    return { nodeID: exports.nodeID(address, port), address: address, port: port, sl_portNum: sl_portNum, sync_interest_list: sync_interest_list };
+    return { nodeID: exports.nodeID(address, port), address: address, port: port, slPortNum: sl_portNum, syncInterestList: sync_interest_list };
 }

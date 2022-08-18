@@ -8,7 +8,7 @@ const debug = require('debug')('sodas:bootstrap_server');
 exports.BootstrapServer = function () {
 
     // de-coment the below code when you use bare-metal version
-    this.bootstrapServerIP = workerData.bs_ip + ':' + workerData.bs_portNum;
+    this.bootstrapServerIP = workerData.bsIp + ':' + workerData.bsPortNum;
     const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
         keepCase: true,
         longs: String,
@@ -49,7 +49,7 @@ exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
 
     if (bsServer.seedNodeList.length > 0) {
         for (var i = 0; i < bsServer.seedNodeList.length; i++) {
-            if (bsServer.seedNodeList[i].node_id === seedNode.node_id) {
+            if (bsServer.seedNodeList[i].node_id === seedNode.nodeId) {
                 var target = bsServer.seedNodeList.splice(i, 1);
             }
         }
@@ -72,7 +72,7 @@ exports.BootstrapServer.prototype._setBootstrapServer = function () {
 
 exports.BootstrapServer.prototype.run = function () {
     this.bootstrapServer = this._setBootstrapServer();
-    this.bootstrapServer.bindAsync('0.0.0.0:'+workerData.bs_portNum,
+    this.bootstrapServer.bindAsync('0.0.0.0:'+workerData.bsPortNum,
         grpc.ServerCredentials.createInsecure(), () => {
             debug('gRPC Server running at ' + this.bootstrapServerIP)
             this.bootstrapServer.start();

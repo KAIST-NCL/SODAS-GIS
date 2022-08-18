@@ -16,32 +16,32 @@ exports.DHDaemon = function(){
     this.conf = new ConfigParser();
     this.conf.read('../setting.cfg');
     this.name = this.conf.get('Daemon', 'name');
-    this.dm_network = this.conf.get('Daemon', 'networkInterface');
-    this.dm_portNum = this.conf.get('Daemon', 'portNum');
-    this.ds_portNum = this.conf.get('DHSearch', 'portNum');
-    this.rm_portNum = this.conf.get('RMSync', 'portNum');
-    this.rmSync_rootDir = this.conf.get('RMSync', 'rmSyncRootDir');
-    this.sl_portNum = this.conf.get('SessionListener', 'portNum');
-    this.bs_ip = this.conf.get('ReferenceHub', 'bootstrap_ip');
-    this.bs_portNum = this.conf.get('ReferenceHub', 'bootstrap_portNum');
-    this.rh_ip = this.conf.get('ReferenceHub', 'referenceHub_ip');
-    this.rh_portNum = this.conf.get('ReferenceHub', 'referenceHub_portNum');
+    this.dmNetwork = this.conf.get('Daemon', 'networkInterface');
+    this.dmPortNum = this.conf.get('Daemon', 'portNum');
+    this.dsPortNum = this.conf.get('DHSearch', 'portNum');
+    this.rmPortNum = this.conf.get('RMSync', 'portNum');
+    this.rmSyncRootDir = this.conf.get('RMSync', 'rmSyncRootDir');
+    this.slPortNum = this.conf.get('SessionListener', 'portNum');
+    this.bsIp = this.conf.get('ReferenceHub', 'bootstrap_ip');
+    this.bsPortNum = this.conf.get('ReferenceHub', 'bootstrap_portNum');
+    this.rhIp = this.conf.get('ReferenceHub', 'referenceHub_ip');
+    this.rhPortNum = this.conf.get('ReferenceHub', 'referenceHub_portNum');
     this.kafka = this.conf.get('Kafka', 'ip');
-    this.kafka_options = this.conf.get('Kafka', 'options');
-    this.sync_interest_list = this.conf.get('Session', 'sync_interest_list');
-    this.data_catalog_vocab = this.conf.get('Session', 'data_catalog_vocab');
-    this.sync_time = this.conf.get('Session', 'sync_time');
-    this.sync_count = this.conf.get('Session', 'sync_count');
-    this.transfer_interface = this.conf.get('Session', 'transfer_interface');
-    this.sn_options = {
-        datamap_desc:{
-            sync_interest_list: this.sync_interest_list.split(','),
-            data_catalog_vocab: this.data_catalog_vocab.split(',')
+    this.kafkaOptions = this.conf.get('Kafka', 'options');
+    this.syncInterestList = this.conf.get('Session', 'sync_interest_list');
+    this.dataCatalogVocab = this.conf.get('Session', 'data_catalog_vocab');
+    this.syncTime = this.conf.get('Session', 'sync_time');
+    this.syncCount = this.conf.get('Session', 'sync_count');
+    this.transferInterface = this.conf.get('Session', 'transfer_interface');
+    this.snOptions = {
+        datamapDesc:{
+            syncInterestList: this.syncInterestList.split(','),
+            dataCatalogVocab: this.dataCatalogVocab.split(',')
         },
-        sync_desc: {
-            sync_time: this.sync_time.split(',').map(Number),
-            sync_count: this.sync_count.split(',').map(Number),
-            transfer_interface: this.transfer_interface.split(',')
+        syncDesc: {
+            syncTime: this.syncTime.split(',').map(Number),
+            syncCount: this.syncCount.split(',').map(Number),
+            transferInterface: this.transferInterface.split(',')
         }
     };
 
@@ -57,21 +57,21 @@ exports.DHDaemon = function(){
             }
         }
     }
-    this.dm_ip = ips[this.dm_network][0];
-    debug('[LOG]: ip', this.dm_ip);
-    debug('[LOG]: session negotiation option', this.sn_options);
-    this.pubvc_root = this.conf.get('VersionControl', 'pubvc_root');
-    this.subvc_root = this.conf.get('VersionControl', 'subvc_root');
-    this.commit_period = this.conf.get('VersionControl', 'commit_period');
+    this.dmIp = ips[this.dmNetwork][0];
+    debug('[LOG]: ip', this.dmIp);
+    debug('[LOG]: session negotiation option', this.snOptions);
+    this.pubvcRoot = this.conf.get('VersionControl', 'pubvc_root');
+    this.subvcRoot = this.conf.get('VersionControl', 'subvc_root');
+    this.commitPeriod = this.conf.get('VersionControl', 'commit_period');
 
     process.env.DH_HOME = this.conf.get('ENV', 'DH_HOME');
-    debug('[SETTING] DataHub daemon is running with %s:%s', this.dm_ip, this.dm_portNum);
+    debug('[SETTING] DataHub daemon is running with %s:%s', this.dmIp, this.dmPortNum);
     this.ctrlProducer = new ctrlProducer(this.kafka);
     // ctrlConsumer will be created in init()
 
     this.interest = [];
     this.bucketList = null;
-    this.dh_id = crypto.createHash('sha1').update(this.dm_ip + ':' + this.ds_portNum).digest('hex');
+    this.dhId = crypto.createHash('sha1').update(this.dmIp + ':' + this.dsPortNum).digest('hex');
 };
 exports.DHDaemon.prototype.init = async function(){
     // create kafka topic if doesn't exist
@@ -92,15 +92,15 @@ exports.DHDaemon.prototype.run = function(){
     msgChn = new MessageChannel();
     // vc git flag
     const sharedArrayBuffer = new SharedArrayBuffer(Int8Array.BYTES_PER_ELEMENT);
-    const mutex_flag = new Int8Array(sharedArrayBuffer);
+    const mutexFlag = new Int8Array(sharedArrayBuffer);
     self = this;
 
     // setEnvironmentData
-    const dmServerParam = {'dm_ip': this.dm_ip, 'dm_portNum': this.dm_portNum, 'name': this.name};
-    const dhSearchParam = {'dm_ip': this.dm_ip, 'ds_portNum': this.ds_portNum, 'sl_portNum': this.sl_portNum, 'bootstrap_ip': this.bs_ip, 'bootstrap_portNum': this.bs_portNum};
-    const vcParam = {'sm_port': msgChn.port1, 'rmsync_root_dir': this.rmSync_rootDir, 'kafka': this.kafka, 'kafka_options': this.kafka_options, 'pubvc_root': this.pubvc_root, 'commit_period': this.commit_period, 'mutex_flag': mutex_flag};
-    const smParam = {'vc_port': msgChn.port2, 'dh_id': this.dh_id, 'dm_ip': this.dm_ip, 'sl_portNum': this.sl_portNum, 'sn_options':this.sn_options, 'pubvc_root': this.pubvc_root, 'subvc_root': this.subvc_root, 'mutex_flag': mutex_flag};
-    const rmSyncParam = {'dm_ip': this.dm_ip, 'rm_port': this.rm_portNum, 'rh_ip': this.rh_ip, 'rh_portNum': this.rh_portNum, 'rmsync_root_dir': this.rmSync_rootDir};
+    const dmServerParam = {'dmIp': this.dmIp, 'dmPortNum': this.dmPortNum, 'name': this.name};
+    const dhSearchParam = {'dmIp': this.dmIp, 'dsPortNum': this.dsPortNum, 'slPortNum': this.slPortNum, 'bootstrapIp': this.bsIp, 'bootstrapPortNum': this.bsPortNum};
+    const vcParam = {'smPort': msgChn.port1, 'rmsyncRootDir': this.rmSyncRootDir, 'kafka': this.kafka, 'kafkaOptions': this.kafkaOptions, 'pubvcRoot': this.pubvcRoot, 'commitPeriod': this.commitPeriod, 'mutexFlag': mutexFlag};
+    const smParam = {'vcPort': msgChn.port2, 'dhId': this.dhId, 'dmIp': this.dmIp, 'slPortNum': this.slPortNum, 'snOptions':this.snOptions, 'pubvcRoot': this.pubvcRoot, 'subvcRoot': this.subvcRoot, 'mutexFlag': mutexFlag};
+    const rmSyncParam = {'dmIp': this.dmIp, 'rmPort': this.rmPortNum, 'rhIp': this.rhIp, 'rhPortNum': this.rhPortNum, 'rmsyncRootDir': this.rmSyncRootDir};
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });
@@ -133,8 +133,8 @@ exports.DHDaemon.prototype._dmServerListener = function(message){
         case 'UPDATE':
             // TODO: dmServer-side UPDATE should be implemented
             debug('[SETTING] UPDATE is called !');
-            var interest= message.data.interest.interest_list;
-            var rm = message.data.interest.reference_model;
+            var interest= message.data.interest.interestList;
+            var rm = message.data.interest.referenceModel;
             this._dhSearchUpdateInterestTopic(interest);
             this._smUpdateInterestTopic(interest);
             this._vcUpdateReferenceModel(rm);
@@ -195,7 +195,7 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
         case 'UPDATE_REFERENCE_MODEL':
             debug('[DEBUG] UPDATE_REFERENCE_MODEL is passed. The reference models are transferred to ctrlProducer', message.data);
             for (var i = 0; i < message.data.path.length; i++) {
-                const rmPath = self.rmSync_rootDir+ '/gitDB/' + message.data.path[i];
+                const rmPath = self.rmSyncRootDir+ '/gitDB/' + message.data.path[i];
                 debug('[DEBUG] read ' + rmPath + ' file (reference models...)')
                 fs.readFile(rmPath, 'utf8', function(err, data){
                     self.ctrlProducer.sendUpdate(rmPath, data);
@@ -214,7 +214,7 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
 exports.DHDaemon.prototype._dhSearchUpdateInterestTopic = function(interestTopic){
     this.dhSearch.postMessage({
         event: 'UPDATE_INTEREST_TOPIC',
-        data: {sync_interest_list: interestTopic}
+        data: {syncInterestList: interestTopic}
     });
     debug('[Function Test / UPDATE Process] UPDATE interest topic with ', interestTopic);
 };
@@ -235,14 +235,14 @@ exports.DHDaemon.prototype._smInit= function(){
 exports.DHDaemon.prototype._smUpdateInterestTopic = function(interestTopic){
     this.sessionManager.postMessage({
         event: 'UPDATE_INTEREST_TOPIC',
-        data: {sync_interest_list: interestTopic}
+        data: {syncInterestList: interestTopic}
     });
     debug('[Function Test / UPDATE Process] UPDATE interest topic with ', interestTopic);
 };
 exports.DHDaemon.prototype._smUpdateNegotiation = function(session_negotiation_option){
     this.sessionManager.postMessage({
         event: 'UPDATE_NEGOTIATION_OPTIONS',
-        data: {sn_options: session_negotiation_option}
+        data: {snOptions: session_negotiation_option}
     });
     debug('[Function Test / UPDATE Process] UPDATE negotiation option ', session_negotiation_option);
 };
