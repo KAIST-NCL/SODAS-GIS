@@ -3,19 +3,19 @@ const kafka = require('kafka-node');
 const Producer = kafka.Producer;
 const KeyedMessage = kafka.KeyedMessage;
 const deasync = require('deasync');
-const debug = require('debug')('sodas:RHkafka');
+const debug = require('debug')('sodas:GSkafka');
 
 class ctrlConsumer extends Consumer{
-    constructor(kafkaHost, options, dhDaemon, conf){
+    constructor(kafkaHost, options, gsDaemon, conf){
         const topics = [ 
             { topic: 'send.governanceSystem', partitions: 1 , replicationFactor: 1},
             { topic: 'send.dictionary', partitions: 1 , replicationFactor: 1}
         ];
         super(kafkaHost, topics, options);
-        this.daemon = dhDaemon;
+        this.daemon = gsDaemon;
         this.conf = conf;
-        this.referenceHubIP = conf.get('ReferenceHub', 'ip');
-        this.referenceHubPort = conf.get('ReferenceHub', 'port');
+        this.governanceSystemIP = conf.get('GovernanceSystem', 'ip');
+        this.governanceSystemPort = conf.get('GovernanceSystem', 'port');
     }
     
     onMessage = function(){

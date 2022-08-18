@@ -1,23 +1,23 @@
 const ConfigParser = require('configparser');
 const { Worker, MessageChannel} = require("worker_threads");
-const rh = require('./RHDaemon');
+const gs = require('./GSDaemon');
 const kafka = require('kafka-node');
 const deasync = require('deasync');
 var msgChn = new MessageChannel();
-const debug = require('debug')('sodas:RHDaemon');
-const { ctrlConsumer } = require('./RHctrlKafka');
+const debug = require('debug')('sodas:GSDaemon');
+const { ctrlConsumer } = require('./GSctrlKafka');
 
 'use strict';
 const { networkInterfaces } = require('os');
 const nets = networkInterfaces();
 const ips = Object.create(null); // Or just '{}', an empty object
 
-exports.RHDaemon = function(){
+exports.GSDaemon = function(){
 
     this.conf = new ConfigParser();
     this.conf.read('../setting.cfg');
     this.name = this.conf.get('Daemon', 'name');
-    this.rhNetwork = this.conf.get('Daemon', 'networkInterface');
+    this.gsNetwork = this.conf.get('Daemon', 'networkInterface');
     this.bsIp = this.conf.get('BootstrapServer', 'ip');
     this.bsPortNum = this.conf.get('BootstrapServer', 'portNum');
     this.smIp = this.conf.get('RMSessionManager', 'ip');
@@ -39,13 +39,13 @@ exports.RHDaemon = function(){
             }
         }
     }
-    this.bsIp = ips[this.rhNetwork][0];
-    this.smIp = ips[this.rhNetwork][0];
+    this.bsIp = ips[this.gsNetwork][0];
+    this.smIp = ips[this.gsNetwork][0];
 
     this.ctrlKafka = new ctrlConsumer(this.kafka, this.kafkaOptions, this, this.conf);
 };
 
-exports.RHDaemon.prototype.init = async function(){
+exports.GSDaemon.prototype.init = async function(){
     // todo: create kafka topic if doesn't exist
     self = this;
     await this.ctrlKafka._createCtrolTopics()
@@ -55,7 +55,7 @@ exports.RHDaemon.prototype.init = async function(){
         })
         .catch((e) => {debug(e)});
 };
-exports.RHDaemon.prototype.run = function(){
+exports.GSDaemon.prototype.run = function(){
 
     debug('[SETTING] run is called')
     // msg-channel(one-way) : VC -> sessionManager
@@ -85,10 +85,10 @@ exports.RHDaemon.prototype.run = function(){
 
 };
 
-exports.RHDaemon.prototype._bsServerListener = function(message){
+exports.GSDaemon.prototype._bsServerListener = function(message){
     switch(message.event){
         case 'UPDATE_SEEDNODE_LIST':
-            debug('RHDaemon thread receive [UPDATE_SEEDNODE_LIST] event from BootstrapServer')
+            debug('GSDaemon thread receive [UPDATE_SEEDNODE_LIST] event from BootstrapServer')
             debug(message.data);
             break;
         default:
@@ -97,10 +97,10 @@ exports.RHDaemon.prototype._bsServerListener = function(message){
     }
 };
 
-exports.RHDaemon.prototype._rmSessionManagerListener = function(message){
+exports.GSDaemon.prototype._rmSessionManagerListener = function(message){
     switch(message.event){
         case 'GET_SESSION_LIST_INFO':
-            debug('RHDaemon thread receive [GET_SESSION_LIST_INFO] event from RMSessionManager')
+            debug('GSDaemon thread receive [GET_SESSION_LIST_INFO] event from RMSessionManager')
             debug(message.data);
             break;
         default:
@@ -109,7 +109,7 @@ exports.RHDaemon.prototype._rmSessionManagerListener = function(message){
     }
 };
 
-exports.RHDaemon.prototype._vcListener = function(message){
+exports.GSDaemon.prototype._vcListener = function(message){
     switch(message.event){
         case '':
             break;
@@ -119,7 +119,7 @@ exports.RHDaemon.prototype._vcListener = function(message){
     }
 };
 
-const daemon = new rh.RHDaemon();
+const daemon = new gs.GSDaemon();
 daemon.init()
     .then(() => {
         debug('[SETTING] daemon init is complete')

@@ -24,8 +24,8 @@ exports.BootstrapServer = function () {
 
 /* DHDaemon methods */
 exports.BootstrapServer.prototype._dmUpdateSeedNodeList = function () {
-    // [BootstrapServer -> RHDaemon] [UPDATE_SEEDNODE_LIST]
-    debug('[TX: UPDATE_SEEDNODE_LIST] to RHDaemon')
+    // [BootstrapServer -> GSDaemon] [UPDATE_SEEDNODE_LIST]
+    debug('[TX: UPDATE_SEEDNODE_LIST] to GSDaemon')
     parentPort.postMessage({
         event: "UPDATE_SEEDNODE_LIST",
         data: bsServer.seedNodeList
@@ -42,7 +42,7 @@ exports.BootstrapServer.prototype._setSeedNode = function (call, callback) {
 };
 
 exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
-    debug("[RH] [Bootstrap Server] - GetSeedNodeList");
+    debug("[GS] [Bootstrap Server] - GetSeedNodeList");
     var seedNode = call.request;
     debug("Access Bootstrap Server from");
     debug(seedNode);

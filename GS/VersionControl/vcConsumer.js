@@ -9,7 +9,7 @@ class vcConsumer extends Consumer{
         this.VC = VC; 
     }
     run(){
-        debug('[RUNNING] kafka consumer for VC of RH is running');
+        debug('[RUNNING] kafka consumer for VC of GS is running');
         const that = this;
         this.consumer.on('message', function(message) {
             that.handler(message, that);
@@ -17,7 +17,7 @@ class vcConsumer extends Consumer{
     }
     // Kafka message received event handler
     handler(message, self){
-        debug('[LOG] Kafka Message for RH is received');
+        debug('[LOG] Kafka Message for GS is received');
         // parsing 대상: type, content, publishingType
         // type: doamin, group, taxonomy, taxonomyVersion
         // publishingType: JSON, RDF

@@ -82,7 +82,7 @@ exports.RMSessionManager.prototype._rmSessionUpdateReferenceModel = function (rm
 }
 
 exports.RMSessionManager.prototype._requestRMSession = function (call, callback) {
-    debug("[RH] [RMSessionManager] - RequestRMSession");
+    debug("[GS] [RMSessionManager] - RequestRMSession");
     var dhNode = call.request
     debug("Request RMSession Connection from DH-RMSync");
     debug(dhNode);

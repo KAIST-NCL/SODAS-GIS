@@ -20,7 +20,7 @@ exports.RMSync = function () {
     this.dhIp = workerData.dmIp;
     this.rmPort = workerData.rmPort;
     this.dhRmSyncIp = this.dhIp + ':' + this.rmPort;
-    this.rhRmSmIp = workerData.rhIp + ':' + workerData.rhPortNum;
+    this.gsRmSmIp = workerData.gsIp + ':' + workerData.gsPortNum;
     this.rmsyncRootDir = workerData.rmsyncRootDir;
     !fs.existsSync(this.rmsyncRootDir) && fs.mkdirSync(this.rmsyncRootDir);
 
@@ -28,7 +28,7 @@ exports.RMSync = function () {
     this.VC = new subscribeVC(this.rmsyncRootDir+'/gitDB');
     this.VC.init();
 
-    // gRPC Client to RH-RMSessionManager
+    // gRPC Client to GS-RMSessionManager
     const rmSessionPackageDefinition = protoLoader.loadSync(
         RMSESSION_PROTO_PATH,{
             keepCase: true,
@@ -39,9 +39,9 @@ exports.RMSync = function () {
         });
     this.rmSessionprotoDescriptor = grpc.loadPackageDefinition(rmSessionPackageDefinition);
     this.rmSessionproto = this.rmSessionprotoDescriptor.RMSession.RMSessionBroker;
-    this.rmSessionClient = new this.rmSessionproto(this.rhRmSmIp, grpc.credentials.createInsecure());
+    this.rmSessionClient = new this.rmSessionproto(this.gsRmSmIp, grpc.credentials.createInsecure());
 
-    // gRPC Server from RH-RMSession
+    // gRPC Server from GS-RMSession
     const rmSessionSyncPackageDefinition = protoLoader.loadSync(
         RMSESSIONSYNC_PROTO_PATH,{
             keepCase: true,
@@ -100,8 +100,8 @@ exports.RMSync.prototype.referenceModelSync = function(call, callback) {
 exports.RMSync.prototype.requestRMSession = function() {
     rmSync.rmSessionClient.RequestRMSession({'dhId': crypto.randomBytes(20).toString('hex'), dhIp: rmSync.dhIp, dhPort: rmSync.rmPort}, (error, response) => {
         if (!error) {
-            debug('[LOG] Request RMSession Connection to RH-RMSessionManager');
-            debug('[LOG] Get response from RH-RMSessionManager');
+            debug('[LOG] Request RMSession Connection to GS-RMSessionManager');
+            debug('[LOG] Get response from GS-RMSessionManager');
             debug(response);
         } else {
             debug('[ERROR]', error);
