@@ -16,9 +16,9 @@ RUN cd /tmp/git-* &&  \
 RUN echo "trick for docker-build!" && git clone https://$REPO_TOKEN@github.com/EunjuYang/KAIST_SODAS.git
 WORKDIR /KAIST_SODAS
 RUN git checkout dh_daemon
-WORKDIR /KAIST_SODAS/RH/
+WORKDIR /KAIST_SODAS/GS/
 RUN npm install
-WORKDIR /KAIST_SODAS/RH/Daemon
+WORKDIR /KAIST_SODAS/GS/Daemon
 ENV DEBUG=sodas:*
 RUN git config --global user.email sodas@kaist.ac.kr
 RUN git config --global user.name sodas

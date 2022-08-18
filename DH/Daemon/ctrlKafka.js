@@ -14,8 +14,8 @@ class ctrlConsumer extends Consumer{
         super(kafkaHost, topics, options);
         this.daemon = dhDaemon;
         this.conf = conf;
-        this.referenceHubIP = conf.get('ReferenceHub', 'ip');
-        this.referenceHubPort = conf.get('ReferenceHub', 'port');
+        this.governanceSystemIP = conf.get('GovernanceSystem', 'ip');
+        this.governanceSystemPort = conf.get('GovernanceSystem', 'port');
     }
     onMessage = function(){
         debug('[RUNNING] Kafka consumer for control signal is running ');

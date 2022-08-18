@@ -20,7 +20,7 @@ const debug = require('debug')('sodas:session');
 
 /// Constructor
 exports.Session = function() {
-    debug("[LOG] RH Session Created");
+    debug("[LOG] GS Session Created");
     debug(workerData);
 
     // Workerdata 파싱

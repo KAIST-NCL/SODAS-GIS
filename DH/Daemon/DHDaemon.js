@@ -22,10 +22,10 @@ exports.DHDaemon = function(){
     this.rmPortNum = this.conf.get('RMSync', 'portNum');
     this.rmSyncRootDir = this.conf.get('RMSync', 'rmSyncRootDir');
     this.slPortNum = this.conf.get('SessionListener', 'portNum');
-    this.bsIp = this.conf.get('ReferenceHub', 'bootstrap_ip');
-    this.bsPortNum = this.conf.get('ReferenceHub', 'bootstrap_portNum');
-    this.rhIp = this.conf.get('ReferenceHub', 'referenceHub_ip');
-    this.rhPortNum = this.conf.get('ReferenceHub', 'referenceHub_portNum');
+    this.bsIp = this.conf.get('GovernanceSystem', 'bootstrap_ip');
+    this.bsPortNum = this.conf.get('GovernanceSystem', 'bootstrap_portNum');
+    this.gsIp = this.conf.get('GovernanceSystem', 'governanceSystem');
+    this.gsPortNum = this.conf.get('GovernanceSystem', 'governanceSystem_portNum');
     this.kafka = this.conf.get('Kafka', 'ip');
     this.kafkaOptions = this.conf.get('Kafka', 'options');
     this.syncInterestList = this.conf.get('Session', 'sync_interest_list');
@@ -100,7 +100,7 @@ exports.DHDaemon.prototype.run = function(){
     const dhSearchParam = {'dmIp': this.dmIp, 'dsPortNum': this.dsPortNum, 'slPortNum': this.slPortNum, 'bootstrapIp': this.bsIp, 'bootstrapPortNum': this.bsPortNum};
     const vcParam = {'smPort': msgChn.port1, 'rmsyncRootDir': this.rmSyncRootDir, 'kafka': this.kafka, 'kafkaOptions': this.kafkaOptions, 'pubvcRoot': this.pubvcRoot, 'commitPeriod': this.commitPeriod, 'mutexFlag': mutexFlag};
     const smParam = {'vcPort': msgChn.port2, 'dhId': this.dhId, 'dmIp': this.dmIp, 'slPortNum': this.slPortNum, 'snOptions':this.snOptions, 'pubvcRoot': this.pubvcRoot, 'subvcRoot': this.subvcRoot, 'mutexFlag': mutexFlag};
-    const rmSyncParam = {'dmIp': this.dmIp, 'rmPort': this.rmPortNum, 'rhIp': this.rhIp, 'rhPortNum': this.rhPortNum, 'rmsyncRootDir': this.rmSyncRootDir};
+    const rmSyncParam = {'dmIp': this.dmIp, 'rmPort': this.rmPortNum, 'gsIp': this.gsIp, 'gsPortNum': this.gsPortNum, 'rmsyncRootDir': this.rmSyncRootDir};
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });

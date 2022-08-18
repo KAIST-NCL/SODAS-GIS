@@ -36,7 +36,7 @@ $ git clone
 docker network create sodas
 ```
 
-#### 4. Build `DHDaemon`, `RH` Container Images
+#### 4. Build `DHDaemon`, `GS` Container Images
 
  
 
@@ -47,10 +47,10 @@ docker build -t sodas/dhdaemon:v01 --build-arg REPO_TOKEN={YOUR ACCESS TOKEN HER
 ```
 
 ```bash
-docker build -t sodas/rhdaemon:v01 --build-arg REPO_TOKEN={YOUR TOKEN} RH/RMSync/
+docker build -t sodas/gsdaemon:v01 --build-arg REPO_TOKEN={YOUR TOKEN} GS/RMSync/
 ```
 
-#### 5. Run `zookeepr` , `kafka` as your own environment for `DH` side &  `RH` side respectively at your stand-alone server environment with docker-compose
+#### 5. Run `zookeepr` , `kafka` as your own environment for `DH` side &  `GS` side respectively at your stand-alone server environment with docker-compose
 
 Install `docker-compose` first,
 
@@ -62,8 +62,8 @@ Run all pre-requisite containers with `docker-compose`
 
 ```bash
 /KAIST_SODAS/     $ docker-compose up -d
-/KAIST_SODAS/     $ cd RH
-/KAIST_SODAS/RH/  $ docker-compose up -d
+/KAIST_SODAS/     $ cd GS
+/KAIST_SODAS/GS/  $ docker-compose up -d
 ```
 
 You can run `zookeepr` and `kafka` with the following yaml file.
@@ -103,7 +103,7 @@ You can run `zookeepr` and `kafka` with the following yaml file.
     ```
     
 
-- `docker-compose.yaml` for `/KAIST_SODAS/RH` is written as follows. It runs both zookeeper and kafka with network and port setting.
+- `docker-compose.yaml` for `/KAIST_SODAS/GS` is written as follows. It runs both zookeeper and kafka with network and port setting.
 
 ```bash
 ---
@@ -115,23 +115,23 @@ networks:
       name: sodas
 
 services:
-  sodas.rh.zookeeper:
+  sodas.gs.zookeeper:
     image: confluentinc/cp-zookeeper
-    container_name: sodas.rh.zookeeper
+    container_name: sodas.gs.zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
 
-  sodas.rh.broker:
+  sodas.gs.broker:
     image: confluentinc/cp-kafka
-    container_name: sodas.rh.broker
+    container_name: sodas.gs.broker
     depends_on:
-      - sodas.rh.zookeeper
+      - sodas.gs.zookeeper
     ports:
       - "9094:9092"
     environment:
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: sodas.rh.zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://sodas.rh.broker:9094
+      KAFKA_ZOOKEEPER_CONNECT: sodas.gs.zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://sodas.gs.broker:9094
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_EXTERNAL_PORT: 9094
 ```
@@ -142,10 +142,10 @@ services:
 $ docker run --rm --network=sodas --name=sodas.datahub -it sodas/dhdaemon:v01 /bin/bash
 ```
 
-#### 7. Run your `ReferenceHub` with the following command line.
+#### 7. Run your `GovernanceSystem` with the following command line.
 
 ```bash
-$ docker run --rm --network=sodas --name=sodas.referencehub -it sodas/rhdaemon:v01 /bin/bash
+$ docker run --rm --network=sodas --name=sodas.governancesystem -it sodas/gsdaemon:v01 /bin/bash
 ```
 
 #### 8. Test Kafka Message with your container Kafka
@@ -158,7 +158,7 @@ $ docker run -it --rm --network sodas confluentinc/cp-kafka /bin/kafka-console-p
 #### Useful commandline for your debugging
 
 ```bash
-$ docker cp RH/. sodas.referencehub:/KAIST_SODAS/RH/
+$ docker cp GS/. sodas.governancesystem:/KAIST_SODAS/GS/
 ```
 
 ## DHClient
@@ -215,5 +215,5 @@ yejyang@handel:~/DEV/KAIST_SODAS/DHClient$ sodasctl -i DO1.CA1 DO2
 └─────────┴─────────┴─────────────┴─────────┴──────────────────────┘
 ```
 
-## RH
+## GS
 
