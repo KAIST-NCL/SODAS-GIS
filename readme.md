@@ -43,7 +43,7 @@ docker network create sodas
 - Build the Dockerfile
 
 ```bash
-docker build -t sodas/dhdaemon:v01 --build-arg REPO_TOKEN={YOUR ACCESS TOKEN HERE} ./KAIST_SODAS/DH
+docker build -t sodas/dhdaemon:v01 --build-arg REPO_TOKEN={YOUR ACCESS TOKEN HERE} ./KAIST_SODAS/DIS
 ```
 
 ```bash
@@ -63,7 +63,7 @@ Run all pre-requisite containers with `docker-compose`
 ```bash
 /KAIST_SODAS/     $ docker-compose up -d
 /KAIST_SODAS/     $ cd GS
-/KAIST_SODAS/GS/  $ docker-compose up -d
+/KAIST_SODAS/GIS/  $ docker-compose up -d
 ```
 
 You can run `zookeepr` and `kafka` with the following yaml file.
@@ -103,7 +103,7 @@ You can run `zookeepr` and `kafka` with the following yaml file.
     ```
     
 
-- `docker-compose.yaml` for `/KAIST_SODAS/GS` is written as follows. It runs both zookeeper and kafka with network and port setting.
+- `docker-compose.yaml` for `/KAIST_SODAS/GIS` is written as follows. It runs both zookeeper and kafka with network and port setting.
 
 ```bash
 ---
@@ -158,7 +158,7 @@ $ docker run -it --rm --network sodas confluentinc/cp-kafka /bin/kafka-console-p
 #### Useful commandline for your debugging
 
 ```bash
-$ docker cp GS/. sodas.governancesystem:/KAIST_SODAS/GS/
+$ docker cp GS/. sodas.governancesystem:/KAIST_SODAS/GIS/
 ```
 
 ## DHClient

@@ -1,0 +1,77 @@
+{
+    "id": "domainVersion00",
+	"domainId": "domain01",
+	"previousVersionId": null,
+    "name": "domain version name",
+    "description": "domain version description",
+    "state": "published",
+    "published": "2022-06-10",
+	"issued": "2021-07-07T14:19:09.288Z",
+	"issuerId": "issuerId",
+	"modified": "2021-07-08T14:19:09.288Z",
+	"modifierId": "modifierId",
+    "taxonomies": [
+		{
+			"id": "taxonomy000",
+			"versionId": "domainVersion00",
+			"parentId": null,
+            "imagePath": "images/logo.jpg",
+			"name": "taxonomy name",
+			"description": "taxonomy description",
+			"isDeprecated": false,
+			"isDeprecatedDraft": false,
+			"orgId": "orgId",
+			"issued": "2021-07-09T14:19:09.288Z",
+			"issuerId": "issuerId",
+			"modified": "2021-07-10T14:19:09.288Z",
+			"modifierId": "modifierId"
+		}
+	],
+    "categories": [
+        {
+			"id": "category0000",
+			"versionId": "domainVersion00",
+			"parentId": "taxonomy000",
+            "imagePath": "images/logo.jpg",
+			"name": "category name",
+			"description": "category description",
+			"isDeprecated": true,
+			"isDeprecatedDraft": true,
+			"orgId": null,
+			"issued": "2021-07-10T14:19:09.288Z",
+			"issuerId": "issuerId",
+			"modified": "2021-07-11T14:19:09.288Z",
+			"modifierId": "modifierId"
+		},
+        {
+			"id": "category0001",
+			"versionId": "domainVersion00",
+			"parentId": "taxonomy000",
+            "imagePath": "images/logo.jpg",
+			"name": "category name",
+			"description": "category description",
+			"isDeprecated": false,
+			"isDeprecatedDraft": false,
+			"orgId": null,
+			"issued": "2021-07-12T14:19:09.288Z",
+			"issuerId": "issuerId",
+			"modified": "2021-07-13T14:19:09.288Z",
+			"modifierId": "modifierId"
+		},
+        {
+			"id": "category00011",
+			"versionId": "domainVersion00",
+			"parentId": "category0001",
+            "imagePath": "images/logo.jpg",
+			"name": "category name",
+			"description": "category description",
+			"isDeprecated": false,
+			"isDeprecatedDraft": false,
+			"orgId": null,
+			"issued": "2021-07-14T14:19:09.288Z",
+			"issuerId": "issuerId",
+			"modified": "2021-07-15T14:19:09.288Z",
+			"modifierId": "modifierId"
+		}
+    ]
+}

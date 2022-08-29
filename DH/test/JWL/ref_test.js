@@ -3,7 +3,7 @@ const fs = require('fs');
 
 var referenceModel1 = 'domainVersion00.rdf';
 var referenceModel2 = 'domainVersion02.rdf';
-var refDir = '/home/ncl/jwlee/KAIST_SODAS/DH/rdf_files/reference-model/domain-version'
+var refDir = '/home/ncl/jwlee/KAIST_SODAS/DIS/rdf_files/reference-model/domain-version'
 var root = __dirname + '/ref_test'
 
 class test {

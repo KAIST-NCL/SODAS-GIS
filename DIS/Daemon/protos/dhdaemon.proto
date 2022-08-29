@@ -1,0 +1,45 @@
+syntax = "proto3";
+option java_multiple_files = true;
+option java_package = "io.grpc.examples.daemonServer";
+option java_outer_classname = "DaemonServerProto";
+option objc_class_prefix = "DS";
+
+package daemonServer;
+
+service daemonServer{
+    rpc GetDhList(NULL) returns (DataHubList){}
+    rpc GetSessionList(NULL) returns (SessionList){}
+    rpc SetInterest(Interest) returns (DataHub){}
+    rpc StartSignal(NULL) returns (NULL) {}
+    rpc SyncOnSignal(NULL) returns (NULL) {}
+}
+
+message NULL{}
+message Interest{
+    repeated string syncKeywords = 1;
+}
+message DataHub{
+    required string name = 1;
+    required string ip = 2;
+    required string portNum = 3;
+    repeated string syncInterestList = 4;
+}
+message DataHubList{
+    repeated DataHub dhList = 1;
+}
+message Session{
+    required string name = 1;
+    required string ip = 2;
+    required string portNum = 3;
+    // 여기서의 syncInterestList DataHub의 syncInterestList 일치하지 않을 수 있음 (session의 sync)
+    repeated string syncInterestList = 4;
+    // 세션 체결 옵션
+    required float minSyncTime = 5;
+    required float maxSyncTime = 6;
+    required int32 syncCount = 7;
+    required string transferInterface = 8;
+    required string dataCatalogVocab = 9;
+}
+message SessionList{
+    repeated Session sessionList = 1;
+}

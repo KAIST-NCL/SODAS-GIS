@@ -1,6 +1,6 @@
 const {Worker, MessageChannel} = require('worker_threads');
 const ConfigParser = require('configparser');
-const { ctrlConsumer, ctrlProducer } = require('/home/ncl/jwlee/KAIST_SODAS/DH/Daemon/ctrlKafka');
+const { ctrlConsumer, ctrlProducer } = require('/home/ncl/jwlee/KAIST_SODAS/DIS/Daemon/ctrlKafka');
 const fs = require('fs')
 
 // Test 순서
@@ -17,7 +17,7 @@ class vc_test {
     constructor() {
         // Kafka 설정
         this.conf = new ConfigParser();
-        this.conf.read('/home/ncl/KAIST_SODAS/DH/setting.cfg');
+        this.conf.read('/home/ncl/KAIST_SODAS/DIS/setting.cfg');
         this.sl_portNum = this.conf.get('SessionListener', 'portNum');
         this.kafka = this.conf.get('Kafka', 'ip');
         this.kafka_options = this.conf.get('Kafka', 'options');
@@ -25,8 +25,8 @@ class vc_test {
         // 쓰레드 설정
         this.msgChn = new MessageChannel();
         this.ip = '127.0.0.1';
-        this.pubvc_root = '/home/ncl/KAIST_SODAS/DH/test/JWL/pubvc_root';
-        this.subvc_root = '/home/ncl/KAIST_SODAS/DH/test/JWL/subvc_root';
+        this.pubvc_root = '/home/ncl/KAIST_SODAS/DIS/test/JWL/pubvc_root';
+        this.subvc_root = '/home/ncl/KAIST_SODAS/DIS/test/JWL/subvc_root';
         !fs.existsSync(this.subvc_root) && fs.mkdirSync(this.subvc_root);
 
         // workderData로 보낼 내용들
@@ -50,7 +50,7 @@ class vc_test {
         };
 
         this.vcModuleParam = {
-            rmsync_root_dir: '/home/ncl/KAIST_SODAS/DH/rdf_files/reference-model/domain-version',
+            rmsync_root_dir: '/home/ncl/KAIST_SODAS/DIS/rdf_files/reference-model/domain-version',
             sm_port: this.msgChn.port2,
             kafka: this.kafka,
             kafka_options: this.kafka_options,
@@ -69,7 +69,7 @@ class vc_test {
     // 1. SessionManager 쓰레드 활성
     initSessionManager() {
         console.log("%%%%%%% SESSION_MANAGER CREATE");
-        this.sessionManager = new Worker('/home/ncl/KAIST_SODAS/DH/SessionManager/sessionManager.js',
+        this.sessionManager = new Worker('/home/ncl/KAIST_SODAS/DIS/SessionManager/sessionManager.js',
                                         { workerData: this.SessionManagerParam,
                                           transferList: [this.msgChn.port1]});
     }
@@ -82,7 +82,7 @@ class vc_test {
     // 2. vcModule 쓰레드 활성
     initvcModule() {
         console.log("%%%%%%% VC_MODULE CREATE");
-        this.VC = new Worker('/home/ncl/KAIST_SODAS/DH/VersionControl/vcModule.js', {
+        this.VC = new Worker('/home/ncl/KAIST_SODAS/DIS/VersionControl/vcModule.js', {
             workerData: this.vcModuleParam,
            transferList: [this.msgChn.port2]});
     }

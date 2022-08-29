@@ -14,7 +14,7 @@ class dhClient {
                 defaults: true,
                 oneofs: true
             });
-        conf.read('../DH/setting.cfg');
+        conf.read('../DIS/setting.cfg');
         const dm_ip = conf.get('Daemon', 'ip');
         const dm_portNum = conf.get('Daemon', 'portNum');
         const dhDaemon = grpc.loadPackageDefinition(packageDefinition).daemonServer;

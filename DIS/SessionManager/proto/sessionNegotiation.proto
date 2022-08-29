@@ -1,0 +1,53 @@
+syntax="proto3";
+package sessionNegotiation;
+
+service SessionNegotiationBroker{
+  rpc RequestSessionNegotiation(RequestSN) returns (ResultSN) {}
+  rpc AckSessionNegotiation(Ack) returns (Null) {}
+}
+
+message EndPoint {
+  string ip = 1;
+  int32 port = 2;
+}
+
+message SessionDescription {
+  string sessionCreator = 1;
+  string sessionId = 2;
+}
+
+message DatamapDescription {
+  repeated string syncInterestList = 1;
+  string dataCatalogVocab = 2;
+}
+
+message SynchronizationDescription {
+  repeated int32 syncTime = 1;
+  repeated int32 syncCount = 2;
+  repeated string transferInterface = 3;
+}
+
+message SessionNegotiation {
+  DatamapDescription datamapDesc = 1;
+  SynchronizationDescription syncDesc = 2;
+}
+
+message RequestSN {
+  SessionDescription sessionDesc = 1;
+  SessionNegotiation snOptions = 2;
+}
+
+message ResultSN {
+  bool status = 1;
+  EndPoint endPoint = 2;
+  SessionDescription sessionDesc = 3;
+  SessionNegotiation snOptions = 4;
+}
+
+message Ack {
+  bool status = 1;
+  EndPoint endPoint = 2;
+}
+
+message Null {
+}
