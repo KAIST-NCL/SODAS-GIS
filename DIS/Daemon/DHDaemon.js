@@ -161,7 +161,7 @@ exports.DHDaemon.prototype._dhSearchListener = function(message){
             this._dmServerSetBucketList(this.bucketList);
             this.ctrlProducer._produce( 'recv.dataHubList', {
                 operation: 'UPDATE',
-                content: this.bucketList.toString()
+                content: JSON.stringify(this.bucketList)
             });
             break;
         default:
@@ -176,7 +176,7 @@ exports.DHDaemon.prototype._smListener = function(message){
             this._dmServerSetSessionList(this.sessionList);
             this.ctrlProducer._produce( 'recv.sessionList', {
                 operation: 'UPDATE',
-                content: this.sessionList.toString()
+                content: JSON.stringify(this.sessionList)
             });
             break;
         default:
