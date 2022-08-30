@@ -18,6 +18,7 @@ exports.SessionManager = function() {
 
     this.dhId = workerData.dhId;
     this.dmIp = workerData.dmIp;
+    this.kafka = workerData.kafka;
     this.slAddr = workerData.dmIp + ':' + workerData.slPortNum;
     this.snOptions = workerData.snOptions;
     this.pubvcRoot = workerData.pubvcRoot;
@@ -316,7 +317,7 @@ exports.SessionManager.prototype._createSession = async function () {
     session.sessionId = crypto.randomBytes(20).toString('hex');
     session.myIp = this.dmIp
     await this._setSessionPort().then(value => session.myPort = value);
-    session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'mySessionId': session.sessionId, 'myIp': session.myIp, 'myPortNum': session.myPort, 'pubvcRoot': sessionManager.pubvcRoot, 'subvcRoot': sessionManager.subvcRoot, 'mutexFlag': sessionManager.mutexFlag} });
+    session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'mySessionId': session.sessionId, 'myIp': session.myIp, 'myPortNum': session.myPort, 'kafka': sessionManager.kafka, 'pubvcRoot': sessionManager.pubvcRoot, 'subvcRoot': sessionManager.subvcRoot, 'mutexFlag': sessionManager.mutexFlag} });
     session.worker.on('message', this._sessionListener);
 
     return session

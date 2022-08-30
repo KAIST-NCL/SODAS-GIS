@@ -28,6 +28,7 @@ exports.Session = function() {
     debug(workerData);
     this.countMsg = 0;
 
+    this.kafka = workerData.kafka;
     this.pubvcRoot = workerData.pubvcRoot;
     // Root Dir Creation
     this.id = workerData.mySessionId;
@@ -254,7 +255,7 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     debug('[LOG] kafka Producer start');
 
     var Producer = kafka.Producer;
-    var client = new kafka.KafkaClient();
+    var client = new kafka.KafkaClient({kafkaHost: this.kafka});
     var producer = new Producer(client);
 
     producer.on('error', function(err) {

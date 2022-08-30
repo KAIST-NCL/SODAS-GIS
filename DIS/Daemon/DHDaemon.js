@@ -99,7 +99,7 @@ exports.DHDaemon.prototype.run = function(){
     const dmServerParam = {'dmIp': this.dmIp, 'dmPortNum': this.dmPortNum, 'name': this.name};
     const dhSearchParam = {'dmIp': this.dmIp, 'dsPortNum': this.dsPortNum, 'slPortNum': this.slPortNum, 'bootstrapIp': this.bsIp, 'bootstrapPortNum': this.bsPortNum};
     const vcParam = {'smPort': msgChn.port1, 'rmsyncRootDir': this.rmSyncRootDir, 'kafka': this.kafka, 'kafkaOptions': this.kafkaOptions, 'pubvcRoot': this.pubvcRoot, 'commitPeriod': this.commitPeriod, 'mutexFlag': mutexFlag};
-    const smParam = {'vcPort': msgChn.port2, 'dhId': this.dhId, 'dmIp': this.dmIp, 'slPortNum': this.slPortNum, 'snOptions':this.snOptions, 'pubvcRoot': this.pubvcRoot, 'subvcRoot': this.subvcRoot, 'mutexFlag': mutexFlag};
+    const smParam = {'vcPort': msgChn.port2, 'kafka': this.kafka, 'dhId': this.dhId, 'dmIp': this.dmIp, 'slPortNum': this.slPortNum, 'snOptions':this.snOptions, 'pubvcRoot': this.pubvcRoot, 'subvcRoot': this.subvcRoot, 'mutexFlag': mutexFlag};
     const rmSyncParam = {'dmIp': this.dmIp, 'rmPort': this.rmPortNum, 'gsIp': this.gsIp, 'gsPortNum': this.gsPortNum, 'rmsyncRootDir': this.rmSyncRootDir};
 
     // run daemonServer
