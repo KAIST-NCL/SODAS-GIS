@@ -159,6 +159,10 @@ exports.DHDaemon.prototype._dhSearchListener = function(message){
         case 'UPDATE_BUCKET_LIST':
             this.bucketList = message.data;
             this._dmServerSetBucketList(this.bucketList);
+            this.ctrlProducer._produce( 'recv.dataHubList', {
+                operation: 'UPDATE',
+                content: this.bucketList.toString()
+            });
             break;
         default:
             debug('[ERROR] DH Search Listener Error ! event:', message.event);
@@ -171,8 +175,8 @@ exports.DHDaemon.prototype._smListener = function(message){
             this.sessionList = message.data;
             this._dmServerSetSessionList(this.sessionList);
             this.ctrlProducer._produce( 'recv.sessionList', {
-                event: 'UPDATE_SESSION_LIST',
-                data: this.sessionList
+                operation: 'UPDATE',
+                content: this.sessionList.toString()
             });
             break;
         default:
