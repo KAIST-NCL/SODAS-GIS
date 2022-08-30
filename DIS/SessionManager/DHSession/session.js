@@ -258,13 +258,14 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     var client = new kafka.KafkaClient({kafkaHost: this.kafka});
     var producer = new Producer(client);
 
-    for (var i=0; i < payload_list.length; i++) {
-        var payloads = [{topic: 'recv.asset', messages: payload_list[i], partition: 0}];
+    payload_list.forEach((payload) => {
+        debug(JSON.stringify(payload));
+        var payloads = [{topic: 'recv.asset', messages: payload, partition: 0}];
         producer.send(payloads, function(err, data){
             if(err) debug(err);
         });
-    }
-    
+    })
+
     debug('[LOG] kafka Producer done');
 }
 
