@@ -13,11 +13,11 @@ class DHDaemon {
     constructor() {
         this.conf = new ConfigParser();
         this.conf.read(__dirname+'/../../../setting.cfg');
-        this.pubvc_root = '/home/ncl/KAIST_SODAS_KPI/KAIST_SODAS/DH/test/JWL/functionTest/pubvc';
-        this.subvc_root = '/home/ncl/KAIST_SODAS_KPI/KAIST_SODAS/DH/test/JWL/functionTest/subvc';
+        this.pubvc_root = '/home/ncl/KAIST_SODAS_KPI/KAIST_SODAS/DIS/test/JWL/functionTest/pubvc';
+        this.subvc_root = '/home/ncl/KAIST_SODAS_KPI/KAIST_SODAS/DIS/test/JWL/functionTest/subvc';
         this.kafka = this.conf.get('Kafka', 'ip');
         this.kafka_options = this.conf.get('Kafka', 'options');
-        this.rmsync_root_dir = '/home/ncl/KAIST_SODAS_KPI/KAIST_SODAS/DH/rdf_files/reference-model/domain-version';
+        this.rmsync_root_dir = '/home/ncl/KAIST_SODAS_KPI/KAIST_SODAS/DIS/rdf_files/reference-model/domain-version';
         this.RM = 'domainVersion00.rdf';
         this.msgChn = new MessageChannel();
         this.dm_ip = this.conf.get('Daemon', 'ip');

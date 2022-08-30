@@ -17,7 +17,7 @@ class DHDaemon {
         this.subvc_root = __dirname + '/subvc';
         this.kafka = this.conf.get('Kafka', 'ip');
         this.kafka_options = this.conf.get('Kafka', 'options');
-        this.rmsync_root_dir = '/home/ncl/jwlee/my_branch/KAIST_SODAS/DH/rdf_files/reference-model/domain-version';
+        this.rmsync_root_dir = '/home/ncl/jwlee/my_branch/KAIST_SODAS/DIS/rdf_files/reference-model/domain-version';
         this.RM = 'domainVersion00.rdf';
         this.msgChn = new MessageChannel();
         this.dm_ip = this.conf.get('Daemon', 'ip');

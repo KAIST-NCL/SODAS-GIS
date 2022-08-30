@@ -74,7 +74,7 @@ exports.SessionManager.prototype._createSession = async function(self, id) {
     session.session_id = id;
     session.ip = self.dm_ip
     await self._setSessionPort().then(value => session.port = value);
-    session.worker = await new Worker('/home/ncl/jwlee/KAIST_SODAS/DH/SessionManager/DHSession/session.js', 
+    session.worker = await new Worker('/home/ncl/jwlee/KAIST_SODAS/DIS/SessionManager/DHSession/session.js', 
                                      { workerData: {
                                          'my_session_id': session.session_id, 
                                          'my_ip': session.ip, 
