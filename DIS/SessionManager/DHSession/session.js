@@ -258,21 +258,13 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     var client = new kafka.KafkaClient({kafkaHost: this.kafka});
     var producer = new Producer(client);
 
-    producer.on('error', function(err) {
-        debug("[ERROR] kafkaproducer error");
-        debug(err);
-    })
-
-    producer.on('ready', function() {
-        for (var i=0; i < payload_list.length; i++) {
-            var payloads = [
-                { topic: 'recv.asset', messages:payload_list[i]}
-            ];
-            producer.send(payloads, function(err, result) {
-                debug('[LOG]', result);
-            });
-        }
-    });
+    for (var i=0; i < payload_list.length; i++) {
+        var payloads = [{topic: 'recv.asset', messages: payload_list[i], partition: 0}];
+        producer.send(payloads, function(err, data){
+            if(err) debug(err);
+        });
+    }
+    
     debug('[LOG] kafka Producer done');
 }
 
