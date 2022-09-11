@@ -10,6 +10,7 @@ const { networkInterfaces } = require('os');
 const crypto = require("crypto");
 const nets = networkInterfaces();
 const ips = Object.create(null); // Or just '{}', an empty object
+const ip = require('ip');
 
 exports.DHDaemon = function(){
 
@@ -26,7 +27,7 @@ exports.DHDaemon = function(){
     this.bsPortNum = this.conf.get('GovernanceSystem', 'bootstrap_portNum');
     this.gsIp = this.conf.get('GovernanceSystem', 'governanceSystem_ip');
     this.gsPortNum = this.conf.get('GovernanceSystem', 'governanceSystem_portNum');
-    this.kafka = this.conf.get('Kafka', 'ip');
+    
     this.kafkaOptions = this.conf.get('Kafka', 'options');
     this.syncInterestList = this.conf.get('Session', 'sync_interest_list');
     this.dataCatalogVocab = this.conf.get('Session', 'data_catalog_vocab');
@@ -45,20 +46,9 @@ exports.DHDaemon = function(){
         }
     };
 
-    // get ip from local
-    for (const name of Object.keys(nets)) {
-        for (const net of nets[name]) {
-            // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
-            if (net.family === 'IPv4' && !net.internal) {
-                if (!ips[name]) {
-                    ips[name] = [];
-                }
-                ips[name].push(net.address);
-            }
-        }
-    }
-    this.dmIp = ips[this.dmNetwork][0];
+    this.dmIp = ip.address();
     debug('[LOG]: ip', this.dmIp);
+    this.kafka = this.dmIp+':30092';
     debug('[LOG]: session negotiation option', this.snOptions);
     this.pubvcRoot = this.conf.get('VersionControl', 'pubvc_root');
     this.subvcRoot = this.conf.get('VersionControl', 'subvc_root');

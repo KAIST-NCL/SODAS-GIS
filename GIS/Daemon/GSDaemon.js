@@ -6,6 +6,7 @@ const deasync = require('deasync');
 var msgChn = new MessageChannel();
 const debug = require('debug')('sodas:GSDaemon');
 const { ctrlConsumer } = require('./GSctrlKafka');
+const ip = require('ip');
 
 'use strict';
 const { networkInterfaces } = require('os');
@@ -22,7 +23,7 @@ exports.GSDaemon = function(){
     this.bsPortNum = this.conf.get('BootstrapServer', 'portNum');
     this.smIp = this.conf.get('RMSessionManager', 'ip');
     this.smPortNum = this.conf.get('RMSessionManager', 'portNum');
-    this.kafka = this.conf.get('Kafka', 'ip');
+    this.kafka = ip.address() + ":30092";
     this.kafkaOptions = this.conf.get('Kafka', 'options');
     this.pubvcRoot = __dirname + this.conf.get('VersionControl', 'pubvc_root');
     this.kafkaClient = new kafka.KafkaClient({kafkaHost: this.kafka});
@@ -39,8 +40,8 @@ exports.GSDaemon = function(){
             }
         }
     }
-    this.bsIp = ips[this.gsNetwork][0];
-    this.smIp = ips[this.gsNetwork][0];
+    this.bsIp = ip.address();
+    this.smIp = ip.address();
 
     this.ctrlKafka = new ctrlConsumer(this.kafka, this.kafkaOptions, this, this.conf);
 };
