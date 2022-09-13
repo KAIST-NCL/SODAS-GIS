@@ -28,18 +28,19 @@ exports.GSDaemon = function(){
     this.pubvcRoot = __dirname + this.conf.get('VersionControl', 'pubvc_root');
     this.kafkaClient = new kafka.KafkaClient({kafkaHost: this.kafka});
 
-    // get ip from local
-    for (const name of Object.keys(nets)) {
-        for (const net of nets[name]) {
-            // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
-            if (net.family === 'IPv4' && !net.internal) {
-                if (!ips[name]) {
-                    ips[name] = [];
-                }
-                ips[name].push(net.address);
-            }
-        }
-    }
+    // // get ip from local
+    // for (const name of Object.keys(nets)) {
+    //     for (const net of nets[name]) {
+    //         // Skip over non-IPv4 and internal (i.e. 127.0.0.1) addresses
+    //         if (net.family === 'IPv4' && !net.internal) {
+    //             if (!ips[name]) {
+    //                 ips[name] = [];
+    //             }
+    //             ips[name].push(net.address);
+    //         }
+    //     }
+    // }
+    
     this.bsIp = ip.address();
     this.smIp = ip.address();
 
