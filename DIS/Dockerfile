@@ -15,7 +15,7 @@ RUN cd /tmp/git-* &&  \
 
 RUN echo "trick for docker-build!" && git clone https://$REPO_TOKEN@github.com/EunjuYang/KAIST_SODAS.git
 WORKDIR /KAIST_SODAS/DIS/
-RUN git checkout deploy_docker
+RUN git checkout September_Test
 RUN npm install
 WORKDIR /KAIST_SODAS/DIS/Daemon
 ENV DEBUG=sodas:*
