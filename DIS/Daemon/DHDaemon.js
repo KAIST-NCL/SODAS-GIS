@@ -27,7 +27,7 @@ exports.DHDaemon = function(){
     this.bsPortNum = this.conf.get('GovernanceSystem', 'bootstrap_portNum');
     this.gsIp = this.conf.get('GovernanceSystem', 'governanceSystem_ip');
     this.gsPortNum = this.conf.get('GovernanceSystem', 'governanceSystem_portNum');
-    
+    this.kafka = this.conf.get('Kafka', 'ip');
     this.kafkaOptions = this.conf.get('Kafka', 'options');
     this.syncInterestList = this.conf.get('Session', 'sync_interest_list');
     this.dataCatalogVocab = this.conf.get('Session', 'data_catalog_vocab');
@@ -48,7 +48,6 @@ exports.DHDaemon = function(){
 
     this.dmIp = ip.address();
     debug('[LOG]: ip', this.dmIp);
-    this.kafka = this.dmIp+':30092';
     debug('[LOG]: session negotiation option', this.snOptions);
     this.pubvcRoot = this.conf.get('VersionControl', 'pubvc_root');
     this.subvcRoot = this.conf.get('VersionControl', 'subvc_root');
