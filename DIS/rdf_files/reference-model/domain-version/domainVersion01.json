@@ -28,5 +28,20 @@
 		}
 	],
     "categories": [
+		{
+			"id": "category000111",
+			"versionId": "domainVersion01",
+			"parentId": "category00011",
+            "imagePath": "images/logo.jpg",
+			"name": "category name",
+			"description": "category description",
+			"isDeprecated": false,
+			"isDeprecatedDraft": false,
+			"orgId": null,
+			"issued": "2021-08-14T14:19:09.288Z",
+			"issuerId": "issuerId",
+			"modified": "2021-08-15T14:19:09.288Z",
+			"modifierId": "modifierId"
+		}
 	]
 }
