@@ -23,7 +23,12 @@ class vcConsumer extends Consumer{
         // publishingType: JSON, RDF
         const message_ = JSON.parse(message.value);
         const event = message_.operation;
-        const filepath = self.VC.vc.vcRoot + '/' + message_.type+ '/'+ message_.id + '.rdf';
+        const filepath = self.VC.vc.vcRoot + '/' + message_.type+ '/'+ message_.id;
+        
+        // 양식 정하기
+        if (message_.publishingType == 'sodas') filepath = filepath + '.json';
+        else if (message_.publishingType == 'rdf') filepath = filepath + '.rdf';
+
         // do the operation right away
         self.VC.editFile(event, filepath,message_.type, message_.content).then(() => {
             const commitMessage = message_.id;
