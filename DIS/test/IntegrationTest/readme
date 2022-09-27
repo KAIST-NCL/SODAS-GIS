@@ -1,7 +1,0 @@
-DEBUG=sodas:* node SM_VC_Test_copy.js
-DEBUG=sodas:* node SM_VC_Test.js 
-
-make a directory "pubvc" and "subvc" in IntegrationTest folder 
-run the 2nd line code to init the git in pubvc and shut it down
-run the 1st line code and then run the 2nd line code
-To make kafka msg, use the kafkaproducer in test/jwlee folder

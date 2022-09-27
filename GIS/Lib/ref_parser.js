@@ -1,379 +1,426 @@
-const { forEach } = require('async');
+// ----------------------------------------------- //
+// 읽어올 폴더 트리 구조 //
+// 03-domain
+// 04-group
+// 05-taxonomy
+// 06-taxonomy-version
+// 각각의 읽어올 내용 정리 //
+// domain: id
+// group: id, domainId
+// taxonomy: id, taxonomyGroupId
+// taxonomyVersion: id, taxonomyId, previousVersionId, categories
+// categories 내부: id, versionId, parentId
+// parentId가 null이면 taxonomy가 상위, null이 아니면 해당 category가 상위
+// ----------------------------------------------- //
+// 자료 관리 구조 //
+// ref_parser에 domain, group, taxonomy, category Map 생성
+// 모두 다음과 같은 key, value 구조를 같는다 : id, {parent: {id: class}, child: {id: class, }}
+// 이 때, domain은 예외로 parent는 항상 null을 가지며 taxonomy는 version 항목을 갖는다
+// }
+
 const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
 const debug = require('debug')('sodas:lib:ref-parser');
+// ------------------------------------------ 외부 동작 함수 ------------------------------------------ //
+exports.ref_parser = function(root, refRootdir) {
+    this.root = root; //gitDB의 root 디렉토리
+    this.refRootdir = refRootdir + '/gitDB'; // ref 파일들이 저장된 최상위 폴더
+    this.refItems = {};
+    // typeName에 정의된 목록만큼 Map을 생성한다
+    Object.values(typeName).forEach((type) => {
+        this.refItems[type] = new Map();
+    });
+}
 
-class ref_parser {
-    // reference model을 읽어 폴더 구조로 변환하는 코드
-    // 목표 1. Reference 파일을 읽어 Domain, Taxonomy, Category 별로 내용 추출
-    // 목표 2. message.related <-> filepath 변환 기능 제공
-    // 목표 3. Reference Model이 바뀔 때 업데이트 기능 제공
-
-    // message.related 양식: [{operation': '', 'id': '', 'type': ''}, {...}]
-    constructor(root, refRootdir) {
-        this.root = root; // gitDB의 root 디렉토리
-        this.refRootdir = refRootdir;
-        this.referenceModel = []; // reference Model의 파일 경로
-        // referenceModel로부터 뽑아낸 관계 정보가 담긴 linked list의 배열
-        this.dom_related_list = [];
-        this.tax_related_list = [];
-        this.cat_related_list = [];
-    }
-
-    // ---------------------  외부 노출 함수 ----------------------- //
-    // Reference Model 추가하는 함수
-    addReferenceModel(ReferenceModel) {
-        // List가 입력되면 Concat
-        var self = this;
-        if (typeof ReferenceModel === 'object') {
-            // console.log("list");
-            ReferenceModel.forEach((element) => {
-                debug(this.refRootdir + '/' + element);
-                self._createReferenceDir(this.refRootdir + '/' + element);
-            });
+// 새로운 파일 입력
+exports.ref_parser.prototype.addReferenceModel = function(ReferenceModel) {
+    // ReferenceModel은 reference model 정보가 들은 배열이다
+    // 우선, 분류를 한 뒤 정렬한다
+    const sorted_list = sortFileList(this, ReferenceModel);
+    // 배열된 결과는 sorted dict {domain: [], group: [], taxonomy: [], taxonomyVersion: []} 의 형태로 저장되어 나온다
+    // 각각의 배열에 대해 iterate를 해준다
+    sorted_list.domain.forEach((element) => { domainParser(this, element); });
+    sorted_list.group.forEach((element) => {
+        const result = groupParser(this, element);
+        if (result != errorType.NO_ERROR) {
+            // groupParser에서 에러가 나왔다는 건 상위 domain이 미등록된 상태란 의미이다
+            debug(result.description);
+            debug("Error by " + element);
         }
-        // String이 입력되면 추가
-        else if (typeof ReferenceModel === 'string') {
-            // console.log(this.refRootdir + '/' + ReferenceModel);
-            this._createReferenceDir(this.refRootdir + '/' + ReferenceModel);
+    })
+    sorted_list.taxonomy.forEach((element) => {
+        const result = taxonomyParser(this, element);
+        if (result != errorType.NO_ERROR) {
+            // taxonomyParser에서 에러가 나왔다는 건 상위 group이 미등록된 상태란 의미이다
+            debug(result.description);
+            debug("Error by " + element);
         }
-        else {
-            // console.log("Error on Input Type");
-        }
-    }
-
-    // related 정보가 들어오면 이를 바탕으로 filepath를 만들어주는 함수
-    related_to_filepath(related) {
-        // domain부터 시작해서 next를 타고 내려가면서 related 내에 해당하는 것들이 있는지 확인을 한다.
-        // - related 내의 domain 정보 확인
-        var related_domain = related.find((element) => {
-            if (element.type === "domain") return true;
-        });
-        if (typeof related_domain === 'undefined') return false;
-        // - domain_linked_list 에서 해당하는 linked_list 색출
-        var current_LL = this.dom_related_list.find((element) => {
-            if (element.id === related_domain.id) return true;
-        });
-        if (typeof current_LL === 'undefined') return false;
-        // - next를 타고 내려가면서 related와 일치하는 지 확인한 후 마지막 linked list를 가져온다.
-        for (var i = 1; i < related.length; i++) {
-            // current LL의 next 검사
-            current_LL = current_LL.next.find((LL) => {
-                return related.some((element) => {
-                    return (element.id === LL.id);
-                });
-            });
-            // 검색되지 않는 경우 함수를 종료한다.
-            if (typeof current_LL === 'undefined') return false;
-        }
-        // 정상적으로 끝냈다면 현재 current LL은 가장 마지막의 category를 가르켜야한다.
-        var filePathArray = this._mkdirarray(current_LL);
-        // Array로부터 string 형태의 filepath를 추출해내고 반환한다.
-        var filePath = "";
-        filePathArray.forEach((element) => {
-            filePath = filePath + '/' + element;
-        });
-        return filePath.slice(1);
-    }
-
-    // ---------------------  내부 동작용 함수 ----------------------- //
-    // 추가된 ReferenceModel이 기존 Domain의 업데이트인지 여부 확인
-    _check_update(Ref) {
-        // 새로 들어온 Ref의 /domain/ 뒷 부분을 확인하여 Domain 정보를 얻는다.
-
-        // 기존 Domain 중 중복되는 Domain이 있는지 확인 후 해당 DomainVersion을 구한다.
-
-        // 기존 내용 중 DomainVersion이 일치하는 내용을 삭제한다.
-
-    }
-
-    // Reference Model을 파싱하여 폴더 트리를 생성하는 함수
-    _createReferenceDir(Ref) {
-        this.referenceModel.push(Ref);
-        // Reference Model을 읽어드린 후 Pre-Process ==> <rdf:Description> 구역 단위로 파티션들을 만든다.
-        var content = fs.readFileSync(Ref).toString();
-        var partition = this._partition(content.split('\n'));
-
-        var temp_dom = [];
-        var temp_tax = [];
-        var temp_cat = [];
-
-        // 각 파티션들을 Domain, Taxonomy, Category로 분류한 다음 각각 linked_list를 만든다.
-        partition.forEach((element) => {
-            if (element[0].indexOf('/domain-version') >= 0) temp_dom.push(this._domainparser(element));
-            else if (element[0].indexOf('/taxonomy/') >= 0) temp_tax.push(this._taxonomyparser(element));
-            else if (element[0].indexOf('/category/') >= 0) temp_cat.push(this._categoryparser(element));
-        });
-
-        // 현재 linked_list의 next와 prev에는 string 혹은 dictionary가 들어있는데, 이를 바로잡아 준다.
-        if (this._linked_list_correction_all(temp_dom, temp_tax, temp_cat)) return false;
-        else {
-            // 뽑아낸 Linked List들로 디렉토리를 생성한다.
-            this.dom_related_list.push(...temp_dom);
-            this.tax_related_list.push(...temp_tax);
-            this.cat_related_list.push(...temp_cat);
-            this._mkdir_from_list();
-            return true;
-        }
-    }
-
-    // 해당 경로에 폴더를 생성하는 함수
-    _folder_create(target) {
-        !fs.existsSync(target) && fs.mkdirSync(target, {recursive: true});
-    }
-
-    // 필요한 내용이 들은 줄이 파티션 내에서 몇 번째 인덱스에 해당하는지 반환하는 함수.
-    // 검색할 파티션, 검색할 스트링
-    // 인덱스 배열 반환
-    _findLine(partition, toFind) {
-        var line = [];
-        partition.forEach((element, index) => {
-            if (element.indexOf(toFind) >= 0) {
-                line.push(index);
+    })
+    sorted_list.taxonomyVersion.forEach((element) => {
+        const result = taxonomyVersionParser(this, element);
+        if (result != errorType.NO_ERROR) {
+            // taxonomyVersionParser에서 에러가 나왔다는 건 버전이 맞지 않다는 의미이거나 상위 taxonomy가 미등록 상태이거나 category 구조에 문제가 있다는 의미이다
+            debug(result.description);
+            debug("Error by " + element);
+            if (result == errorType.VERSION_NOT_MATCHING) {
+                // 버전이 맞지 않는 경우
             }
-        });
-        return line;
-    }
+            // taxonomy가 미등록인 경우
+            else if (result == errorType.NOT_REGISTERED) {
+                // category 구조에 문제가 있는 경우
+            }
+        }
+    })
+}
 
-    // reference model rdf 파일을 구역별로 쪼개는 함수
-    // 줄단위로 읽어드린 rdf 파일의 스트링을 입력값으로 넣어준다.
-    _partition(contentArray) {
-        let partition = [];
-        let toStore = false; // 0이면 true, 1이면 false
-        let temp = [];
-        contentArray.forEach((element) => {
-            if (!toStore) {
-                // rdf:Description을 발견하면 temp에 저장하기 시작
-                if (element.indexOf('<rdf:Description') >= 0) {
-                    toStore = true;
-                    temp.push(element);
+// Related -> filepath 변환 기능
+exports.ref_parser.prototype.related_to_filepath = function(related) {
+    // related의 경우에는 [{operation: , id: , type: }]의 구조를 갖는다
+    // 효율적인 iteration을 위해서 중간 결과물로 {domain: ,group: ,taxonomy: ,category:[]}을 둔다
+    var temp = {domain:null, group:null, taxonomy:null, category:null};
+    related.forEach((element) => {
+        switch (element.type) {
+            case typeName.domain:
+                temp.domain = element.id;
+                break;
+            case typeName.group:
+                temp.group = element.id;
+                break;
+            case typeName.taxonomy:
+                temp.taxonomy = element.id;
+                break;
+            case typeName.category:
+                if (!temp.category) temp.category = [];
+                temp.category.push(element.id);
+                break;
+            default:
+                break;
+        }
+    })
+    // 무결성 체크를 하면서 filepath를 뽑아낸다
+    var filePath = "";
+    const keys = [typeName.domain, typeName.group, typeName.taxonomy, typeName.category];
+    for(var i = 0; i < 4; i++) {
+        var value = temp[keys[i]];
+        if (!value) {
+            // 내 뒤에도 전부 null인지 체크 후 모두 null이면 멈추고 아니면 에러 메시지 반환ㄴ
+            for (var j = i + 1; j < 4; j++) {
+                if (temp[keys[j]]) return errorType.NOT_CONTINUOUS;
+            }
+            break; 
+        }
+        switch (i) {
+            case 0:
+                // domain인 경우
+                // 무결성 체크
+                if (!this.refItems.domain.get(value)) return errorType.NOT_REGISTERED;
+                filePath += value;
+                break;
+            case 3:
+                // category인 경우
+                // top category 찾은 다음 child를 타고 가면서 체크
+                var current_index = -1;
+                var previous_info = null;
+                for (var j = 0; j < value.length; j++) {
+                    var previous_info = this.refItems.category.get(value[j]);
+                    if (!previous_info) return errorType.NOT_REGISTERED;
+                    if (previous_info.parent[temp[keys[i-1]]] == keys[i-1]) {
+                        current_index = j;
+                        break;
+                    }
                 }
-            } else {
-                temp.push(element);
-                // </rdf:Description>을 발견하면 저장을 멈추고 temp를 partition에 추가한 다음 비운다.
-                if (element.indexOf('</rdf:Description>') >= 0) {
-                    toStore = false;
-                    partition.push(temp);
-                    temp = [];
+                if (current_index == -1) return errorType.NOT_CONTINUOUS;
+                // 찾은 top category부터 iterate
+                filePath += ('/' + value.splice(current_index, 1)[0]);      
+                while (value.length > 0) {
+                    // previous_info에서 current_index 구하기 - 남은 항목 중 previous_info의 child에 속하는 것이 있어야만 한다
+                    current_index = value.findIndex((id) => {
+                        if (previous_info.child[id]) return true;
+                    });
+                    if (current_index == -1) return errorType.NOT_CONTINUOUS;
+                    // 현재 내용을 배열에서 제거 및 filePath에 잇기
+                    previous_info = this.refItems.category.get(value[current_index]);
+                    filePath += ('/' + value.splice(current_index, 1)[0]);
                 }
-            }
-        });
-        return partition;
+                break;
+            default:
+                // gropu, taxonomy의 경우
+                // 무결성 체크
+                var self_info = (i == 1) ? this.refItems.group.get(value) : this.refItems.taxonomy.get(value);
+                if (!self_info) return errorType.NOT_REGISTERED;
+                if (self_info.parent[temp[keys[i-1]]] != keys[i-1]) return errorType.TYPE_NOT_MATCHING; // parent의 ID가 다르거나 type이 다른 경우
+                filePath += ('/' + value);
+                break;
+        }
     }
+    return filePath;
+}
 
-    // 파티션들에서 파싱한 정보를 갖고 linked_list를 만든다.
-    // 아래 함수들에선 임시로 prev와 next를 문자열로 저장. 추후에 pop을 통하여 정비할 예정
-    _domainparser(i_partition) {
-        // <dct:isVersionOf ~/> 내에 domain 폴더 정보가 있다.
-        var line_isVersion = this._findLine(i_partition, '<dct:isVersionOf');
-        // id, dv를 구한다.
-        var dv = i_partition[0].split('/domain-version/')[1].split('"')[0];
-        var id = i_partition[line_isVersion[0]].split('/domain/')[1].split('"')[0];
-        // Linked List 생성
-        var LL = new linked_list(id, "domain", dv);
-        // <sodas:taxonomy ~/> 내에 domain에 속하는 taxonomy 정보가 있다.
-        var line_isTax = this._findLine(i_partition, '<sodas:taxonomy');
-        line_isTax.forEach((element) => {
-            LL.next.push(i_partition[element].split('/taxonomy/')[1].split('"')[0])
-        });
-        return LL;
+// 해당 경로에 폴더를 생성하는 함수
+exports.ref_parser.prototype._folder_create = function(target) {
+    !fs.existsSync(target) && fs.mkdirSync(target, {recursive: true});
+}
+
+// 입력된 위치까지의 폴더 경로 반환하는 함수
+exports.ref_parser.prototype.search_filepath = function(type, id) {
+    if (!Object.values(typeName).includes(type)) {
+        debug("Wrong Type Given: " + type + ", " + id);
+        return errorType.TYPE_NOT_MATCHING;
     }
-    _taxonomyparser(i_partition) {
-        // id, dv를 구한다.
-        var id = i_partition[0].split('/taxonomy/')[1].split('"')[0];
-        // <skos:inScheme ~/> 내에 상위 폴더 정보가 있다.
-        var line_inScheme = this._findLine(i_partition, '<skos:inScheme');
-        var dv = i_partition[line_inScheme[0]].split('/domain-version/')[1].split('"')[0];
-        // Linked List 생성
-        var LL = new linked_list(id, "taxonomy", dv);
-        LL._setPrev(dv);
-        // <skos:hasTopConcept ~/> 내에 하위 폴더 정보가 있다.
-        var line_hasTop = this._findLine(i_partition, '<skos:hasTopConcept');
-        line_hasTop.forEach((element) => {
-            LL.next.push(i_partition[element].split('/category/')[1].split('"')[0]);
-        });
-        return LL;
+    // id와 type 기반으로 등록 여부 확인
+    var current = null;
+    current = this.refItems[type].get(id);
+    if (!current) return errorType.NOT_REGISTERED;
+    // 위로 타고 들어가면서 폴더 경로 생성
+    var filePath = id;
+    while(current.parent != null) {
+        // 검색
+        var currentId = Object.keys(current.parent)[0];
+        current = this.refItems[current.parent[currentId]].get(currentId);
+        // 파일 경로에 추가
+        filePath = currentId + '/' + filePath;
     }
-    _categoryparser(i_partition) {
-        // id를 구한다.
-        var id = i_partition[0].split('/category/')[1].split('"')[0];
-        var LL = new linked_list(id, "category");
-        // category는 broader을 갖는 경우 상위가 category이다.
-        var line_nar = this._findLine(i_partition, '<skos:narrower');
-        var line_bro = this._findLine(i_partition, '<skos:broader');
-        if (line_bro.length === 0) {
-            // topConceptOf가 상위
-            var line_top = this._findLine(i_partition, '<skos:topConceptOf');
-            LL._setPrev({type: "tax", id: i_partition[line_top[0]].split('/taxonomy/')[1].split('"')[0]});
+    return filePath;
+}
+
+// 이미 자료가 다 담긴 폴더의 주소를 주면 하위 폴더 정보 읽어들여서 스스로 테스트하는 함수
+exports.ref_parser.prototype.test = function(folderPath) {
+    // 반드시 folderPath는 03-domain, 04-group, 05-taxonomy, 06-taxonomy-version을 갖고 있어야한다.
+    const folder_list = [refFolder.domain, refFolder.group, refFolder.taxonomy, refFolder.taxonomyVersion];
+    var filePath_list = [];
+    folder_list.forEach((element) => {
+        var fileList = fs.readdirSync(folderPath+'/'+element).filter(filename => filename.includes(".json"));
+        fileList.forEach((e) => filePath_list.push(element+'/'+e));
+    })
+    this.refRootdir = folderPath;
+    // 만들어진 파일 목록으로 프로그램 테스트
+    this.addReferenceModel(filePath_list);
+    // 저장된 결과물 확인
+    var print_map = function(map) {
+        const mapIterator = map.entries();
+        var current = mapIterator.next();
+        while (!current.done) {
+            const [key, value] = current.value;
+            console.log("[ " + key + ' | ' + JSON.stringify(value).replace(/:/g, ": ").replace(/,/g, ", ") + ' ]');
+            current = mapIterator.next();
+        }
+    }
+    Object.values(this.refItems).forEach((map) => print_map(map));
+
+    // related_to_filepath 기능 점검
+    console.log("\n Related_to_FilePath 기능 점검입니다. related를 입력하여 기능을 점검하거나 exit을 입력하여 종료하세요");
+    var r = readline.createInterface({input: process.stdin, output: process.stdout});
+    r.setPrompt('> ');
+    r.prompt();
+    var self = this;
+    r.on('line', function(line) {
+        if (line == 'exit') {
+            r.close();
+        }
+        console.log(self.related_to_filepath(JSON.parse(line)));
+        r.prompt();
+    });
+    r.on('close', function() {
+        process.exit();
+    });
+}
+
+// ------------------------------------------ 내부 동작 함수 ------------------------------------------ //
+// 동기 방식 json 읽기
+function readJsonToDict(filepath) {
+    const jsonFile = fs.readFileSync(filepath, 'utf8');
+    const dict = JSON.parse(jsonFile);
+    return dict;
+}
+
+// 새로운 도메인 생성 시
+function domainParser(parser, filepath) {
+    const dict = readJsonToDict(filepath);
+    // 읽어올 내용은 id 하나 뿐이다
+    const domainId = dict.id;
+    var new_domain = {parent: null, child: {}};
+    // parser의 domain에 해당 내용 추가
+    parser.refItems.domain.set(domainId, new_domain);
+    // 폴더 생성하기
+    parser._folder_create(parser.root + '/' + parser.search_filepath(typeName.domain, domainId));
+}
+
+// group, taxonomy, category 추가 시
+function groupParser(parser, filepath) {
+    const dict = readJsonToDict(filepath);
+    // 읽어올 내용은 id, domainId 두개이다
+    const groupId = dict.id;
+    const domainId = dict.domainId;
+    // domain이 존재하는지 확인
+    var domain = parser.refItems.domain.get(domainId); // 없으면 undefined
+    if (!domain) return errorType.NOT_REGISTERED;
+    // 해당 도메인의 child에 group 추가
+    domain.child[groupId] = typeName.group;
+    // parser의 group에 내용 추가
+    var new_group = {parent: {}, child: {}};
+    new_group.parent[domainId] = typeName.domain;
+    parser.refItems.group.set(groupId, new_group);
+    // 폴더 생성하기
+    parser._folder_create(parser.root + '/' + parser.search_filepath(typeName.group, groupId));
+    return errorType.NO_ERROR;
+}
+
+function taxonomyParser(parser, filepath) {
+    const dict = readJsonToDict(filepath);
+    // 읽어올 내용은 id, taxonomyGroupId이다
+    const taxonomyId = dict.id;
+    const groupId = dict.taxonomyGroupId;
+    // group이 존재하는지 확인
+    var group = parser.refItems.group.get(groupId);
+    if (!group) return errorType.NOT_REGISTERED;
+    // 해당 group의 child에 taxonomy 추가
+    group.child[taxonomyId] = typeName.taxonomy;
+    // parser의 taxonomy에 내용 추가
+    var new_taxonomy = {parent: {}, child: {}, previousVersion: null};
+    new_taxonomy.parent[groupId] = typeName.group;
+    parser.refItems.taxonomy.set(taxonomyId, new_taxonomy);
+    // 폴더 생성하기
+    parser._folder_create(parser.root + '/' + parser.search_filepath(typeName.taxonomy, taxonomyId));
+    return errorType.NO_ERROR;
+}
+
+function taxonomyVersionParser(parser, filepath) {
+    const dict = readJsonToDict(filepath);
+    // 읽어올 내용은 id,taxonomyId, previousVersionId, categories
+    const current_versionId = dict.id;
+    const previous_versionId = dict.previousVersionId;
+    const taxonomyId = dict.taxonomyId;
+    const categories = dict.categories;
+    // Taxonomy 존재여부 확인
+    var taxonomy = parser.refItems.taxonomy.get(taxonomyId);
+    if (!taxonomy) return errorType.NOT_REGISTERED;
+    // 버전 체크
+    if (taxonomy.previousVersion != previous_versionId) return errorType.VERSION_NOT_MATCHING;
+    // 버전이 일치한다면 버전을 갱신한 다음 category를 파싱한다
+    taxonomy.previousVersion = current_versionId;
+    // categories 읽어들이기
+    while (categories.length > 0) {
+        // 앞에서부터 하나씩
+        var current = categories.shift();
+        if (categoryParser(parser, taxonomyId, current) != errorType.NO_ERROR) {
+            // 만약 에러가 발생한다면 일단 뒤로 보낸다
+            categories.push(current);
+        }
+    }
+    return errorType.NO_ERROR;
+}
+
+function categoryParser(parser, taxonomyId, category) {
+    // 읽어들일 내용: id, parentId
+    const categoryId = category.id;
+    const parentId = category.parentId;
+    // 우선 parent가 등록된 바 있는 지 확인
+    if (parentId == null) {
+        // taxonomy가 parent인 경우
+        var taxonomy = parser.refItems.taxonomy.get(taxonomyId);
+        // 해당 taxonomy의 child에 category 추가
+        taxonomy.child[categoryId] = typeName.category;
+        // parser의 category에 내용 추가
+        var new_category = {parent: {}, child: {}};
+        new_category.parent[taxonomyId] = typeName.taxonomy;
+        parser.refItems.category.set(categoryId, new_category);
+        // 폴더 생성하기
+        parser._folder_create(parser.root+ '/' + parser.search_filepath(typeName.category, categoryId));
+        return errorType.NO_ERROR;
+    }
+    else {
+        // category가 parent인 경우
+        var parent_category = parser.refItems.category.get(parentId);
+        if (parent_category) {
+            // 해당 category의 child에 category 추가
+            parent_category.child[categoryId] = typeName.category;
+            // parser의 category에 내용 추가
+            var new_category = {parent: {}, child:{}};
+            new_category.parent[parentId] = typeName.category;
+            parser.refItems.category.set(categoryId, new_category);
+            // 폴더 생성하기
+            parser._folder_create(parser.root + '/' + parser.search_filepath(typeName.category, categoryId));
+            return errorType.NO_ERROR;
         }
         else {
-            // broader가 상위
-            LL._setPrev({type: "cat", id: i_partition[line_bro[0]].split('/category/')[1].split('"')[0]});
+            // 아직 부모 카테고리가 미등록 상태인 경우
+            return errorType.NOT_REGISTERED;
         }
-        // narrower가 하위
-        line_nar.forEach((element) => {
-            LL.next.push(i_partition[element].split('/category/')[1].split('"')[0]);
-        });
-        return LL;
-    }
-
-    // 위에서 만든 linked list에서 prev와 next를 전부 다른 linked_list로 바꿔준다.
-    _linked_list_correction_all(temp_dom, temp_tax, temp_cat) {
-        var fault = false;
-        fault = fault || temp_dom.some((element) => {
-            if(!this._linked_list_correction(element,temp_dom, temp_tax, temp_cat)) {
-                debug("[ERROR]");
-                return true;
-            }
-        });
-        if (fault) return false;
-        fault = fault || temp_tax.some((element) => {
-            if(!this._linked_list_correction(element,temp_dom, temp_tax, temp_cat)) {
-                debug("[ERROR]");
-                return true;
-            }
-        });
-        if (fault) return false;
-        fault = fault || temp_cat.some((element) => {
-            if(!this._linked_list_correction(element,temp_dom, temp_tax, temp_cat)) {
-                debug("[ERROR]");
-                return true;
-            }
-        });
-        if (fault) return false;
-    }
-    _linked_list_correction(LL,temp_dom,temp_tax,temp_cat) {
-        // domain에 해당하는 경우 next와 taxonomy를 이어준다.
-        if (LL.type == "domain") {
-            // next correction
-            for (var i = 0; i < LL.next.length; i++) {
-                // 각각에 대하여 마지막 것을 제거하고 앞에 삽입한다.
-                var tax_id = LL.next.pop();
-                // - tax_id에 해당하는 linked_list를 찾는다.
-                const tax_ll = temp_tax.find((element) => {
-                    if (element.id === tax_id) return true;
-                });
-                LL.next.unshift(tax_ll);
-            }
-        }
-        // taxonomy에 해당하는 경우 prev를 domain과, next를 category와 이어준다.
-        else if (LL.type == "taxonomy") {
-            // next correction
-            for (var i = 0; i < LL.next.length; i++) {
-                // 각각에 대하여 마지막 것을 제거하고 앞에 삽입한다.
-                var cat_id = LL.next.pop();
-                // - cat_id에 해당하는 linked_list를 찾는다.
-                var cat_ll = temp_cat.find((element) => {
-                    if (element.id === cat_id) return true;
-                });
-                cat_ll.dv = LL.dv
-                LL.next.unshift(cat_ll);
-            }
-            // prev correction
-            LL.prev = temp_dom.find((element) => {
-                if (element.dv === LL.prev) return true;
-            });
-        }
-        // category인 경우
-        else {
-            // next correction
-            for (var i = 0; i < LL.next.length; i++) {
-                // 각각에 대하여 마지막 것을 제거하고 앞에 삽입한다.
-                var cat_id = LL.next.pop();
-                // - cat_id에 해당하는 linked_list를 찾는다.
-                var cat_ll = temp_cat.find((element) => {
-                    if (element.id === cat_id) return true;
-                });
-                if (LL.dv !== null) cat_ll.dv = LL.dv;
-                LL.next.unshift(cat_ll);
-            }
-            // prev correction
-            if (LL.prev.type === 'cat') {
-                LL.prev = temp_cat.find((element) => {
-                    if (element.id === LL.prev.id) return true;
-                });
-                if (LL.prev.dv !== null) LL.dv = LL.prev.dv;
-            }
-            else {
-                LL.prev = temp_tax.find((element) => {
-                    if (element.id === LL.prev.id) return true;
-                });
-                LL.dv = LL.prev.dv;
-            }
-        }
-        // 문제 여부 확인 - 상위 분류가 먼저 전부 correction이 끝났다고 가정한다.
-        var noFault = true;
-        if (LL.next.some((element) => { return (typeof(element) === 'string'); })) noFault = false;
-        if (LL.prev != null) noFault = noFault && LL._checkRelation();
-        return noFault;
-    }
-
-    // linked list들로부터 파일 트리 정보가 담긴 array를 만든다.
-    _mkdirarray(LL) {
-        var temp_dir_list = [LL.id];
-        // prev가 null일 때까지 검색해 들어가면서 temp_dir_list에 [상위, .. , 하위] 순서로 id를 쌓는다.
-        if (LL.prev) temp_dir_list = this._mkdirarray(LL.prev).concat(temp_dir_list);
-        return temp_dir_list;
-    }
-
-    // dir_list를 갖고 root 폴더 아래에 폴더들을 만든다.
-    _mkdir_from_list() {
-        var dir_list = [];
-        // next가 없는 category만 갖고 우선 디렉토리를 뽑아낸다.
-        this.cat_related_list.forEach((element) => {
-            if (element.next.length == 0) {
-                dir_list.push(this._mkdirarray(element));
-            }
-        });
-        // next가 없는 taxonomy만 갖고 우선 디렉토리를 뽑아낸다.
-        this.tax_related_list.forEach((element) => {
-            if (element.next.length == 0) {
-                dir_list.push(this._mkdirarray(element));
-            }
-        });
-        // next가 없는 domain만 갖고 우선 디렉토리를 뽑아낸다.
-        this.dom_related_list.forEach((element) => {
-            if (element.next.length == 0) {
-                dir_list.push(this._mkdirarray(element));
-            }
-        });
-
-        dir_list.forEach((dirarray) => {
-            var folder_dir = this.root
-            dirarray.forEach((element) => {
-                folder_dir = folder_dir + '/' + element;
-                this._folder_create(folder_dir);
-            });
-        });
     }
 }
 
-// Linked list의 원본 클래스
-class linked_list {
-    // prev는 반드시 하나의 class 객체야 한다.
-    constructor(id, type, dv=null) {
-        this.id = id; // Domain/Taxonomy/Category 의 id
-        this.type = type;
-        this.dv = dv; // Domain과 Taxonomy에서만 사용된다. root에 해당하는 Domain의 Version을 뜻한다.
-        this.prev = null;
-        this.next = [];
-    }
-
-    // prev 세팅
-    _setPrev(prev) {
-        this.prev = prev;
-    }
-
-    // next 추가
-    _addNext(next) {
-        this.next.push(next);
-    }
-
-    // 상위 클래스와의 비교를 통해 오류 점검 - 문제 발생 시 false 반환
-    _checkRelation() {
-        if (typeof(this.prev) === 'string') return false;
-        if (this.prev.next.indexOf(this) < 0) return false;
-        else return true;
-    }
+// taxonomyVersion의 modified 시간 구하는 함수
+function getModifiedTime(filepath) {
+    const content = readJsonToDict(filepath);
+    return new Date(content.modified);
 }
 
-exports.ref_parser = ref_parser;
+// 입력된 파일 목록 Sorting
+function sortFileList(parser, filepathList) {
+    // 파일 목록을 보고 domain, group, taxonomy, taxonomyVersion 별로 나눈다
+    // 각각 분류 내에서 파일 수정 시간에 따라 순서를 정렬한다
+    var sorted = {domain:[], group:[], taxonomy:[], taxonomyVersion:[]};
+    // 우선 분류
+    filepathList.forEach((filepath) => {
+        var fullDir = path.dirname(filepath);
+        var upperDir = fullDir.split(path.sep).pop();
+        switch (upperDir) {
+            case refFolder.domain:
+                sorted.domain.push(parser.refRootdir + '/' + filepath);
+                break;
+            case refFolder.group:
+                sorted.group.push(parser.refRootdir + '/' + filepath);
+                break;
+            case refFolder.taxonomy:
+                sorted.taxonomy.push(parser.refRootdir + '/' + filepath);
+                break;
+            case refFolder.taxonomyVersion:
+                sorted.taxonomyVersion.push(parser.refRootdir + '/' + filepath);
+                break;
+            default:
+                debug('Not the target Folder: ' + filepath);
+                break;
+        }
+    });
+    // 정렬
+    // 정렬은 taxonomyVersion만 하면 된다
+    if (sorted.taxonomyVersion.length > 2) {
+        sorted.taxonomyVersion.sort(function(a,b) {
+            return getModifiedTime(a) - getModifiedTime(b);
+        });
+    }
+    return sorted;
+}
+
+// ------------------------------------------ ENUM ------------------------------------------ //
+const errorType = Object.freeze({
+    NOT_REGISTERED: Symbol('item is not registered yet'),
+    VERSION_NOT_MATCHING: Symbol('version is not matching'),
+    TYPE_NOT_MATCHING: Symbol('type and id is not matching'),
+    NOT_CONTINUOUS: Symbol('input related is disconnected'),
+    NO_ERROR: Symbol('no error')
+});
+
+const typeName = Object.freeze({
+    domain: 'domain',
+    group: 'group',
+    taxonomy: 'taxonomy',
+    category: 'category'
+});
+
+const refFolder = Object.freeze({
+    domain: '03-domain',
+    group: '04-group',
+    taxonomy: '05-taxonomy',
+    taxonomyVersion: '06-taxonomy-version'
+});
+
+
+// 예시 related
+// [{"operation": "UPDATE", "id": "domain01", "type": "domain"}, {"operation": "UPDATE", "id": "group01", "type": "group"}, {"operation": "UPDATE", "id": "taxonomy01", "type": "taxonomy"}, {"operation": "UPDATE", "id": "category0001", "type": "category"}, {"operation": "UPDATE", "id": "category00011", "type": "category"}]
+
+
+// 틀린 예시 related
+// [{"operation": "UPDATE", "id": "domain01", "type": "domain"}, {"operation": "UPDATE", "id": "taxonomy01", "type": "taxonomy"}, {"operation": "UPDATE", "id": "category0001", "type": "category"}, {"operation": "UPDATE", "id": "category00011", "type": "category"}]
+
