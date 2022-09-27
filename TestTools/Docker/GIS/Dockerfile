@@ -27,3 +27,6 @@ RUN git config --global user.name sodas
 RUN sed -i 's/gisIP/sodas.governancesystem/g' ../setting.cfg
 RUN sed -i 's/gisKafkaIP/sodas.gs.broker/g' ../setting.cfg
 RUN sed -i 's/30092/9094/g' ../setting.cfg
+
+# 기존에 저장되어 있는 referenceModel 삭제
+RUN rm -rf /KAIST_SODAS/GIS/reference-model/*

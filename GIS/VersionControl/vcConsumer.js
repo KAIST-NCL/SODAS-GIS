@@ -23,7 +23,7 @@ class vcConsumer extends Consumer{
         // publishingType: JSON, RDF
         const message_ = JSON.parse(message.value);
         const event = message_.operation;
-        const filepath = self.VC.vc.vcRoot + '/' + message_.type+ '/'+ message_.id;
+        var filepath = self.VC.vc.vcRoot + '/' + message_.type+ '/'+ message_.id;
         
         // 양식 정하기
         if (message_.publishingType == 'sodas') filepath = filepath + '.json';
