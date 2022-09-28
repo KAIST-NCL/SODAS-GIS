@@ -76,7 +76,7 @@ class Git {
     }
 
     editFile(filepath, content) {
-        fs.writeFileSync(filepath, content);
+        fs.writeFileSync(filepath, content, 'utf8');
     }
 
     deleteFile(filepath) {

@@ -46,7 +46,7 @@ exports.vcModule.prototype.reportCommit = function(self, commitNumber){
     const msg = {
         event: 'UPDATE_REFERENCE_MODEL',
         data: {
-            commit_number: commitNumber,
+            commitNumber: commitNumber,
         }
     };
     this.smPort.postMessage(msg);

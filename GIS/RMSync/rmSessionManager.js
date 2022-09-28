@@ -52,20 +52,20 @@ exports.RMSessionManager.prototype._vcListener = function (message){
             debug(message.data);
 
             // 에러가 난 세션이 있을 경우엔 Queue에 추가한다
-            if (this.errorSession[0] > 0) {
+            if (rmSessionManager.errorSession[0] > 0) {
                 // 주기적으로 에러 세션 전부 고쳐졌나 점검하는 함수
-                if(this.delayedCommitNumbers == "") this.delayed_updateHandler();
+                if(rmSessionManager.delayedCommitNumbers != "") rmSessionManager.delayed_updateHandler();
 
                 // 마지막 Commit만 기억한다.
-                this.delayedCommitNumbers = message.data.commitNumber;
+                rmSessionManager.delayedCommitNumbers = message.data.commitNumber;
             }
             else {
-                if(this.pool_timer != null) {
-                    clearTimeout(this.poolTimer);
-                    this.poolTimer = null;
-                    this.delayedCommitNumbers = "";
+                if(rmSessionManager.pool_timer != null) {
+                    clearTimeout(rmSessionManager.poolTimer);
+                    rmSessionManager.poolTimer = null;
+                    rmSessionManager.delayedCommitNumbers = "";
                 }
-                this.updateHandler(message.data.commitNumber);
+                rmSessionManager.updateHandler(message.data.commitNumber);
             }
             break;
     }
@@ -75,7 +75,7 @@ exports.RMSessionManager.prototype._rmSessionUpdateReferenceModel = function (rm
     rmSessionWorker.postMessage({
         event: "UPDATE_REFERENCE_MODEL",
         data: { 
-            patch: git_patch,
+            patch: git_patch.patch,
             commitNumbers: git_patch.commitNumbers
         }
     });
@@ -91,19 +91,19 @@ exports.RMSessionManager.prototype._requestRMSession = function (call, callback)
 };
 
 exports.RMSessionManager.prototype._setRMSessionManager = function () {
-    this.server = new grpc.Server();
-    this.server.addService(this.rmSessionproto.service, {
-        RequestRMSession: this._requestRMSession
+    rmSessionManager.server = new grpc.Server();
+    rmSessionManager.server.addService(rmSessionManager.rmSessionproto.service, {
+        RequestRMSession: rmSessionManager._requestRMSession
     });
-    return this.server;
+    return rmSessionManager.server;
 }
 
 exports.RMSessionManager.prototype.run = function () {
-    this.rmSMServer = this._setRMSessionManager();
-    this.rmSMServer.bindAsync('0.0.0.0:' + workerData.smPortNum,
+    rmSessionManager.rmSMServer = rmSessionManager._setRMSessionManager();
+    rmSessionManager.rmSMServer.bindAsync('0.0.0.0:' + workerData.smPortNum,
         grpc.ServerCredentials.createInsecure(), () => {
-            debug('gRPC Server running at ' + this.rmSmAddr);
-            this.rmSMServer.start();
+            debug('gRPC Server running at ' + rmSessionManager.rmSmAddr);
+            rmSessionManager.rmSMServer.start();
         });
 }
 
@@ -114,9 +114,9 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
         dhId: dhNode.dhId,
         dhIp: dhNode.dhIp,
         dhPort: dhNode.dhPort,
-        pubvcRoot: this.pubvcRoot,
-        mutexFlag: this.mutexFlag,
-        errorFlag: this.errorSession
+        pubvcRoot: rmSessionManager.pubvcRoot,
+        mutexFlag: rmSessionManager.mutexFlag,
+        errorFlag: rmSessionManager.errorSession
     };
     debug('Create New RMSession');
     debug(rmSessParam);
@@ -149,6 +149,8 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
 
     if (first_commit == content.previousLastCommit) {
         // first add all the things in the folder and commit them
+        // 처음에 시드 없이 시작할 때를 대비해서 init.txt에 아무 값이나 집어넣기
+        fs.writeFileSync(rmSessionManager.pVC.vcRoot + '/' + "init.txt", "initialized", 'utf8');
         execSync('cd ' + rmSessionManager.pVC.vcRoot + " && git add ./");
         var stdout = execSync('cd ' + rmSessionManager.pVC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
         var printed = stdout.toString().split('\n');
@@ -177,7 +179,7 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
 // 1
 exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit, first_commit){
     // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
-    var patch= execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
+    var patch= execSync('cd ' + rmSessionManager.pubvcRoot + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
     var toreturn = {
         patch: patch.toString(),
         commitNumbers: [first_commit, last_commit]
@@ -186,14 +188,14 @@ exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit,
 }
 
 exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
-    if (this.mutexFlag[0] == 1) {
+    if (rmSessionManager.mutexFlag[0] == 1) {
         const timeOut = 100;
-        setTimeout(this.extractGitDiff.bind(this), timeOut, topublish);
+        setTimeout(rmSessionManager.extractGitDiff.bind(rmSessionManager), timeOut, topublish);
     }
     else {
-        this.mutexFlag[0] = 1;
-        var git_diff = execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1]);
-        this.mutexFlag[0] = 0;
+        rmSessionManager.mutexFlag[0] = 1;
+        var git_diff = execSync('cd ' + rmSessionManager.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1]);
+        rmSessionManager.mutexFlag[0] = 0;
         debug(git_diff);
         var toreturn = {
             patch: git_diff.toString(),
@@ -205,19 +207,19 @@ exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
 
 exports.RMSessionManager.prototype.updateHandler = function(commit_number) {
     // GIT PATCH EXTRACTION
-    var content = this.__read_dict();
+    var content = rmSessionManager.__read_dict();
     content.stored = content.stored + 1;
     content.commitNumber.push(commit_number);
-    this.__save_dict(content);
+    rmSessionManager.__save_dict(content);
 
-    const topublish = this.__read_dict();
-    this._save_last_commit(topublish.commitNumber[topublish.commitNumber.length - 1]);
-    const git_patch = rmSessionManager.extractGitDiff(topublish);
-
-    // GIT PATCH BROADCAST
-    for (var key in rmSessionManager.rmSessionDict) {
-        rmSessionManager._rmSessionUpdateReferenceModel(rmSessionManager.rmSessionDict[key], git_patch)
-    }
+    const topublish = rmSessionManager.__read_dict();
+    rmSessionManager._save_last_commit(topublish.commitNumber[topublish.commitNumber.length - 1]);
+    rmSessionManager.extractGitDiff(topublish).then((git_patch) => {
+        // GIT PATCH BROADCAST
+        for (var key in rmSessionManager.rmSessionDict) {
+            rmSessionManager._rmSessionUpdateReferenceModel(rmSessionManager.rmSessionDict[key], git_patch)
+        }
+    });
 }
 
 exports.RMSessionManager.prototype.delayed_updateHandler = function() {
@@ -226,7 +228,7 @@ exports.RMSessionManager.prototype.delayed_updateHandler = function() {
     }
     else {
         rmSessionManager.poolTimer = null;
-        rmSessionManager.updateHandler(delayedCommitNumbers);
+        rmSessionManager.updateHandler(rmSessionManager.delayedCommitNumbers);
         rmSessionManager.delayedCommitNumbers = "";
     }
 }
@@ -234,11 +236,11 @@ exports.RMSessionManager.prototype.delayed_updateHandler = function() {
 // 3
 exports.RMSessionManager.prototype.__save_dict = function(content) {
     const contentJSON = JSON.stringify(content);
-    fs.writeFileSync(this.msgStorepath, contentJSON);
+    fs.writeFileSync(rmSessionManager.msgStorepath, contentJSON);
 }
 
 exports.RMSessionManager.prototype.__read_dict = function() {
-    return JSON.parse(fs.readFileSync(this.msgStorepath).toString());
+    return JSON.parse(fs.readFileSync(rmSessionManager.msgStorepath).toString());
 }
 
 exports.RMSessionManager.prototype._save_last_commit = function(last_commit) {
@@ -248,7 +250,7 @@ exports.RMSessionManager.prototype._save_last_commit = function(last_commit) {
         commitNumber: [],
         previousLastCommit: lc
     }
-    this.__save_dict(content);
+    rmSessionManager.__save_dict(content);
 }
 
 const rmSessionManager = new rmSM.RMSessionManager();
