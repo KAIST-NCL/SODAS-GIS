@@ -73,6 +73,8 @@ if (eventType == 'CREATE') {
     var random_category = categories[Math.floor(Math.random() * categories.length)];
 
     var related = rp.search_related(random_category);
+    
+    var id = Math.random().toString(36).slice(2, 7);
 
     var to_append = ',' + JSON.stringify({id: id, related: related})+'\n';
 
