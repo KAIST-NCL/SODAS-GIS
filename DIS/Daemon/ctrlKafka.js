@@ -111,7 +111,7 @@ exports.ctrlProducer.prototype.sendError = function(errorCode){
 };
 
 exports.ctrlProducer.prototype.sendUpdate = function(id, data){
-    const msg = {'operation':'UPDATE', 'content':JSON.stringify({'id':id, 'data':data})};
+    const msg = {'operation':'UPDATE', 'id':id, 'content':data};
     debug('\x1b[36m%s\x1b[0m', '[Function Test / UPDATE REFERENCE MODEL Process] sending message to Kafka', msg);
     this._produce(this.topic, msg);
 };
