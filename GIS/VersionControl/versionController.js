@@ -26,13 +26,13 @@ class VC {
                             }});
                     };
                 }
-                makeFolder(self, '00-code-system');
-                makeFolder(self, '01-vocabulary');
-                makeFolder(self, '02-standard');
-                makeFolder(self, '03-domain');
-                makeFolder(self, '04-group');
-                makeFolder(self, '05-taxonomy');
-                makeFolder(self, '06-taxonomy-version');
+                makeFolder(self, 'code-system');
+                makeFolder(self, 'vocabulary');
+                makeFolder(self, 'standard');
+                makeFolder(self, 'domain');
+                makeFolder(self, 'group');
+                makeFolder(self, 'taxonomy');
+                makeFolder(self, 'taxonomy-Version');
             })
             .catch((e) => {debug(e)});
         this.isInit = true;

@@ -410,10 +410,10 @@ const typeName = Object.freeze({
 });
 
 const refFolder = Object.freeze({
-    domain: '03-domain',
-    group: '04-group',
-    taxonomy: '05-taxonomy',
-    taxonomyVersion: '06-taxonomy-version'
+    domain: 'domain',
+    group: 'group',
+    taxonomy: 'taxonomy',
+    taxonomyVersion: 'taxonomyVersion'
 });
 
 
