@@ -91,13 +91,12 @@ exports.KNode.prototype._updateContact = function(contact, cb) {
         // move to the end of the bucket
         bucket.remove(contact);
         bucket.add(contact);
-        this._updateContactEvent.emit('update_contact');
+        // this._updateContactEvent.emit('update_contact');
         callback();
     }
     else if (bucket.size() < constants.K) {
         bucket.add(contact);
         this._updateContactEvent.emit('update_contact');
-
         callback();
     }
     else {
