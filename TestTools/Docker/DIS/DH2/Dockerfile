@@ -22,6 +22,6 @@ RUN git config --global user.email sodas@kaist.ac.kr
 RUN git config --global user.name sodas
 
 # 네트워크 관련 수정
-RUN sed -i 's/gisIP/sodas.governancesystem/g' ../setting.cfg
-RUN sed -i 's/myIP/sodas.dh1.broker/g' ../setting.cfg
-RUN sed -i 's/30092/9095/g' ../setting.cfg
+#RUN sed -i 's/gisIP/sodas.governancesystem/g' ../setting.cfg
+#RUN sed -i 's/myIP/sodas.dh1.broker/g' ../setting.cfg
+#RUN sed -i 's/30092/9095/g' ../setting.cfg

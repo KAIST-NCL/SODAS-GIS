@@ -4,7 +4,7 @@
     "description": "description",
     "state": "published",
     "extras": [],
-    "constraints": [
+    "standardSpecifications": [
         {
 			"id": "constraint001",
 			"standardId": "standard01",
@@ -13,7 +13,7 @@
 			"alias": "alias01",
 			"cardinalityMin": 0,
             "cardinalityMax": 1,
-            "rules": [
+            "standardUsageRules": [
                 {
                     "id": "constraintRule001",
                     "standardConstraintId": "constraint001",

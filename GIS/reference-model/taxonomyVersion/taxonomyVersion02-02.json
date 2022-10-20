@@ -1,7 +1,7 @@
 {
 	"id": "taxonomyVersion02-02",
 	"taxonomyId": "taxonomy02",
-	"previousVersionId": "taxonomyVersion02-01",
+	"previousVersionId": null,
 	"name": "taxonomy version name",
 	"description": "taxonomy version description",
 	"state": "latest",

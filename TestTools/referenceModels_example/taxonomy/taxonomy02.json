@@ -1,6 +1,6 @@
 {
     "id": "taxonomy02",
-    "taxonomyGroupId": "group01",
+    "tenantGroupId": "tenantGroup01",
     "name": "Taxonomy 02",
     "description": "description",
     "state": "published",

@@ -41,7 +41,7 @@ exports.ref_parser.prototype.addReferenceModel = function(ReferenceModel) {
     // 배열된 결과는 sorted dict {domain: [], group: [], taxonomy: [], taxonomyVersion: []} 의 형태로 저장되어 나온다
     // 각각의 배열에 대해 iterate를 해준다
     sorted_list.domain.forEach((element) => { domainParser(this, element); });
-    sorted_list.group.forEach((element) => {
+    sorted_list.tenantGroup.forEach((element) => {
         const result = groupParser(this, element);
         if (result != errorType.NO_ERROR) {
             // groupParser에서 에러가 나왔다는 건 상위 domain이 미등록된 상태란 의미이다
@@ -78,14 +78,14 @@ exports.ref_parser.prototype.addReferenceModel = function(ReferenceModel) {
 exports.ref_parser.prototype.related_to_filepath = function(related) {
     // related의 경우에는 [{operation: , id: , type: }]의 구조를 갖는다
     // 효율적인 iteration을 위해서 중간 결과물로 {domain: ,group: ,taxonomy: ,category:[]}을 둔다
-    var temp = {domain:null, group:null, taxonomy:null, category:null};
+    var temp = {domain:null, tenantGroup:null, taxonomy:null, category:null};
     related.forEach((element) => {
         switch (element.type) {
             case typeName.domain:
                 temp.domain = element.id;
                 break;
-            case typeName.group:
-                temp.group = element.id;
+            case typeName.tenantGroup:
+                temp.tenantGroup = element.id;
                 break;
             case typeName.taxonomy:
                 temp.taxonomy = element.id;
@@ -100,7 +100,7 @@ exports.ref_parser.prototype.related_to_filepath = function(related) {
     })
     // 무결성 체크를 하면서 filepath를 뽑아낸다
     var filePath = "";
-    const keys = [typeName.domain, typeName.group, typeName.taxonomy, typeName.category];
+    const keys = [typeName.domain, typeName.tenantGroup, typeName.taxonomy, typeName.category];
     for(var i = 0; i < 4; i++) {
         var value = temp[keys[i]];
         if (!value) {
@@ -147,7 +147,7 @@ exports.ref_parser.prototype.related_to_filepath = function(related) {
             default:
                 // gropu, taxonomy의 경우
                 // 무결성 체크
-                var self_info = (i == 1) ? this.refItems.group.get(value) : this.refItems.taxonomy.get(value);
+                var self_info = (i == 1) ? this.refItems.tenantGroup.get(value) : this.refItems.taxonomy.get(value);
                 if (!self_info) return errorType.NOT_REGISTERED;
                 if (self_info.parent[temp[keys[i-1]]] != keys[i-1]) return errorType.TYPE_NOT_MATCHING; // parent의 ID가 다르거나 type이 다른 경우
                 filePath += ('/' + value);
@@ -250,19 +250,19 @@ function domainParser(parser, filepath) {
 function groupParser(parser, filepath) {
     const dict = readJsonToDict(filepath);
     // 읽어올 내용은 id, domainId 두개이다
-    const groupId = dict.id;
+    const tenantGroupId = dict.id;
     const domainId = dict.domainId;
     // domain이 존재하는지 확인
     var domain = parser.refItems.domain.get(domainId); // 없으면 undefined
     if (!domain) return errorType.NOT_REGISTERED;
-    // 해당 도메인의 child에 group 추가
-    domain.child[groupId] = typeName.group;
-    // parser의 group에 내용 추가
-    var new_group = {parent: {}, child: {}};
-    new_group.parent[domainId] = typeName.domain;
-    parser.refItems.group.set(groupId, new_group);
+    // 해당 도메인의 child에 tenantGroup 추가
+    domain.child[tenantGroupId] = typeName.tenantGroup;
+    // parser의 tenantGroup에 내용 추가
+    var new_tenantGroup = {parent: {}, child: {}};
+    new_tenantGroup.parent[domainId] = typeName.domain;
+    parser.refItems.tenantGroup.set(tenantGroupId, new_tenantGroup);
     // 폴더 생성하기
-    parser._folder_create(parser.root + '/' + parser.search_filepath(typeName.group, groupId));
+    parser._folder_create(parser.root + '/' + parser.search_filepath(typeName.tenantGroup, tenantGroupId));
     return errorType.NO_ERROR;
 }
 
@@ -270,15 +270,15 @@ function taxonomyParser(parser, filepath) {
     const dict = readJsonToDict(filepath);
     // 읽어올 내용은 id, tenantGroupId이다
     const taxonomyId = dict.id;
-    const groupId = dict.tenantGroupId;
+    const tenantGroupId = dict.tenantGroupId;
     // group이 존재하는지 확인
-    var group = parser.refItems.group.get(groupId);
-    if (!group) return errorType.NOT_REGISTERED;
-    // 해당 group의 child에 taxonomy 추가
-    group.child[taxonomyId] = typeName.taxonomy;
+    var tenantGroup = parser.refItems.tenantGroup.get(tenantGroupId);
+    if (!tenantGroup) return errorType.NOT_REGISTERED;
+    // 해당 tenantGroup의 child에 taxonomy 추가
+    tenantGroup.child[taxonomyId] = typeName.taxonomy;
     // parser의 taxonomy에 내용 추가
     var new_taxonomy = {parent: {}, child: {}, previousVersion: null};
-    new_taxonomy.parent[groupId] = typeName.group;
+    new_taxonomy.parent[tenantGroupId] = typeName.tenantGroup;
     parser.refItems.taxonomy.set(taxonomyId, new_taxonomy);
     // 폴더 생성하기
     parser._folder_create(parser.root + '/' + parser.search_filepath(typeName.taxonomy, taxonomyId));
@@ -358,9 +358,9 @@ function getModifiedTime(filepath) {
 
 // 입력된 파일 목록 Sorting
 function sortFileList(parser, filepathList) {
-    // 파일 목록을 보고 domain, group, taxonomy, taxonomyVersion 별로 나눈다
+    // 파일 목록을 보고 domain, tenantGroup, taxonomy, taxonomyVersion 별로 나눈다
     // 각각 분류 내에서 파일 수정 시간에 따라 순서를 정렬한다
-    var sorted = {domain:[], group:[], taxonomy:[], taxonomyVersion:[]};
+    var sorted = {domain:[], tenantGroup:[], taxonomy:[], taxonomyVersion:[]};
     // 우선 분류
     filepathList.forEach((filepath) => {
         var fullDir = path.dirname(filepath);
@@ -369,8 +369,8 @@ function sortFileList(parser, filepathList) {
             case refFolder.domain:
                 sorted.domain.push(parser.refRootdir + '/' + filepath);
                 break;
-            case refFolder.group:
-                sorted.group.push(parser.refRootdir + '/' + filepath);
+            case refFolder.tenantGroup:
+                sorted.tenantGroup.push(parser.refRootdir + '/' + filepath);
                 break;
             case refFolder.taxonomy:
                 sorted.taxonomy.push(parser.refRootdir + '/' + filepath);
@@ -404,14 +404,14 @@ const errorType = Object.freeze({
 
 const typeName = Object.freeze({
     domain: 'domain',
-    group: 'tenantGroup',
+    tenantGroup: 'tenantGroup',
     taxonomy: 'taxonomy',
     category: 'category'
 });
 
 const refFolder = Object.freeze({
     domain: 'domain',
-    group: 'tenantGroup',
+    tenantGroup: 'tenantGroup',
     taxonomy: 'taxonomy',
     taxonomyVersion: 'taxonomyVersion'
 });

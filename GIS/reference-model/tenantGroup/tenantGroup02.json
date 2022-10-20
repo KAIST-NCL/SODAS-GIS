@@ -1,9 +1,9 @@
 {
-    "id": "group02",
+    "id": "tenantGroup02",
 	"domainId": "domain02",
 	"standardId": "standard02",
-    "name": "group name",
-    "description": "group description",
+    "name": "tenant group name",
+    "description": "tenant group description",
     "state": "published",
     "published": "2022-06-10",
 	"issued": "2021-07-07T14:19:09.288Z",
