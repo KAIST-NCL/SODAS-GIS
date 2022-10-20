@@ -26,13 +26,13 @@ class VC {
                             }});
                     };
                 }
-                makeFolder(self, 'code-system');
+                makeFolder(self, 'codeSystem');
                 makeFolder(self, 'vocabulary');
                 makeFolder(self, 'standard');
                 makeFolder(self, 'domain');
-                makeFolder(self, 'group');
+                makeFolder(self, 'tenantGroup');
                 makeFolder(self, 'taxonomy');
-                makeFolder(self, 'taxonomy-Version');
+                makeFolder(self, 'taxonomyVersion');
             })
             .catch((e) => {debug(e)});
         this.isInit = true;

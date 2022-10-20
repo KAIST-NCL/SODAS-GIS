@@ -60,7 +60,7 @@ exports.vcModule.prototype.editFile = async function(option, filepath, type, con
             break;
         case 'DELETE':
             if (type != 'domain'){
-                console.log("group/taxonomy/taxonomyVersion file cannot be deleted");
+                console.log("tenantGroup/taxonomy/taxonomyVersion file cannot be deleted");
                 break;
             }
             this.vc.git.deleteFile(fp);

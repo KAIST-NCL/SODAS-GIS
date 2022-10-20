@@ -7,7 +7,7 @@
 // 각각의 읽어올 내용 정리 //
 // domain: id
 // group: id, domainId
-// taxonomy: id, taxonomyGroupId
+// taxonomy: id, tenantGroupId
 // taxonomyVersion: id, taxonomyId, previousVersionId, categories
 // categories 내부: id, versionId, parentId
 // parentId가 null이면 taxonomy가 상위, null이 아니면 해당 category가 상위
@@ -186,7 +186,7 @@ exports.ref_parser.prototype.search_filepath = function(type, id) {
 
 // 이미 자료가 다 담긴 폴더의 주소를 주면 하위 폴더 정보 읽어들여서 스스로 테스트하는 함수
 exports.ref_parser.prototype.test = function(folderPath) {
-    // 반드시 folderPath는 03-domain, 04-group, 05-taxonomy, 06-taxonomy-version을 갖고 있어야한다.
+    // 반드시 folderPath는 03-domain, 04-tenant-group, 05-taxonomy, 06-taxonomy-version을 갖고 있어야한다.
     const folder_list = [refFolder.domain, refFolder.group, refFolder.taxonomy, refFolder.taxonomyVersion];
     var filePath_list = [];
     folder_list.forEach((element) => {
@@ -268,9 +268,9 @@ function groupParser(parser, filepath) {
 
 function taxonomyParser(parser, filepath) {
     const dict = readJsonToDict(filepath);
-    // 읽어올 내용은 id, taxonomyGroupId이다
+    // 읽어올 내용은 id, tenantGroupId이다
     const taxonomyId = dict.id;
-    const groupId = dict.taxonomyGroupId;
+    const groupId = dict.tenantGroupId;
     // group이 존재하는지 확인
     var group = parser.refItems.group.get(groupId);
     if (!group) return errorType.NOT_REGISTERED;
@@ -404,14 +404,14 @@ const errorType = Object.freeze({
 
 const typeName = Object.freeze({
     domain: 'domain',
-    group: 'group',
+    group: 'tenantGroup',
     taxonomy: 'taxonomy',
     category: 'category'
 });
 
 const refFolder = Object.freeze({
     domain: 'domain',
-    group: 'group',
+    group: 'tenantGroup',
     taxonomy: 'taxonomy',
     taxonomyVersion: 'taxonomyVersion'
 });
@@ -423,3 +423,4 @@ const refFolder = Object.freeze({
 
 // 틀린 예시 related
 // [{"operation": "UPDATE", "id": "domain01", "type": "domain"}, {"operation": "UPDATE", "id": "taxonomy01", "type": "taxonomy"}, {"operation": "UPDATE", "id": "category0001", "type": "category"}, {"operation": "UPDATE", "id": "category00011", "type": "category"}]
+
