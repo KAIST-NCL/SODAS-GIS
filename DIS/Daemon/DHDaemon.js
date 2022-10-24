@@ -11,6 +11,7 @@ const crypto = require("crypto");
 const nets = networkInterfaces();
 const ips = Object.create(null); // Or just '{}', an empty object
 const ip = require('ip');
+const path = require('path');
 
 exports.DHDaemon = function(){
 
@@ -188,11 +189,16 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
         case 'UPDATE_REFERENCE_MODEL':
             debug('[DEBUG] UPDATE_REFERENCE_MODEL is passed. The reference models are transferred to ctrlProducer', message.data);
             for (var i = 0; i < message.data.path.length; i++) {
+                // 파일 내용 추출
                 const rmPath = self.rmSyncRootDir+ '/gitDB/' + message.data.path[i];
                 debug('[DEBUG] read ' + rmPath + ' file (reference models...)')
-                fs.readFile(rmPath, 'utf8', function(err, data){
-                    self.ctrlProducer.sendUpdate(rmPath, data);
-                });
+
+                const content = fs.readFileSync(rmPath, 'utf8');
+                
+                // 파일 ID 추출
+                var extname = path.extname(rmPath)
+                var fileID = path.basename(rmPath, extname)
+                self.ctrlProducer.sendUpdate(fileID, content);
             }
             debug('[Function Test / UPDATE REFERENCE MODEL] UPDATE event is sent to Kafka');
             this._vcUpdateReferenceModel(message.data.path);

@@ -26,7 +26,7 @@ class vcConsumer extends Consumer{
         var filepath = self.VC.vc.vcRoot + '/' + message_.type+ '/'+ message_.id;
         
         // 양식 정하기
-        if (message_.publishingType == 'sodas') filepath = filepath + '.json';
+        if (message_.publishingType == 'SODAS') filepath = filepath + '.json';
         else if (message_.publishingType == 'rdf') filepath = filepath + '.rdf';
 
         // do the operation right away
