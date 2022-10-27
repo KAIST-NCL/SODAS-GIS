@@ -25,7 +25,7 @@ const debug = require('debug')('sodas:lib:ref-parser');
 // ------------------------------------------ 외부 동작 함수 ------------------------------------------ //
 exports.ref_parser = function(root, refRootdir) {
     this.root = root; //gitDB의 root 디렉토리
-    this.refRootdir = refRootdir + '/gitDB' + '/referenceModel'; // ref 파일들이 저장된 최상위 폴더
+    this.refRootdir = refRootdir + '/gitDB'; // ref 파일들이 저장된 최상위 폴더
     this.refItems = {};
     // typeName에 정의된 목록만큼 Map을 생성한다
     Object.values(typeName).forEach((type) => {

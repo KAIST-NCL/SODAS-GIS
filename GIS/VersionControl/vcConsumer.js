@@ -29,8 +29,8 @@ class vcConsumer extends Consumer{
 
         // topic에 따라 약간은 차별할 필요가 있다
         var tp;
-        if (message.topic = 'send.referenceModel') tp = 'referenceModel';
-        else if (message.topic = 'send.dictionary') tp = 'dictionary';
+        if (message.topic == 'send.referenceModel') tp = 'referenceModel';
+        else if (message.topic == 'send.dictionary') tp = 'dictionary';
 
         var filepath = self.VC.vc.vcRoot + '/' + tp + '/' + message_.type+ '/'+ message_.id;
         
