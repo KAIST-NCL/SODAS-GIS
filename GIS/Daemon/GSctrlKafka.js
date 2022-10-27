@@ -8,8 +8,7 @@ const debug = require('debug')('sodas:GSkafka');
 class ctrlConsumer extends Consumer{
     constructor(kafkaHost, options, gsDaemon, conf){
         const topics = [ 
-            { topic: 'send.governanceSystem', partitions: 1 , replicationFactor: 1},
-            { topic: 'send.dictionary', partitions: 1 , replicationFactor: 1}
+            { topic: 'send.governanceSystem', partitions: 1 , replicationFactor: 1}
         ];
         super(kafkaHost, topics, options);
         this.daemon = gsDaemon;
@@ -20,7 +19,7 @@ class ctrlConsumer extends Consumer{
     
     onMessage = function(){
         debug('[RUNNING] Kafka consumer for control signal is running ');
-        const that = this;
+        const self = this;
         this.consumer.on('message', function(message){
 
             // JSON parsing error
@@ -29,10 +28,7 @@ class ctrlConsumer extends Consumer{
                 const message_ = JSON.parse(message.value);
                 switch(topic_) {
                     case 'send.governanceSystem':
-                        governanceSystemHandler(message_);
-                        break;
-                    case 'send.dictionary':
-                        dictionaryHandler(message_);
+                        self.governanceSystemHandler(message_);
                         break;
                     default:
                         debug("Wrong type of Kafka topic came in");
@@ -52,6 +48,7 @@ class ctrlConsumer extends Consumer{
         switch(msg.operation) {
             case 'START':
                 debug("governanceSystem - START");
+                this.daemon._rmSMInit();
                 break;
             case 'UPDATE':
                 debug("governanceSystem - UPDATE");
@@ -64,23 +61,6 @@ class ctrlConsumer extends Consumer{
                 break;
         }
     };
-
-    // Topic: send.dictionary
-    dictionaryHandler = function(msg) {
-        // event Type: CREATE / UPDATE
-        const content = JSON.parse(msg.content);
-        switch(msg.operation) {
-            case 'CREATE':
-                debug("dictionary - CREATE");
-                break;
-            case 'UPDATE':
-                debug("dictionary - UPDATE");
-                break;
-            default:
-                debug("Wrong type of operation");
-                break;
-        }
-    }
 
     // create topics
     _createCtrolTopics = async function(){

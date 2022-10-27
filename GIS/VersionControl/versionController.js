@@ -20,19 +20,20 @@ class VC {
                 value = (' ' + commnum).slice(1);
                 var makeFolder = function(self, typeName) {
                     if (!fs.existsSync(self.vcRoot+'/'+typeName)){
-                        fs.mkdir(self.vcRoot+'/'+typeName, function(err) {
-                            if (err) {
-                                console.log(err);
-                            }});
+                        fs.mkdirSync(self.vcRoot+'/'+typeName);
                     };
                 }
-                makeFolder(self, 'codeSystem');
-                makeFolder(self, 'vocabulary');
-                makeFolder(self, 'standard');
-                makeFolder(self, 'domain');
-                makeFolder(self, 'tenantGroup');
-                makeFolder(self, 'taxonomy');
-                makeFolder(self, 'taxonomyVersion');
+                // dictionary 폴더 생성
+                makeFolder(self, 'dictionary');
+                makeFolder(self, 'dictionary/codeSystem');
+                makeFolder(self, 'dictionary/vocabulary');
+                makeFolder(self, 'dictionary/standard');
+                // referenceModel 폴더 생성
+                makeFolder(self, 'referenceModel');
+                makeFolder(self, 'referenceModel/domain');
+                makeFolder(self, 'referenceModel/tenantGroup');
+                makeFolder(self, 'referenceModel/taxonomy');
+                makeFolder(self, 'referenceModel/taxonomyVersion');
             })
             .catch((e) => {debug(e)});
         this.isInit = true;

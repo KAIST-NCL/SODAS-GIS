@@ -14,7 +14,6 @@ exports.RMSessionManager = function () {
     self = this;
 
     this.VC = workerData.vcPort;
-    this.VC.on('message', this._vcListener);
 
     this.rmSmAddr = workerData.smIp + ':' + workerData.smPortNum;
     this.pubvcRoot = workerData.pubvcRoot;
@@ -41,8 +40,51 @@ exports.RMSessionManager = function () {
     this.rmSessionproto = this.protoDescriptor.RMSession.RMSessionBroker;
     this.rmSessionDict = {};
     this.rmSessionListToDaemon = [];
-    debug('RMSessionManager thread is running')
+    debug('RMSessionManager thread is running');
+
+    var self = this;
+    parentPort.on('message', (message)=> {
+        self._gsdaemonListener(message);
+    })
 };
+
+exports.RMSessionManager.prototype._gsdaemonListener = function(message) {
+    switch (message.event) {
+        case 'INIT':
+            this.init();
+            break;
+        default:
+            debug("Wrong Type of Event From Daemon");
+            break;
+    }
+}
+
+/* Init Function */
+exports.RMSessionManager.prototype.init = function() {
+    debug('RMSessionManager Initializing...');
+    // kafka On
+    this.VC.on('message', this._vcListener);
+    
+    // git Init
+    var first_commit= rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot);
+    if(!fs.existsSync(rmSessionManager.msgStorepath)) rmSessionManager._save_last_commit(rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot));
+    var content = rmSessionManager.__read_dict();
+    debug("First Commit: " + first_commit);
+    debug("Previous LC: " + content.previousLastCommit);
+    if (first_commit == content.previousLastCommit) {
+        // first add all the things in the folder and commit them
+        // 처음에 시드 없이 시작할 때를 대비해서 init.txt에 아무 값이나 집어넣기
+        fs.writeFileSync(rmSessionManager.pVC.vcRoot + '/' + "init.txt", "initialized", 'utf8');
+        execSync('cd ' + rmSessionManager.pVC.vcRoot + " && git add ./");
+        var stdout = execSync('cd ' + rmSessionManager.pVC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
+        var printed = stdout.toString().split('\n');
+        printed.pop();
+        var comm = printed.pop();
+        content.stored = content.stored+1;
+        content.commitNumber.push(comm);
+        rmSessionManager._save_last_commit(comm);
+    }
+}
 
 /* Worker threads Listener */
 exports.RMSessionManager.prototype._vcListener = function (message){
@@ -146,23 +188,9 @@ exports.RMSessionManager.prototype.session_init_patch = async function() {
     var content = rmSessionManager.__read_dict();
     debug("First Commit: " + first_commit);
     debug("Previous LC: " + content.previousLastCommit);
-
     if (first_commit == content.previousLastCommit) {
-        // first add all the things in the folder and commit them
-        // 처음에 시드 없이 시작할 때를 대비해서 init.txt에 아무 값이나 집어넣기
-        fs.writeFileSync(rmSessionManager.pVC.vcRoot + '/' + "init.txt", "initialized", 'utf8');
-        execSync('cd ' + rmSessionManager.pVC.vcRoot + " && git add ./");
-        var stdout = execSync('cd ' + rmSessionManager.pVC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
-        var printed = stdout.toString().split('\n');
-        printed.pop();
-        var comm = printed.pop();
-        content.stored = content.stored+1;
-        content.commitNumber.push(comm);
-        rmSessionManager._save_last_commit(comm);
-        var git_patch = await rmSessionManager.extractGitDiff(content);
-        return git_patch;
+        debug(" Not Initialized before ");
     }
-    // DH2 이후인 경우
     else {
         var git_patch = await rmSessionManager.extractInitPatch(content.previousLastCommit, first_commit);
         return git_patch;
