@@ -4,11 +4,11 @@ package bootstrap;
 // bootstrap broker
 service BootstrapBroker{
 
-  // enroll node info.
-  rpc SetSeedNode(Node) returns (Reply) {}
-
   // return seed node list
   rpc GetSeedNodeList(Node) returns (SeedNodeList) {}
+
+  // delete node info.
+  rpc DeleteSeedNode(Node) returns (Reply) {}
 
 }
 
