@@ -130,6 +130,24 @@ exports.KNode.prototype._onStore = function(message) {
     }));
 }
 
+exports.KNode.prototype._onDelete = function(message) {
+    var bucketIndex = util.bucketIndex(this.self.nodeID, message.contact.nodeID);
+    assert.ok(bucketIndex < constants.B);
+    if (!this._buckets[bucketIndex])
+        this._buckets[bucketIndex] = new Bucket();
+
+    var bucket = this._buckets[bucketIndex];
+
+    var exists = bucket.contains(message.contact);
+    if (exists) {
+        bucket.remove(message.contact);
+        this._updateContactEvent.emit('update_contact');
+    }
+}
+
+// This is just to prevent Unknown message errors
+exports.KNode.prototype._onDeleteReply = function (message) {}
+
 // This is just to prevent Unknown message errors
 exports.KNode.prototype._onStoreReply = function() {}
 
@@ -433,4 +451,24 @@ exports.KNode.prototype.set = function(key, value, cb) {
             });
         }, this), callback);
     }, this));
+}
+
+exports.KNode.prototype.delete = function(address, port, sl_portNum, sync_interest_list, cb) {
+    var callback = cb || function() {};
+    var contact = util.make_contact(address, port, sl_portNum, sync_interest_list);
+
+    var message = this._MSG('DELETE', {
+        'contact': contact
+    });
+
+    async.forEach(this._buckets, _.bind(function(contact, asyncCb) {
+        for (var i=0; i<contact._contacts.length; i++){
+            this._rpc.send(contact._contacts[i], message, function() {
+                // TODO handle error
+                asyncCb(null);
+            });
+        }
+    }, this), callback);
+    this._buckets = {};
+    this._updateContactEvent.emit('update_contact');
 }

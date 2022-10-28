@@ -25,6 +25,7 @@ exports.DHSearch = function(){
     });
     this.seedNodeList = [];
     this.oldBucketList = [];
+    this.syncInterestList = [];
 
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH,{
@@ -50,13 +51,25 @@ exports.DHSearch.prototype.run = function(){
 exports.DHSearch.prototype._dhDaemonListener = function(message){
     switch (message.event) {
         case 'UPDATE_INTEREST_TOPIC':
+            this.syncInterestList = message.data.syncInterestList;
             this.seedNode['syncInterestList'] = message.data.syncInterestList;
             this.node.self.syncInterestList = message.data.syncInterestList;
-            debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DHDaemon');
+            debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DISDaemon');
             this.run()
             break;
+        case 'DIS_STOP':
+            debug('[LOG] DHSearch thread receive [DIS_STOP] event from DISDaemon');
+            this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList);
+            dhSearch.bootstrapClient.DeleteSeedNode(this.seedNode, function(err, response) {
+                if (!err) {
+                    debug(response);
+                } else {
+                    debug('[ERROR]', err);
+                }
+            })
+            break;
         default:
-            debug('[ERROR] DHDaemon Listener Error ! event:', message.event);
+            debug('[ERROR] DISDaemon Listener Error ! event:', message.event);
             break;
     }
 };

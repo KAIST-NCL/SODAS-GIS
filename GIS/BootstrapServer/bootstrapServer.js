@@ -32,15 +32,6 @@ exports.BootstrapServer.prototype._dmUpdateSeedNodeList = function () {
     });
 }
 
-exports.BootstrapServer.prototype._setSeedNode = function (call, callback) {
-    debug("SetSeedNode");
-    var seedNode = call.request;
-    debug(seedNode);
-    bsServer.seedNodeList.unshift(seedNode);
-    debug(bsServer.seedNodeList);
-    callback(null, { status: true, message: "Success enroll node info" })
-};
-
 exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
     debug("[GS] [Bootstrap Server] - GetSeedNodeList");
     var seedNode = call.request;
@@ -49,7 +40,7 @@ exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
 
     if (bsServer.seedNodeList.length > 0) {
         for (var i = 0; i < bsServer.seedNodeList.length; i++) {
-            if (bsServer.seedNodeList[i].node_id === seedNode.nodeId) {
+            if (bsServer.seedNodeList[i].nodeId === seedNode.nodeId) {
                 var target = bsServer.seedNodeList.splice(i, 1);
             }
         }
@@ -61,11 +52,23 @@ exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
     bsServer._dmUpdateSeedNodeList();
 };
 
+exports.BootstrapServer.prototype._deleteSeedNode = function (call, callback) {
+    debug("[GIS] [Bootstrap Server] - DeleteSeedNode");
+    var seedNode = call.request;
+    debug(seedNode);
+    for (var i = 0; i < bsServer.seedNodeList.length; i++) {
+        if (bsServer.seedNodeList[i].nodeId === seedNode.nodeId) {
+            var target = bsServer.seedNodeList.splice(i, 1);
+        }
+    }
+    debug(bsServer.seedNodeList);
+};
+
 exports.BootstrapServer.prototype._setBootstrapServer = function () {
     this.server = new grpc.Server();
     this.server.addService(this.BSproto.service, {
-        SetSeedNode: this._setSeedNode,
-        GetSeedNodeList: this._getSeedNodeList
+        GetSeedNodeList: this._getSeedNodeList,
+        DeleteSeedNode: this._deleteSeedNode
     });
     return this.server;
 };
