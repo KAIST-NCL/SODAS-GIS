@@ -73,7 +73,6 @@ class ctrlConsumer extends Consumer{
 exports.ctrlProducer = function(kafkaHost){
     this.client = new kafka.KafkaClient({kafkaHost: kafkaHost});
     this.producer = new Producer(this.client);
-    this.topic = 'recv.referenceModel';
 };
 
 exports.ctrlProducer.prototype.createCtrlTopics = async function(){
@@ -108,12 +107,6 @@ exports.ctrlProducer.prototype._produce = function(topic, msg){
 
 exports.ctrlProducer.prototype.sendError = function(errorCode){
     this._produce(this.topic, {'operation':'ERROR', 'error_code': errorCode});
-};
-
-exports.ctrlProducer.prototype.sendUpdate = function(id, data){
-    const msg = {'operation':'UPDATE', 'id':id, 'content':data};
-    debug('\x1b[36m%s\x1b[0m', '[Function Test / UPDATE REFERENCE MODEL Process] sending message to Kafka', msg);
-    this._produce(this.topic, msg);
 };
 
 exports.ctrlConsumer = ctrlConsumer;

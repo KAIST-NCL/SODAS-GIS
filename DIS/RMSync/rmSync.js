@@ -97,6 +97,7 @@ exports.RMSync.prototype.referenceModelSync = function(call, callback) {
     callback(null, {result: 'File Name [' + call.request.id + '] is succeed synchronization.'});
     rmSync._dmUpdateReferenceModel(call.request.id, targetFilePath)
 }
+
 exports.RMSync.prototype.requestRMSession = function() {
     rmSync.rmSessionClient.RequestRMSession({'dhId': crypto.randomBytes(20).toString('hex'), dhIp: rmSync.dhIp, dhPort: rmSync.rmPort}, (error, response) => {
         if (!error) {
