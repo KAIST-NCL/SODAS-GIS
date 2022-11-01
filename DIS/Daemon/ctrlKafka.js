@@ -21,7 +21,6 @@ class ctrlConsumer extends Consumer{
         debug('[RUNNING] Kafka consumer for control signal is running ');
         const that = this;
         this.consumer.on('message', function(message){
-
             // JSON parsing error
             try {
                 const message_ = JSON.parse(message.value);
