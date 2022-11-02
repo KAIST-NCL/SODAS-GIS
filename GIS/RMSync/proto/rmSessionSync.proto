@@ -18,6 +18,7 @@ message PublishRefMap {
   // content - > json string. related, filepath
   string gitPatch = 2; // git_patch 파일
   string receiverId = 3;
+  string operation = 4;
 }
 
 // ACK 메시지

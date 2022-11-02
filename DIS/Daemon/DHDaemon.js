@@ -221,7 +221,7 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
                 // 내용 operation, type, id, content, publishingType, timestamp
                 // 임시 방편으로 operation은 UPDATE 고정
                 var msg = {
-                    "operation": "UPDATE",
+                    "operation": message.data.operation,
                     "type": type,
                     "id": fileID,
                     "content": content,

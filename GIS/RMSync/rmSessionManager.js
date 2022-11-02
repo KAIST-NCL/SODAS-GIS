@@ -118,7 +118,8 @@ exports.RMSessionManager.prototype._rmSessionUpdateReferenceModel = function (rm
         event: "UPDATE_REFERENCE_MODEL",
         data: { 
             patch: git_patch.patch,
-            commitNumbers: git_patch.commitNumbers
+            commitNumbers: git_patch.commitNumbers,
+            operation: "UPDATE"
         }
     });
 }
@@ -173,7 +174,8 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
             event: "INIT",
             data: {
                 patch: git_patch.patch,
-                commitNumbers: git_patch.commitNumbers
+                commitNumbers: git_patch.commitNumbers,
+                operation: "CREATE"
             }
         });
     });

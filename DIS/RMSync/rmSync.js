@@ -78,25 +78,28 @@ exports.RMSync.prototype._dhDaemonListener = function(message) {
 };
 
 /* DHDaemon methods */
-exports.RMSync.prototype._dmUpdateReferenceModel = function(path_list) {
-    debug('[TX: UPDATE_REFERENCE_MODEL] to DHDaemon')
+exports.RMSync.prototype._dmUpdateReferenceModel = function(path_list, operation) {
+    debug('[TX: UPDATE_REFERENCE_MODEL] to DHDaemon');
     parentPort.postMessage({
         event: 'UPDATE_REFERENCE_MODEL',
-        data: {path: path_list}
+        data: {
+            path: path_list,
+            operation: operation
+        }
     });
 };
 
 /* gRPC methods */
-exports.RMSync.prototype.referenceModelSync = function(call, callback) {
-    !fs.existsSync(__dirname+'/gitDB/') && fs.mkdirSync(__dirname+'/gitDB/');
-    var targetFilePath = __dirname+'/gitDB/' + call.request.id;
-    debug("[LOG] Server Side Received:" , call.request.id);
-    fs.writeFile(targetFilePath, call.request.file, 'binary', function(err){
-        if (err) throw err
-        debug('[LOG] write end') });
-    callback(null, {result: 'File Name [' + call.request.id + '] is succeed synchronization.'});
-    rmSync._dmUpdateReferenceModel(call.request.id, targetFilePath)
-}
+// exports.RMSync.prototype.referenceModelSync = function(call, callback) {
+//     !fs.existsSync(__dirname+'/gitDB/') && fs.mkdirSync(__dirname+'/gitDB/');
+//     var targetFilePath = __dirname+'/gitDB/' + call.request.id;
+//     debug("[LOG] Server Side Received:" , call.request.id);
+//     fs.writeFile(targetFilePath, call.request.file, 'binary', function(err){
+//         if (err) throw err
+//         debug('[LOG] write end') });
+//     callback(null, {result: 'File Name [' + call.request.id + '] is succeed synchronization.'});
+//     rmSync._dmUpdateReferenceModel(call.request.id, targetFilePath)
+// }
 
 exports.RMSync.prototype.requestRMSession = function() {
     rmSync.rmSessionClient.RequestRMSession({'dhId': crypto.randomBytes(20).toString('hex'), dhIp: rmSync.dhIp, dhPort: rmSync.rmPort}, (error, response) => {
@@ -130,7 +133,8 @@ exports.RMSync.prototype.Subscribe = function(self, call, callback) {
     callback(null, {transID: call.request.transID, result: result});
 
     var filepath_list = diff_parser.parse_git_patch(call.request.gitPatch);
-    rmSync._dmUpdateReferenceModel(filepath_list)
+    debug('[LOG] Operation: ' + call.request.operation);
+    rmSync._dmUpdateReferenceModel(filepath_list, call.request.operation);
 }
 
 exports.RMSync.prototype.gitPatch = function(git_patch, self) {

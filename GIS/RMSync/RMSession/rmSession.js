@@ -71,7 +71,9 @@ exports.Session.prototype.publish = function(git_patch) {
         // Make the message body to send
         var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
                     'gitPatch': git_patch.patch,
-                    'receiverId': this.dhId};
+                    'receiverId': this.dhId,
+                    'operation': git_patch.operation
+                };
 
         // gRPC transmittion
         this.grpc_client.SessionComm(toSend, function(err, response) {
@@ -92,7 +94,9 @@ exports.Session.prototype.publish = function(git_patch) {
         this.extractGitDiff(this.lastCommitNumber, git_patch.commitNumbers[1]).then((git_patch) => {
             var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
                     'gitPatch': git_patch.patch,
-                    'receiverId': this.dhId};
+                    'receiverId': this.dhId,
+                    'operation': git_patch.operation
+                };
             // gRPC transmittion
             this.grpc_client.SessionComm(toSend, function(err, response) {
                 if (err) throw err;
