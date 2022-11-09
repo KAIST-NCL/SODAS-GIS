@@ -17,23 +17,29 @@ class vcConsumer extends Consumer{
         });
     }
     handler(message, self){
-        debug('[LOG] Kafka Message Received');
-        const message_ = JSON.parse(message.value);
-        const event = message_.operation;
-        const filepath = self.VC.vc.rp.related_to_filepath(message_.related) + '/' + message_.id + '.asset';
-        // Changed Logs - > Previous: editFile and then commit right away
-        // Changed Logs - > Now: editFile only. Commit is done with some period
-        
-        /* Uncomment for Pooling 
-        self.VC.editFile(event, filepath, message_.contents);
-        self.VC.count = self.VC.count + 1;
-        */
+        try {
+            debug('[LOG] Kafka Message Received');
+            const message_ = JSON.parse(message.value);
+            const event = message_.operation;
+            const filepath = self.VC.vc.rp.related_to_filepath(message_.related) + '/' + message_.id + '.asset';
+            // Changed Logs - > Previous: editFile and then commit right away
+            // Changed Logs - > Now: editFile only. Commit is done with some period
+            
+            /* Uncomment for Pooling 
+            self.VC.editFile(event, filepath, message_.contents);
+            self.VC.count = self.VC.count + 1;
+            */
 
-        // Comment below for Pooling
-        self.VC.editFile(event, filepath, message_.content).then(() => {
-            const commitMessage = message_.id;
-            self.VC.commit(self.VC, filepath, commitMessage, message_);
-        });
+            // Comment below for Pooling
+            self.VC.editFile(event, filepath, message_.content).then(() => {
+                const commitMessage = message_.id;
+                self.VC.commit(self.VC, filepath, commitMessage, message_);
+            });   
+        }
+        catch (e) {
+            debug(e);
+            return;
+        }
     }
 }
 

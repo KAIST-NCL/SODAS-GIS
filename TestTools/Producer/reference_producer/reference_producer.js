@@ -36,7 +36,7 @@ var eventMessage = {
     "type": type_of_file(filename),
     "id": path.basename(filename, ".json"),
     "content": fs.readFileSync(rootFolder+'/'+filename).toString(),
-    "publishingType": "sodas",
+    "publishingType": "SODAS",
     "timestamp": 1627952380
 }
 

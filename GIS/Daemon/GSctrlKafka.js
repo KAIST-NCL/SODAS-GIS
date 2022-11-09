@@ -18,27 +18,33 @@ class ctrlConsumer extends Consumer{
     }
     
     onMessage = function(){
-        debug('[RUNNING] Kafka consumer for control signal is running ');
-        const self = this;
-        this.consumer.on('message', function(message){
+        try {
+            debug('[RUNNING] Kafka consumer for control signal is running ');
+            const self = this;
+            this.consumer.on('message', function(message){
 
-            // JSON parsing error
-            try {
-                const topic_ = message.topic; // Grammer check needed
-                const message_ = JSON.parse(message.value);
-                switch(topic_) {
-                    case 'send.governanceSystem':
-                        self.governanceSystemHandler(message_);
-                        break;
-                    default:
-                        debug("Wrong type of Kafka topic came in");
-                        break;
+                // JSON parsing error
+                try {
+                    const topic_ = message.topic; // Grammer check needed
+                    const message_ = JSON.parse(message.value);
+                    switch(topic_) {
+                        case 'send.governanceSystem':
+                            self.governanceSystemHandler(message_);
+                            break;
+                        default:
+                            debug("Wrong type of Kafka topic came in");
+                            break;
+                    }
+                } catch (e){
+                    debug(e);
+                    return;
                 }
-            } catch (e){
-                debug(e);
-                return;
-            }
-        });
+            });
+        }
+        catch (e) {
+            debug(e);
+            return;
+        }
     };
 
     // Topic: send.governacneSystem

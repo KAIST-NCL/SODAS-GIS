@@ -198,7 +198,38 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
                 // 파일 ID 추출
                 var extname = path.extname(rmPath)
                 var fileID = path.basename(rmPath, extname)
-                self.ctrlProducer.sendUpdate(fileID, content);
+
+                // referenceModel인지 dictionary인지 분간
+                var topic = "";
+                var t = rmPath.split(path.sep);
+                switch (t[t.length-3]) {
+                    case "referenceModel":
+                        topic = topic + "recv.referenceModel";
+                        break;
+                    case "dictionary":
+                        topic = topic + "recv.dictionary";
+                        break;
+                    default:
+                        debug("Something Wrong");
+                        break;
+                }
+                if (topic == "") continue;
+
+                // type 분간
+                var type = t[t.length-2];
+
+                // 내용 operation, type, id, content, publishingType, timestamp
+                // 임시 방편으로 operation은 UPDATE 고정
+                var msg = {
+                    "operation": message.data.operation,
+                    "type": type,
+                    "id": fileID,
+                    "content": content,
+                    "publishingType": "SODAS"
+                }
+
+                debug("Producing [" + topic + "] Message with type " + type);
+                self.ctrlProducer._produce(topic, msg);
             }
             debug('[Function Test / UPDATE REFERENCE MODEL] UPDATE event is sent to Kafka');
             this._vcUpdateReferenceModel(message.data.path);
