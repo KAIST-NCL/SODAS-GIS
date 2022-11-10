@@ -35,8 +35,6 @@ exports.BootstrapServer.prototype._dmUpdateSeedNodeList = function () {
 exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
     debug("[GS] [Bootstrap Server] - GetSeedNodeList");
     var seedNode = call.request;
-    debug("Access Bootstrap Server from");
-    debug(seedNode);
 
     if (bsServer.seedNodeList.length > 0) {
         for (var i = 0; i < bsServer.seedNodeList.length; i++) {
@@ -48,14 +46,12 @@ exports.BootstrapServer.prototype._getSeedNodeList = function (call, callback) {
 
     callback(null, {nodes: bsServer.seedNodeList});
     bsServer.seedNodeList.unshift(seedNode);
-    debug(bsServer.seedNodeList);
     bsServer._dmUpdateSeedNodeList();
 };
 
 exports.BootstrapServer.prototype._deleteSeedNode = function (call, callback) {
     debug("[GIS] [Bootstrap Server] - DeleteSeedNode");
     var seedNode = call.request;
-    debug(seedNode);
     for (var i = 0; i < bsServer.seedNodeList.length; i++) {
         if (bsServer.seedNodeList[i].nodeId === seedNode.nodeId) {
             var target = bsServer.seedNodeList.splice(i, 1);

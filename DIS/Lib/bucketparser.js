@@ -7,7 +7,7 @@ exports.nodeIDSearcher = function(bucketLists, nodeIDs) {
     nodeIDs.forEach(element => {
         searchList.push(element);
     })
-    
+
     for (const [key, value] of Object.entries(bucketLists)) {
         // key: 거리를 나타내는 카뎀리아 결과
         // value._contacts: node 정보가 담긴 Array
@@ -24,10 +24,21 @@ exports.nodeIDSearcher = function(bucketLists, nodeIDs) {
             }
         }
     }
-    
+
     if(searchList.lengh != 0) {
         // 몇 개의 node가 검색되지 않은 경우이다.
     }
 
     return selectedBucketList;
+}
+
+
+exports.bucketToList = function(bucket) {
+    var list = [];
+
+    for (var key in bucket) {
+        list = list.concat(bucket[key]._contacts);
+    }
+
+    return list
 }

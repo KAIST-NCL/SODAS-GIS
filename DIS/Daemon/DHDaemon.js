@@ -151,7 +151,7 @@ exports.DHDaemon.prototype._dhSearchListener = function(message){
             this._dmServerSetBucketList(this.bucketList);
             this.ctrlProducer._produce( 'recv.dataHubList', {
                 operation: 'UPDATE',
-                content: JSON.stringify(this.bucketList)
+                content: JSON.stringify(bucketparser.bucketToList(this.bucketList))
             });
             break;
         default:
@@ -194,7 +194,7 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
                 debug('[DEBUG] read ' + rmPath + ' file (reference models...)')
 
                 const content = fs.readFileSync(rmPath, 'utf8');
-                
+
                 // 파일 ID 추출
                 var extname = path.extname(rmPath)
                 var fileID = path.basename(rmPath, extname)
