@@ -22,9 +22,6 @@ class vcConsumer extends Consumer{
     handler(message, self){
         try {
             debug('[LOG] Kafka Message for GS is received - ' + message.topic);
-            // parsing 대상: type, content, publishingType
-            // type: doamin, group, taxonomy, taxonomyVersion
-            // publishingType: JSON, RDF
             const message_ = JSON.parse(message.value);
             const event = message_.operation;
 
@@ -35,12 +32,9 @@ class vcConsumer extends Consumer{
 
             var filepath = self.VC.vc.vcRoot + '/' + tp + '/' + message_.type+ '/'+ message_.id;
             
-            // 양식 정하기
-            if (message_.publishingType == 'SODAS') filepath = filepath + '.json';
-            else if (message_.publishingType == 'rdf') filepath = filepath + '.rdf';
-
+            // 메시지를 통째로 저장한다
             // do the operation right away
-            self.VC.editFile(event, filepath,message_.type, message_.content).then(() => {
+            self.VC.editFile(event, filepath,message_.type, message_).then(() => {
                 const commitMessage = message_.id;
                 self.VC.commit(self.VC, filepath, commitMessage, message_);
             });
@@ -53,3 +47,8 @@ class vcConsumer extends Consumer{
 }
 
 exports.vcConsumer = vcConsumer;
+
+// 수정해야하는 사항
+// 기존과 다르게 파싱하지 말고 JSON 방식으로 메시지 저장
+// 나중에 불러올 때 JSON content내용 파싱하게끔 수정
+// 다만, 저장하는 이름은 원래 저장하던 이름과 동일하게

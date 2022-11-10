@@ -230,7 +230,8 @@ exports.ref_parser.prototype.test = function(folderPath) {
 // 동기 방식 json 읽기
 function readJsonToDict(filepath) {
     const jsonFile = fs.readFileSync(filepath, 'utf8');
-    const dict = JSON.parse(jsonFile);
+    const msg_ = JSON.parse(jsonFile);
+    const dict = JSON.parse(msg_.content)
     return dict;
 }
 

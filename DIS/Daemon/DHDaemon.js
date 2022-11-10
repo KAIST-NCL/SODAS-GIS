@@ -193,11 +193,9 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
                 const rmPath = self.rmSyncRootDir+ '/gitDB/' + message.data.path[i];
                 debug('[DEBUG] read ' + rmPath + ' file (reference models...)')
 
-                const content = fs.readFileSync(rmPath, 'utf8');
-                
-                // 파일 ID 추출
-                var extname = path.extname(rmPath)
-                var fileID = path.basename(rmPath, extname)
+                const msg_ = JSON.parse(fs.readFileSync(rmPath, 'utf8').toString());
+                const content = msg_.content
+                const operation = (message.data.operation == 'CREATE') ? message.data.operation : msg_.operation 
 
                 // referenceModel인지 dictionary인지 분간
                 var topic = "";
@@ -215,17 +213,14 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
                 }
                 if (topic == "") continue;
 
-                // type 분간
-                var type = t[t.length-2];
-
                 // 내용 operation, type, id, content, publishingType, timestamp
                 // 임시 방편으로 operation은 UPDATE 고정
                 var msg = {
-                    "operation": message.data.operation,
-                    "type": type,
-                    "id": fileID,
+                    "operation": operation,
+                    "type": msg_.type,
+                    "id": msg_.id,
                     "content": content,
-                    "publishingType": "SODAS"
+                    "publishingType": msg_.publishingType
                 }
 
                 debug("Producing [" + topic + "] Message with type " + type);
