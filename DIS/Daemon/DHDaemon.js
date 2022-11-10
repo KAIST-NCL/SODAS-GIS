@@ -151,7 +151,7 @@ exports.DHDaemon.prototype._dhSearchListener = function(message){
             this._dmServerSetBucketList(this.bucketList);
             this.ctrlProducer._produce( 'recv.dataHubList', {
                 operation: 'UPDATE',
-                content: JSON.stringify(this.bucketList)
+                content: JSON.stringify(bucketparser.bucketToList(this.bucketList))
             });
             break;
         default:
@@ -333,4 +333,3 @@ process.on('SIGTERM', () => {
     daemon.stop();
     process.exit();
 });
-
