@@ -193,10 +193,6 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
                 const rmPath = self.rmSyncRootDir+ '/gitDB/' + message.data.path[i];
                 debug('[DEBUG] read ' + rmPath + ' file (reference models...)')
 
-                const msg_ = JSON.parse(fs.readFileSync(rmPath, 'utf8').toString());
-                const content = msg_.content
-                const operation = (message.data.operation == 'CREATE') ? message.data.operation : msg_.operation 
-
                 // referenceModel인지 dictionary인지 분간
                 var topic = "";
                 var t = rmPath.split(path.sep);
@@ -213,6 +209,10 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
                 }
                 if (topic == "") continue;
 
+                const msg_ = JSON.parse(fs.readFileSync(rmPath, 'utf8').toString());
+                const content = msg_.content
+                const operation = (message.data.operation == 'CREATE') ? message.data.operation : msg_.operation 
+
                 // 내용 operation, type, id, content, publishingType, timestamp
                 // 임시 방편으로 operation은 UPDATE 고정
                 var msg = {
@@ -223,7 +223,7 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
                     "publishingType": msg_.publishingType
                 }
 
-                debug("Producing [" + topic + "] Message with type " + type);
+                debug("Producing [" + topic + "] Message with type " + msg_.type);
                 self.ctrlProducer._produce(topic, msg);
             }
             debug('[Function Test / UPDATE REFERENCE MODEL] UPDATE event is sent to Kafka');
@@ -333,3 +333,4 @@ process.on('SIGTERM', () => {
     daemon.stop();
     process.exit();
 });
+

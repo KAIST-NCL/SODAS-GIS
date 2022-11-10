@@ -30,11 +30,11 @@ class vcConsumer extends Consumer{
             if (message.topic == 'send.referenceModel') tp = 'referenceModel';
             else if (message.topic == 'send.dictionary') tp = 'dictionary';
 
-            var filepath = self.VC.vc.vcRoot + '/' + tp + '/' + message_.type+ '/'+ message_.id;
+            var filepath = self.VC.vc.vcRoot + '/' + tp + '/' + message_.type+ '/'+ message_.id + '.json';
             
             // 메시지를 통째로 저장한다
             // do the operation right away
-            self.VC.editFile(event, filepath,message_.type, message_).then(() => {
+            self.VC.editFile(event, filepath,message_.type, JSON.stringify(message_)).then(() => {
                 const commitMessage = message_.id;
                 self.VC.commit(self.VC, filepath, commitMessage, message_);
             });
