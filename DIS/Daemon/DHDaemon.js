@@ -189,16 +189,22 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
     switch (message.event) {
         case 'UPDATE_REFERENCE_MODEL':
             debug('[DEBUG] UPDATE_REFERENCE_MODEL is passed. The reference models are transferred to ctrlProducer', message.data);
+            message.data.path.sort(function(a,b) {
+                const a_path = self.rmSyncRootDir+ '/gitDB/' + a;
+                const b_path = self.rmSyncRootDir+ '/gitDB/' + b;
+
+                const a_msg = JSON.parse(fs.readFileSync(a_path).toString())
+                const b_msg = JSON.parse(fs.readFileSync(b_path).toString())
+                
+                // a가 먼저면 음수 반환, b가 먼저면 양수 반환
+                return a_msg.timestamp - b_msg.timestamp;
+            })
+
+            
             for (var i = 0; i < message.data.path.length; i++) {
                 // 파일 내용 추출
                 const rmPath = self.rmSyncRootDir+ '/gitDB/' + message.data.path[i];
                 debug('[DEBUG] read ' + rmPath + ' file (reference models...)')
-
-                const content = fs.readFileSync(rmPath, 'utf8');
-
-                // 파일 ID 추출
-                var extname = path.extname(rmPath)
-                var fileID = path.basename(rmPath, extname)
 
                 // referenceModel인지 dictionary인지 분간
                 var topic = "";
@@ -216,20 +222,21 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
                 }
                 if (topic == "") continue;
 
-                // type 분간
-                var type = t[t.length-2];
+                const msg_ = JSON.parse(fs.readFileSync(rmPath, 'utf8').toString());
+                const content = msg_.content
+                const operation = (message.data.operation == 'CREATE') ? message.data.operation : msg_.operation 
 
                 // 내용 operation, type, id, content, publishingType, timestamp
                 // 임시 방편으로 operation은 UPDATE 고정
                 var msg = {
-                    "operation": message.data.operation,
-                    "type": type,
-                    "id": fileID,
+                    "operation": operation,
+                    "type": msg_.type,
+                    "id": msg_.id,
                     "content": content,
-                    "publishingType": "SODAS"
+                    "publishingType": msg_.publishingType
                 }
 
-                debug("Producing [" + topic + "] Message with type " + type);
+                debug("Producing [" + topic + "] Message with type " + msg_.type);
                 self.ctrlProducer._produce(topic, msg);
             }
             debug('[Function Test / UPDATE REFERENCE MODEL] UPDATE event is sent to Kafka');
