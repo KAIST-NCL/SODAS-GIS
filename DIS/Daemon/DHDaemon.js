@@ -188,6 +188,18 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
     switch (message.event) {
         case 'UPDATE_REFERENCE_MODEL':
             debug('[DEBUG] UPDATE_REFERENCE_MODEL is passed. The reference models are transferred to ctrlProducer', message.data);
+            message.data.path.sort(function(a,b) {
+                const a_path = self.rmSyncRootDir+ '/gitDB/' + a;
+                const b_path = self.rmSyncRootDir+ '/gitDB/' + b;
+
+                const a_msg = JSON.parse(fs.readFileSync(a_path).toString())
+                const b_msg = JSON.parse(fs.readFileSync(b_path).toString())
+                
+                // a가 먼저면 음수 반환, b가 먼저면 양수 반환
+                return a_msg.timestamp - b_msg.timestamp;
+            })
+
+            
             for (var i = 0; i < message.data.path.length; i++) {
                 // 파일 내용 추출
                 const rmPath = self.rmSyncRootDir+ '/gitDB/' + message.data.path[i];
