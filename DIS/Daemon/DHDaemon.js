@@ -19,7 +19,7 @@ exports.DHDaemon = function(){
     this.conf.read('../setting.cfg');
     this.name = this.conf.get('Daemon', 'name');
     this.dmNetwork = this.conf.get('Daemon', 'networkInterface');
-    this.dmIp = this.conf.get('Daemon', 'myIp');
+    this.dmIp = this.conf.get('Daemon', 'myIP');
     this.dmPortNum = this.conf.get('Daemon', 'portNum');
     this.dsPortNum = this.conf.get('DHSearch', 'portNum');
     this.rmPortNum = this.conf.get('RMSync', 'portNum');
@@ -195,12 +195,12 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
 
                 const a_msg = JSON.parse(fs.readFileSync(a_path).toString())
                 const b_msg = JSON.parse(fs.readFileSync(b_path).toString())
-                
+
                 // a가 먼저면 음수 반환, b가 먼저면 양수 반환
                 return a_msg.timestamp - b_msg.timestamp;
             })
 
-            
+
             for (var i = 0; i < message.data.path.length; i++) {
                 // 파일 내용 추출
                 const rmPath = self.rmSyncRootDir+ '/gitDB/' + message.data.path[i];
@@ -224,7 +224,7 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
 
                 const msg_ = JSON.parse(fs.readFileSync(rmPath, 'utf8').toString());
                 const content = msg_.content
-                const operation = (message.data.operation == 'CREATE') ? message.data.operation : msg_.operation 
+                const operation = (message.data.operation == 'CREATE') ? message.data.operation : msg_.operation
 
                 // 내용 operation, type, id, content, publishingType, timestamp
                 // 임시 방편으로 operation은 UPDATE 고정
