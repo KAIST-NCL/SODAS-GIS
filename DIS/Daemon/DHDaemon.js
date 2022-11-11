@@ -19,6 +19,7 @@ exports.DHDaemon = function(){
     this.conf.read('../setting.cfg');
     this.name = this.conf.get('Daemon', 'name');
     this.dmNetwork = this.conf.get('Daemon', 'networkInterface');
+    this.dmIp = this.conf.get('Daemon', 'myIp');
     this.dmPortNum = this.conf.get('Daemon', 'portNum');
     this.dsPortNum = this.conf.get('DHSearch', 'portNum');
     this.rmPortNum = this.conf.get('RMSync', 'portNum');
@@ -47,7 +48,7 @@ exports.DHDaemon = function(){
         }
     };
 
-    this.dmIp = ip.address();
+    // this.dmIp = ip.address();
     debug('[LOG]: ip', this.dmIp);
     debug('[LOG]: session negotiation option', this.snOptions);
     this.pubvcRoot = this.conf.get('VersionControl', 'pubvc_root');
