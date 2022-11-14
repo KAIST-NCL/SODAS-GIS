@@ -22,7 +22,7 @@ exports.checkNegotiationOptions = function(my_sn_options, other_sn_options){
 exports._checkDatamapDesc = function (my_datamap_desc, other_datamap_desc){
     let status;
     let datamapDescResult = {};
-    let syncInterestListResult = interestTopicDivider(my_datamap_desc.syncInterestList).filter(x=> interestTopicDivider(other_datamap_desc.syncInterestList).includes(x))
+    let syncInterestListResult = interestTopicIntersection(my_datamap_desc.syncInterestList, other_datamap_desc.syncInterestList);
     console.log(syncInterestListResult)
     let dataCatalogVocabResult = my_datamap_desc.dataCatalogVocab.filter(x=> other_datamap_desc.dataCatalogVocab.includes(x))
 
@@ -68,26 +68,18 @@ function rangeToInteger (arr)  {
     return temp;
 }
 
-function interestTopicDivider (arr) {
-    var divider = [];
-    for (let i = 0; i < arr.length; i++) {
-        divider = divider.concat(arr[i].split("/")[0])
-    }
-    return [...new Set(divider)]
-}
+function interestTopicIntersection (arr1, arr2) {
+    const intersection = [];
+    for (let i = 0; i < arr1.length; i++) {
+        for (let j = 0; j < arr2.length; j++) {
+            if (arr1[i].includes(arr2[j])) {
+                intersection.push(arr1[i])
+            } else if (arr2[j].includes(arr1[i])) {
+                intersection.push(arr2[j])
+            } else {
 
-// function interestTopicDivider (arr) {
-//     var divider = [];
-//     for (let i = 0; i < arr.length; i++) {
-//         var temp_divider = arr[i].split("/");
-//         for (let j = 0; j < temp_divider.length; j++) {
-//             if (j == 0) {
-//             }
-//             else{
-//                 temp_divider[j] = temp_divider[j-1] + "/" + temp_divider[j]
-//             }
-//         }
-//         divider = divider.concat(temp_divider)
-//     }
-//     return [...new Set(divider)]
-// }
+            }
+        }
+    }
+    return [...new Set(intersection)]
+}
