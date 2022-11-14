@@ -19,7 +19,6 @@ exports.DHDaemon = function(){
     this.conf.read('../setting.cfg');
     this.name = this.conf.get('Daemon', 'name');
     this.dmNetwork = this.conf.get('Daemon', 'networkInterface');
-    this.dmIp = this.conf.get('Daemon', 'myIP');
     this.dmPortNum = this.conf.get('Daemon', 'portNum');
     this.dsPortNum = this.conf.get('DHSearch', 'portNum');
     this.rmPortNum = this.conf.get('RMSync', 'portNum');
@@ -48,7 +47,7 @@ exports.DHDaemon = function(){
         }
     };
 
-    // this.dmIp = ip.address();
+    this.dmIp = ip.address();
     debug('[LOG]: ip', this.dmIp);
     debug('[LOG]: session negotiation option', this.snOptions);
     this.pubvcRoot = this.conf.get('VersionControl', 'pubvc_root');
@@ -190,6 +189,8 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
         case 'UPDATE_REFERENCE_MODEL':
             debug('[DEBUG] UPDATE_REFERENCE_MODEL is passed. The reference models are transferred to ctrlProducer', message.data);
             message.data.path.sort(function(a,b) {
+                if (a == 'init.txt') return 0;
+                if (b == 'init.txt') return 0;
                 const a_path = self.rmSyncRootDir+ '/gitDB/' + a;
                 const b_path = self.rmSyncRootDir+ '/gitDB/' + b;
 
