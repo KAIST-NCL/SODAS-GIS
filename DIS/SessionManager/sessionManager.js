@@ -109,25 +109,35 @@ exports.SessionManager.prototype._vcListener = function (message){
             debug('[RX: UPDATE_PUB_ASSET] from VersionControl');
             debug(message.data);
 
-            let sync_list = [];
             for (let t = 0; t < message.data.filepath.length; t++) {
-                let sync_element = message.data.filepath[t].split("/").slice(0,-1);
-                sync_list = sync_list.concat(sync_element)
-                const uniqueArr = sync_list.filter((element, index) => {
-                    return sync_list.indexOf(element) === index
-                });
-                if ((t+1) === message.data.filepath.length) {
-                    for (let i = 0; i < uniqueArr.length; i++) {
-                        let sync_target = uniqueArr[i]
-                        debug(sync_target)
-                        if (sessionManager.sessionList[sync_target]) {
-                            for (let j = 0; j < sessionManager.sessionList[sync_target].length; j++) {
-                                sessionManager._sessionUpdatePubAsset(sessionManager.sessionList[sync_target][j].worker, message.data.commitNumber)
-                            }
+                for (let key in sessionManager.sessionList) {
+                    if (message.data.filepath[t].includes(sessionManager.sessionList[key])) {
+                        for (let u = 0; u < sessionManager.sessionList[key].length; u++) {
+                            sessionManager._sessionUpdatePubAsset(sessionManager.sessionList[key][u].worker, message.data.commitNumber)
                         }
                     }
                 }
             }
+            //
+            // let sync_list = [];
+            // for (let t = 0; t < message.data.filepath.length; t++) {
+            //     let sync_element = message.data.filepath[t].split("/").slice(0,-1);
+            //     sync_list = sync_list.concat(sync_element)
+            //     const uniqueArr = sync_list.filter((element, index) => {
+            //         return sync_list.indexOf(element) === index
+            //     });
+            //     if ((t+1) === message.data.filepath.length) {
+            //         for (let i = 0; i < uniqueArr.length; i++) {
+            //             let sync_target = uniqueArr[i]
+            //             debug(sync_target)
+            //             if (sessionManager.sessionList[sync_target]) {
+            //                 for (let j = 0; j < sessionManager.sessionList[sync_target].length; j++) {
+            //                     sessionManager._sessionUpdatePubAsset(sessionManager.sessionList[sync_target][j].worker, message.data.commitNumber)
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
             break;
     }
 }
