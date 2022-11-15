@@ -87,6 +87,9 @@ exports.vcModule.prototype.reportCommit = function(self, commitNumber){
 exports.vcModule.prototype.editFile = async function(option, filepath, content) {
     var fp = this.vc.vcRoot + '/' + filepath;
     switch (option) {
+        case 'CREATE':
+            this.vc.git.editFile(fp, content);
+            break;
         case 'UPDATE':
             this.vc.git.editFile(fp, content);
             break;
