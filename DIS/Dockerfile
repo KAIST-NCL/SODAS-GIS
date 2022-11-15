@@ -5,7 +5,7 @@ ARG REPO_TOKEN
 
 #
 RUN apt-get update
-RUN apt install -y make libssl-dev libghc-zlib-dev libcurl4-gnutls-dev libexpat1-dev gettext unzip nano
+RUN apt install -y make libssl-dev libghc-zlib-dev libcurl4-gnutls-dev libexpat1-dev gettext unzip nano vim
 RUN cd /tmp &&  \
     wget https://github.com/git/git/archive/v2.18.0.tar.gz -O git.tar.gz &&  \
     tar -xf git.tar.gz
