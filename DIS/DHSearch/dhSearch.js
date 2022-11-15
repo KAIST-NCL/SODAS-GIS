@@ -19,13 +19,14 @@ exports.DHSearch = function(){
     this.bootstrapServerIp = workerData.bootstrapIp + ':' + workerData.bootstrapPortNum;
 
     this.seedNode = dh.seedNodeInfo({address: this.ip, port: parseInt(workerData.dsPortNum), slPortNum: parseInt(workerData.slPortNum)});
-    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.dsPortNum), slPortNum: parseInt(workerData.slPortNum), syncInterestList: []});
+    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.dsPortNum), slPortNum: parseInt(workerData.slPortNum), syncInterestList: [], dhMetadata: null});
     this.node._updateContactEvent.on('update_contact', () => {
         this._dmUpdateBucketList()
     });
     this.seedNodeList = [];
     this.oldBucketList = [];
     this.syncInterestList = [];
+    this.dhMetadata = null;
 
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH,{
@@ -51,15 +52,18 @@ exports.DHSearch.prototype.run = function(){
 exports.DHSearch.prototype._dhDaemonListener = function(message){
     switch (message.event) {
         case 'UPDATE_INTEREST_TOPIC':
-            this.syncInterestList = message.data.syncInterestList;
-            this.seedNode['syncInterestList'] = message.data.syncInterestList;
-            this.node.self.syncInterestList = message.data.syncInterestList;
+            this.syncInterestList = message.data.syncInterestList.interestTopic;
+            this.seedNode['syncInterestList'] = message.data.syncInterestList.interestTopic;
+            this.node.self.syncInterestList = message.data.syncInterestList.interestTopic;
+            this.dhMetadata = message.data.syncInterestList.content;
+            this.seedNode['dhMetadata'] = message.data.syncInterestList.content;
+            this.node.self.dhMetadata = message.data.syncInterestList.content;
             debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DISDaemon');
             this.run()
             break;
         case 'DIS_STOP':
             debug('[LOG] DHSearch thread receive [DIS_STOP] event from DISDaemon');
-            this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList);
+            this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList, this.dhMetadata);
             dhSearch.bootstrapClient.DeleteSeedNode(this.seedNode, function(err, response) {
                 if (!err) {
                     debug(response);
@@ -108,7 +112,7 @@ exports.DHSearch.prototype._bootstrapProcess = async function() {
 exports.DHSearch.prototype._discoverProcess = async function() {
     debug('[LOG] Start distributed search')
     for (var seedNodeIndex of this.seedNodeList) {
-        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.slPortNum, seedNodeIndex.syncInterestList);
+        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.slPortNum, seedNodeIndex.syncInterestList, seedNodeIndex.dhMetadata);
     }
     return null;
 }

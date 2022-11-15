@@ -50,7 +50,7 @@ class ctrlConsumer extends Consumer{
                 debug(msg);
                 debug(msg.extras);
                 debug(msg.interests);
-                this.daemon._dhSearchUpdateInterestTopic(msg.interests);
+                this.daemon._dhSearchUpdateInterestTopic({content: JSON.stringify(msg), interestTopic: msg.interests});
                 this.daemon._smUpdateInterestTopic(msg.interests);
                 debug('[Function Test / UPDATE Process] UPDATE event complete');
                 break;
