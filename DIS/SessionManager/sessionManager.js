@@ -111,7 +111,7 @@ exports.SessionManager.prototype._vcListener = function (message){
 
             for (let t = 0; t < message.data.filepath.length; t++) {
                 for (let key in sessionManager.sessionList) {
-                    if (message.data.filepath[t].includes(sessionManager.sessionList[key])) {
+                    if (message.data.filepath[t].includes(key)) {
                         for (let u = 0; u < sessionManager.sessionList[key].length; u++) {
                             sessionManager._sessionUpdatePubAsset(sessionManager.sessionList[key][u].worker, message.data.commitNumber)
                         }
