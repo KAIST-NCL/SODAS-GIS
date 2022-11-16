@@ -397,10 +397,10 @@ exports.KNode.prototype.debug = function() {
 }
 
 /***** Public API *****/
-exports.KNode.prototype.connect = function(address, port, sl_portNum, sync_interest_list, dh_metadata, cb) {
+exports.KNode.prototype.connect = function(address, port, sl_portNum, sync_interest_list, metadata, cb) {
     var callback = cb || function() {};
     assert.ok(this.self.nodeID);
-    var contact = util.make_contact(address, port, sl_portNum, sync_interest_list, dh_metadata);
+    var contact = util.make_contact(address, port, sl_portNum, sync_interest_list, metadata);
     console.log("[connect function] contact:")
     console.log(contact)
 
@@ -453,9 +453,9 @@ exports.KNode.prototype.set = function(key, value, cb) {
     }, this));
 }
 
-exports.KNode.prototype.delete = function(address, port, sl_portNum, sync_interest_list, dh_metadata, cb) {
+exports.KNode.prototype.delete = function(address, port, sl_portNum, sync_interest_list, metadata, cb) {
     var callback = cb || function() {};
-    var contact = util.make_contact(address, port, sl_portNum, sync_interest_list, dh_metadata);
+    var contact = util.make_contact(address, port, sl_portNum, sync_interest_list, metadata);
 
     var message = this._MSG('DELETE', {
         'contact': contact
