@@ -239,17 +239,10 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     var payload_list = [];
     for (var i = 0; i < filepath_list.length; i++) {
         var filepath = filepath_list[i];
-        var related = diff_parser.file_path_to_related(filepath);
 
         var msg_ = JSON.parse(fs.readFileSync(self.VC.vcRoot + '/' + filepath).toString())
         
-        var temp = {
-            "id": msg_.id,
-            "operation": msg_.operation,
-            "type": "asset",
-            "related": related,
-            "content": msg_.content
-        }
+        var temp = msg_
         payload_list.push(temp);
         debug("[LOG] Payload added " + temp.id);
     }
