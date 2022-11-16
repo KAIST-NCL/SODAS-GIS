@@ -188,9 +188,14 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
     switch (message.event) {
         case 'UPDATE_REFERENCE_MODEL':
             debug('[DEBUG] UPDATE_REFERENCE_MODEL is passed. The reference models are transferred to ctrlProducer', message.data);
+            // init.txt는 제외 대상이다.
+            for (var i=0; i < message.data.path.length; i++) {
+                if (message.data.path[i] == 'init.txt') {
+                    message.data.path.splice(i, 1);
+                    i--;
+                }
+            }
             message.data.path.sort(function(a,b) {
-                if (a == 'init.txt') return 0;
-                if (b == 'init.txt') return 0;
                 const a_path = self.rmSyncRootDir+ '/gitDB/' + a;
                 const b_path = self.rmSyncRootDir+ '/gitDB/' + b;
 
