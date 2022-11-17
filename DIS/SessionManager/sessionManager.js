@@ -130,7 +130,7 @@ exports.SessionManager.prototype._srListener = function (message){
             sessionManager.srTempSession.otherPort = message.data.endPoint.port;
 
             // todo: daemon 에 GET_SESSION_LIST_INFO
-            sessionManager.sessionListToDaemon.push(sessionManager._refactoringSessionInfo(sessionManager.srTempSession));
+            sessionManager.sessionListToDaemon.push(sessionManager._refactoringSessionInfo(sessionManager.srTempSession, message.data.sessionDesc.sessionCreator));
             sessionManager._dmGetSessionListInfo();
 
             // todo: srTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
@@ -171,7 +171,7 @@ exports.SessionManager.prototype._slListener = function (message){
             sessionManager.slTempSession.otherIp = message.data.endPoint.ip;
             sessionManager.slTempSession.otherPort = message.data.endPoint.port;
 
-            sessionManager.sessionListToDaemon.push(sessionManager._refactoringSessionInfo(sessionManager.slTempSession));
+            sessionManager.sessionListToDaemon.push(sessionManager._refactoringSessionInfo(sessionManager.slTempSession, message.data.sessionDesc.sessionCreator));
             sessionManager._dmGetSessionListInfo();
 
             // todo: slTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
@@ -322,12 +322,14 @@ exports.SessionManager.prototype._setSessionPort = async function () {
     return detect();
 }
 
-exports.SessionManager.prototype._refactoringSessionInfo = function (tempSession) {
+exports.SessionManager.prototype._refactoringSessionInfo = function (tempSession, otherNodeId) {
     let append_session = {};
 
     append_session.sessionId = tempSession.sessionId;
+    append_session.myNodeId = this.myNodeId;
     append_session.myIp = tempSession.myIp;
     append_session.myPort = tempSession.myPort;
+    append_session.otherNodeId = otherNodeId;
     append_session.otherIp = tempSession.otherIp;
     append_session.otherPort = tempSession.otherPort;
     append_session.snResult = tempSession.snResult;
