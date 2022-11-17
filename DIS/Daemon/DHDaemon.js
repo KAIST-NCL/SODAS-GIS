@@ -47,21 +47,21 @@ exports.DHDaemon = function(){
         }
     };
 
-    this.dmIp = ip.address();
-    debug('[LOG]: ip', this.dmIp);
+    this.disIp = ip.address();
+    debug('[LOG]: ip', this.disIp);
     debug('[LOG]: session negotiation option', this.snOptions);
     this.pubvcRoot = this.conf.get('VersionControl', 'pubvc_root');
     this.subvcRoot = this.conf.get('VersionControl', 'subvc_root');
     this.commitPeriod = this.conf.get('VersionControl', 'commit_period');
 
     process.env.DH_HOME = this.conf.get('ENV', 'DH_HOME');
-    debug('[SETTING] DataHub daemon is running with %s:%s', this.dmIp, this.dmPortNum);
+    debug('[SETTING] DataHub daemon is running with %s:%s', this.disIp, this.dmPortNum);
     this.ctrlProducer = new ctrlProducer(this.kafka);
     // ctrlConsumer will be created in init()
 
     this.interest = [];
     this.bucketList = null;
-    this.dhId = crypto.createHash('sha1').update(this.dmIp + ':' + this.dsPortNum).digest('hex');
+    this.myNodeId = crypto.createHash('sha1').update(this.disIp + ':' + this.dsPortNum).digest('hex');
 };
 exports.DHDaemon.prototype.init = async function(){
     // create kafka topic if doesn't exist
@@ -86,11 +86,11 @@ exports.DHDaemon.prototype.run = function(){
     self = this;
 
     // setEnvironmentData
-    const dmServerParam = {'dmIp': this.dmIp, 'dmPortNum': this.dmPortNum, 'name': this.name};
-    const dhSearchParam = {'dmIp': this.dmIp, 'dsPortNum': this.dsPortNum, 'slPortNum': this.slPortNum, 'bootstrapIp': this.bsIp, 'bootstrapPortNum': this.bsPortNum};
+    const dmServerParam = {'disIp': this.disIp, 'dmPortNum': this.dmPortNum, 'name': this.name};
+    const dhSearchParam = {'disIp': this.disIp, 'dsPortNum': this.dsPortNum, 'slPortNum': this.slPortNum, 'bootstrapIp': this.bsIp, 'bootstrapPortNum': this.bsPortNum};
     const vcParam = {'smPort': msgChn.port1, 'rmsyncRootDir': this.rmSyncRootDir, 'kafka': this.kafka, 'kafkaOptions': this.kafkaOptions, 'pubvcRoot': this.pubvcRoot, 'commitPeriod': this.commitPeriod, 'mutexFlag': mutexFlag};
-    const smParam = {'vcPort': msgChn.port2, 'kafka': this.kafka, 'dhId': this.dhId, 'dmIp': this.dmIp, 'slPortNum': this.slPortNum, 'snOptions':this.snOptions, 'pubvcRoot': this.pubvcRoot, 'subvcRoot': this.subvcRoot, 'mutexFlag': mutexFlag};
-    const rmSyncParam = {'dmIp': this.dmIp, 'rmPort': this.rmPortNum, 'gsIp': this.gsIp, 'gsPortNum': this.gsPortNum, 'rmsyncRootDir': this.rmSyncRootDir};
+    const smParam = {'vcPort': msgChn.port2, 'kafka': this.kafka, 'myNodeId': this.myNodeId, 'disIp': this.disIp, 'slPortNum': this.slPortNum, 'snOptions':this.snOptions, 'pubvcRoot': this.pubvcRoot, 'subvcRoot': this.subvcRoot, 'mutexFlag': mutexFlag};
+    const rmSyncParam = {'disIp': this.disIp, 'rmPort': this.rmPortNum, 'gsIp': this.gsIp, 'gsPortNum': this.gsPortNum, 'rmsyncRootDir': this.rmSyncRootDir};
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });

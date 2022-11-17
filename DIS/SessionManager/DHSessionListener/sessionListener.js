@@ -20,7 +20,7 @@ exports.SessionListener = function () {
     this.otherEndPoint = {};
     this.sessionResult = {};
 
-    this.mySessionDesc.sessionCreator = workerData.dhId;
+    this.mySessionDesc.sessionCreator = workerData.myNodeId;
     this.slAddr = workerData.slAddr;
     this.snOptions = workerData.snOptions;
 

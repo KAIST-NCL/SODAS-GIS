@@ -17,9 +17,9 @@ exports.RMSync = function () {
     self = this;
     parentPort.on('message', function(message) {self._dhDaemonListener(message)});
 
-    this.dhIp = workerData.dmIp;
+    this.dhIp = workerData.disIp;
     this.rmPort = workerData.rmPort;
-    this.dhRmSyncIp = this.dhIp + ':' + this.rmPort;
+    this.rmSyncIp = this.dhIp + ':' + this.rmPort;
     this.gsRmSmIp = workerData.gsIp + ':' + workerData.gsPortNum;
     this.rmsyncRootDir = workerData.rmsyncRootDir;
     !fs.existsSync(this.rmsyncRootDir) && fs.mkdirSync(this.rmsyncRootDir);
@@ -56,9 +56,9 @@ exports.RMSync = function () {
 };
 exports.RMSync.prototype.run = function() {
     this.rmSyncServer = this._setRMSyncServer();
-    this.rmSyncServer.bindAsync(this.dhRmSyncIp,
+    this.rmSyncServer.bindAsync(this.rmSyncIp,
         grpc.ServerCredentials.createInsecure(), () => {
-            debug('[SETTING] RMSync gRPC Server running at ' + this.dhRmSyncIp)
+            debug('[SETTING] RMSync gRPC Server running at ' + this.rmSyncIp)
             this.rmSyncServer.start();
         });
     this.requestRMSession();

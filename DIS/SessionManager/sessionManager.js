@@ -16,10 +16,10 @@ exports.SessionManager = function() {
     this.VC = workerData.vcPort;
     this.VC.on('message', this._vcListener);
 
-    this.dhId = workerData.dhId;
-    this.dmIp = workerData.dmIp;
+    this.myNodeId = workerData.myNodeId;
+    this.disIp = workerData.disIp;
     this.kafka = workerData.kafka;
-    this.slAddr = workerData.dmIp + ':' + workerData.slPortNum;
+    this.slAddr = workerData.disIp + ':' + workerData.slPortNum;
     this.snOptions = workerData.snOptions;
     this.pubvcRoot = workerData.pubvcRoot;
     this.subvcRoot = workerData.subvcRoot;
@@ -34,8 +34,8 @@ exports.SessionManager = function() {
 };
 exports.SessionManager.prototype.run = function (){
 
-    const srParam = {'snOptions': this.snOptions, 'dhId': this.dhId}
-    const slParam = {'snOptions': this.snOptions, 'dhId': this.dhId, 'slAddr': this.slAddr}
+    const srParam = {'snOptions': this.snOptions, 'myNodeId': this.myNodeId}
+    const slParam = {'snOptions': this.snOptions, 'myNodeId': this.myNodeId, 'slAddr': this.slAddr}
 
     this.sessionRequester = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js', {workerData: srParam});
     this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js', {workerData: slParam});
@@ -108,7 +108,6 @@ exports.SessionManager.prototype._vcListener = function (message){
         case 'UPDATE_PUB_ASSET':
             debug('[RX: UPDATE_PUB_ASSET] from VersionControl');
             debug(message.data);
-
             for (let t = 0; t < message.data.filepath.length; t++) {
                 for (let key in sessionManager.sessionList) {
                     if (message.data.filepath[t].includes(key)) {
@@ -118,26 +117,6 @@ exports.SessionManager.prototype._vcListener = function (message){
                     }
                 }
             }
-            //
-            // let sync_list = [];
-            // for (let t = 0; t < message.data.filepath.length; t++) {
-            //     let sync_element = message.data.filepath[t].split("/").slice(0,-1);
-            //     sync_list = sync_list.concat(sync_element)
-            //     const uniqueArr = sync_list.filter((element, index) => {
-            //         return sync_list.indexOf(element) === index
-            //     });
-            //     if ((t+1) === message.data.filepath.length) {
-            //         for (let i = 0; i < uniqueArr.length; i++) {
-            //             let sync_target = uniqueArr[i]
-            //             debug(sync_target)
-            //             if (sessionManager.sessionList[sync_target]) {
-            //                 for (let j = 0; j < sessionManager.sessionList[sync_target].length; j++) {
-            //                     sessionManager._sessionUpdatePubAsset(sessionManager.sessionList[sync_target][j].worker, message.data.commitNumber)
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
             break;
     }
 }
@@ -325,7 +304,7 @@ exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorke
 exports.SessionManager.prototype._createSession = async function () {
     var session = {};
     session.sessionId = crypto.randomBytes(20).toString('hex');
-    session.myIp = this.dmIp
+    session.myIp = this.disIp
     await this._setSessionPort().then(value => session.myPort = value);
     session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'mySessionId': session.sessionId, 'myIp': session.myIp, 'myPortNum': session.myPort, 'kafka': sessionManager.kafka, 'pubvcRoot': sessionManager.pubvcRoot, 'subvcRoot': sessionManager.subvcRoot, 'mutexFlag': sessionManager.mutexFlag} });
     session.worker.on('message', this._sessionListener);
