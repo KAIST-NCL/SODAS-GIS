@@ -1,6 +1,6 @@
 // Define the msg handlers for each message operation here
 var vc = require('./git');
-const debug = require('debug')('sodas:lib:msg-handler');
+const debug = require('debug')('sodas:lib:msg-handler\t|');
 
 // msg type reference-model
 exports.refmodelhandler = function(operation) {

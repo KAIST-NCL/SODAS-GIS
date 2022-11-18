@@ -3,7 +3,7 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const DS = require('./daemonServer');
 const { parentPort, workerData } = require('worker_threads');
-const debug = require('debug')('sodas:daemon:server');
+const debug = require('debug')('sodas:daemon:server\t|');
 
 // daemonServer
 dServer = function(){

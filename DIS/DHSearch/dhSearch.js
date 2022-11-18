@@ -1,4 +1,3 @@
-
 const PROTO_PATH = __dirname+'/proto/bootstrap.proto';
 const { parentPort, workerData } = require('worker_threads');
 const dh = require(__dirname+'/api/dhnode');
@@ -6,7 +5,7 @@ const knode = require(__dirname+'/kademlia/knode');
 const dhsearch = require(__dirname+'/dhSearch');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
-const debug = require('debug')('sodas:dhSearch');
+const debug = require('debug')('sodas:dhSearch\t|');
 
 exports.DHSearch = function(){
 

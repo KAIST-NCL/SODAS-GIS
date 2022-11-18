@@ -1,7 +1,7 @@
 // Local Git DB Location
 const fs = require('fs');
 const execSync = require('child_process').execSync;
-const debug = require('debug')('sodas:lib:git');
+const debug = require('debug')('sodas:lib:git\t\t|');
 const tools = require('./tools')
 
 class Git {

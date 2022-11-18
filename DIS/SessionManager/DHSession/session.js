@@ -18,14 +18,15 @@ const packageDefinition = protoLoader.loadSync(
     })
 const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
 const session = require(__dirname + '/session');
-const debug = require('debug')('sodas:session');
+const debug = require('debug')('sodas:session\t\t|');
 const tools = require('../../Lib/tools');
 
 /// Constructor
 // workerData -> my_session_id, my_ip, my_portNum
 exports.Session = function() {
     debug("[LOG-Session:" + workerData.mySessionId + "]: Session is Created");
-    debug("[LOG-Session:" + workerData.mySessionId + "]:", workerData);
+    debug("[LOG-Session:" + workerData.mySessionId + "]:");
+    debug(workerData);
     this.countMsg = 0;
 
     this.kafka = workerData.kafka;

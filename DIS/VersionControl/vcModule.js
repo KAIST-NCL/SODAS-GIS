@@ -5,7 +5,7 @@ const { vcConsumer } = require(__dirname+'/vcConsumer');
 const vcModule = require(__dirname+'/vcModule');
 const diff_parser = require(__dirname+'/../Lib/diff_parser');
 const execSync = require('child_process').execSync;
-const debug = require('debug')('sodas:vcModule');
+const debug = require('debug')('sodas:vcModule\t|');
 
 /// Constructor
 exports.vcModule = function(){
