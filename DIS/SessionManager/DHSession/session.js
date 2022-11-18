@@ -124,9 +124,8 @@ exports.Session.prototype.onMaxCount = async function(self) {
     const topublish = self.__read_dict();
     self._reset_count(topublish.commitNumber[topublish.commitNumber.length - 1]);
     // git diff extraction
-    git_diff = await self.extractGitDiff(self, topublish)
-    // Send gRPC message
-    if (git_diff) self.Publish(git_diff);
+    self.extractGitDiff(self, topublish)
+
 }
 
 /// To extract git diff using two git commit numbers
@@ -147,9 +146,11 @@ exports.Session.prototype.extractGitDiff = async function(self, topublish) {
             diff_directories = diff_directories + ' ' + self.snOptions.datamapDesc.syncInterestList[i];
         }
         var git_diff = execSync('cd ' + self.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1] + diff_directories);
-        self.flag[0] = 0;
         // mutex off
-        return git_diff;
+        self.flag[0] = 0;
+        // Send gRPC message
+        debug(git_diff.toString());
+        if (git_diff) self.Publish(git_diff);
     }
 }
 
