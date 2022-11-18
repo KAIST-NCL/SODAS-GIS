@@ -43,7 +43,7 @@ exports.Session = function() {
     // Settings for GitDB
     this.VC = new subscribeVC(this.rootDir+'/gitDB');
     this.VC.init();
-    
+
     // Mutex_Flag for Git
     this.flag = workerData.mutexFlag; // mutex flag
 
@@ -124,29 +124,30 @@ exports.Session.prototype.onMaxCount = async function(self) {
     const topublish = self.__read_dict();
     self._reset_count(topublish.commitNumber[topublish.commitNumber.length - 1]);
     // git diff extraction
-    git_diff = await self.extractGitDiff(topublish)
-    // Send gRPC message 
+    git_diff = await self.extractGitDiff(self, topublish)
+    // Send gRPC message
     if (git_diff) self.Publish(git_diff);
 }
 
 /// To extract git diff using two git commit numbers
 // topublish: dict. Result of reading log file
-exports.Session.prototype.extractGitDiff = async function(topublish) {
+exports.Session.prototype.extractGitDiff = async function(self, topublish) {
     // mutex 적용
-    if (this.flag[0] == 1) {
+    debug("[LOG-Session:" + self.id + "]: gitDiff mutex - " + self.flag[0])
+    if (self.flag[0] == 1) {
         // retry diff
         const timeOut = 100;
-        setTimeout(this.extractGitDiff.bind(this), timeOut, topublish);
+        setTimeout(self.extractGitDiff.bind(self), timeOut, self, topublish);
     }
     else {
         // mutex on
-        this.flag[0] = 1;
+        self.flag[0] = 1;
         var diff_directories = ' --';
-        for (var i = 0; i < this.snOptions.datamapDesc.syncInterestList.length; i++) {
-            diff_directories = diff_directories + ' ' + this.snOptions.datamapDesc.syncInterestList[i];
+        for (var i = 0; i < self.snOptions.datamapDesc.syncInterestList.length; i++) {
+            diff_directories = diff_directories + ' ' + self.snOptions.datamapDesc.syncInterestList[i];
         }
-        var git_diff = execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1] + diff_directories);
-        this.flag[0] = 0;
+        var git_diff = execSync('cd ' + self.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1] + diff_directories);
+        self.flag[0] = 0;
         // mutex off
         return git_diff;
     }
@@ -241,11 +242,11 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
         var filepath = filepath_list[i];
 
         var msg_ = JSON.parse(fs.readFileSync(self.VC.vcRoot + '/' + filepath).toString())
-        
+
         var temp = msg_
         payload_list.push(temp);
     }
-    
+
     var Producer = kafka.Producer;
     var client = new kafka.KafkaClient({kafkaHost: this.kafka});
     var producer = new Producer(client);
