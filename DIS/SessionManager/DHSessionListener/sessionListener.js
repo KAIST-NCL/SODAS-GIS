@@ -5,7 +5,7 @@ const sl = require(__dirname+'/sessionListener');
 const policy = require(__dirname+'/../api/sync_policy');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
-const debug = require('debug')('sodas:sessionListener');
+const debug = require('debug')('sodas:sessionListener\t|');
 
 const workerName = 'SessionListener';
 

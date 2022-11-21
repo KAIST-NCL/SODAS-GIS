@@ -1,6 +1,6 @@
 const { Git } = require(__dirname + '/../Lib/git');
 const { ref_parser } = require('../Lib/ref_parser');
-const debug = require('debug')('sodas:versionController');
+const debug = require('debug')('sodas:versionController\t|');
 
 class VC {
 

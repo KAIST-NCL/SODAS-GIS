@@ -9,7 +9,7 @@ const fs = require("fs");
 const execSync = require('child_process').execSync;
 const crypto = require("crypto");
 const diff_parser = require("../Lib/diff_parser");
-const debug = require('debug')('sodas:rmSync');
+const debug = require('debug')('sodas:rmSync\t\t|');
 
 
 exports.RMSync = function () {

@@ -6,7 +6,7 @@ const detect = require('detect-port');
 
 const MIN_PORT_NUM_OF_SESSION = 55000;
 const MAX_PORT_NUM_OF_SESSION = 65535;
-const debug = require('debug')('sodas:sessionManager');
+const debug = require('debug')('sodas:sessionManager\t|');
 
 exports.SessionManager = function() {
 

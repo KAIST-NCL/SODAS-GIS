@@ -21,7 +21,8 @@
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
-const debug = require('debug')('sodas:lib:ref-parser');
+const debug = require('debug')('sodas:lib:ref-parser\t\t|');
+
 // ------------------------------------------ 외부 동작 함수 ------------------------------------------ //
 exports.ref_parser = function(root, refRootdir) {
     this.root = root; //gitDB의 root 디렉토리

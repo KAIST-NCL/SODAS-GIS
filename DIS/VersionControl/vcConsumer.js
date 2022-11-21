@@ -1,5 +1,5 @@
 const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
-const debug = require('debug')('sodas:vcConsumer');
+const debug = require('debug')('sodas:vcConsumer\t|');
 
 class vcConsumer extends Consumer{
     constructor(kafkaHost, options, VC) {

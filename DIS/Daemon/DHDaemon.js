@@ -2,7 +2,6 @@ const ConfigParser = require('configparser');
 const { Worker, MessageChannel } = require("worker_threads");
 const dm = require('./DHDaemon');
 const { ctrlConsumer, ctrlProducer } = require('./ctrlKafka');
-const debug = require('debug')('sodas:daemon');
 const fs = require("fs");
 const bucketparser = require('../Lib/bucketparser');
 'use strict';
@@ -12,6 +11,11 @@ const nets = networkInterfaces();
 const ips = Object.create(null); // Or just '{}', an empty object
 const ip = require('ip');
 const path = require('path');
+const tty = require('tty');
+if (tty.isatty(process.stderr.fd)) {
+    process.env.DEBUG_COLORS = 'true';
+}
+const debug = require('debug')('sodas:daemon\t\t|');
 
 exports.DHDaemon = function(){
 
@@ -49,7 +53,8 @@ exports.DHDaemon = function(){
 
     this.disIp = ip.address();
     debug('[LOG]: ip', this.disIp);
-    debug('[LOG]: session negotiation option', this.snOptions);
+    debug('[LOG]: session negotiation option');
+    debug(this.snOptions);
     this.pubvcRoot = this.conf.get('VersionControl', 'pubvc_root');
     this.subvcRoot = this.conf.get('VersionControl', 'subvc_root');
     this.commitPeriod = this.conf.get('VersionControl', 'commit_period');

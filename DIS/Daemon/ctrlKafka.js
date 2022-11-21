@@ -3,7 +3,7 @@ const kafka = require('kafka-node');
 const Producer = kafka.Producer;
 const KeyedMessage = kafka.KeyedMessage;
 const deasync = require('deasync');
-const debug = require('debug')('sodas:kafka');
+const debug = require('debug')('sodas:kafka\t\t|');
 
 
 // KAFKA 관련 변경 사항: content는 무조건 string 포맷으로
