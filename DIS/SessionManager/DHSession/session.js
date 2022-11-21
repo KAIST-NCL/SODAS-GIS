@@ -149,7 +149,6 @@ exports.Session.prototype.extractGitDiff = async function(self, topublish) {
         // mutex off
         self.flag[0] = 0;
         // Send gRPC message
-        debug(git_diff.toString());
         if (git_diff) self.Publish(git_diff);
     }
 }

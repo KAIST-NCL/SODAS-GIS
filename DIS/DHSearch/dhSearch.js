@@ -52,18 +52,17 @@ exports.DHSearch.prototype.run = function(){
 exports.DHSearch.prototype._dhDaemonListener = function(message){
     switch (message.event) {
         case 'UPDATE_INTEREST_TOPIC':
-            this.syncInterestList = message.data.syncInterestList.interestTopic;
-            this.seedNode['syncInterestList'] = message.data.syncInterestList.interestTopic;
-            this.node.self.syncInterestList = message.data.syncInterestList.interestTopic;
-            this.metadata = message.data.syncInterestList.content;
-            this.seedNode['metadata'] = message.data.syncInterestList.content;
-            this.node.self.metadata = message.data.syncInterestList.content;
-            debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DISDaemon');
-            this.run()
+            if (this.metadata) {
+                this._deleteMyInfoFromKademlia().then(r => {
+                    this._updateInterestInfo(message.data);
+                })
+            } else {
+                this._updateInterestInfo(message.data);
+            }
             break;
         case 'DIS_STOP':
             debug('[LOG] DHSearch thread receive [DIS_STOP] event from DISDaemon');
-            this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList, this.metadata);
+            this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList, this.metadata, true);
             dhSearch.bootstrapClient.DeleteSeedNode(this.seedNode, function(err, response) {
                 if (!err) {
                     debug(response);
@@ -114,6 +113,20 @@ exports.DHSearch.prototype._discoverProcess = async function() {
     for (var seedNodeIndex of this.seedNodeList) {
         var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.slPortNum, seedNodeIndex.syncInterestList, seedNodeIndex.metadata);
     }
+    return null;
+}
+exports.DHSearch.prototype._deleteMyInfoFromKademlia = function() {
+    return Promise.resolve(this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList, this.metadata, false))
+}
+exports.DHSearch.prototype._updateInterestInfo = function(messageData) {
+    this.syncInterestList = messageData.syncInterestList.interestTopic;
+    this.seedNode['syncInterestList'] = messageData.syncInterestList.interestTopic;
+    this.node.self.syncInterestList = messageData.syncInterestList.interestTopic;
+    this.metadata = messageData.syncInterestList.content;
+    this.seedNode['metadata'] = messageData.syncInterestList.content;
+    this.node.self.metadata = messageData.syncInterestList.content;
+    debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DISDaemon');
+    this.run()
     return null;
 }
 exports.DHSearch.prototype._setInterestTopic = function() {

@@ -141,7 +141,9 @@ exports.KNode.prototype._onDelete = function(message) {
     var exists = bucket.contains(message.contact);
     if (exists) {
         bucket.remove(message.contact);
-        this._updateContactEvent.emit('update_contact');
+        if (message.isDisStop) {
+            this._updateContactEvent.emit('update_contact');
+        }
     }
 }
 
@@ -453,12 +455,13 @@ exports.KNode.prototype.set = function(key, value, cb) {
     }, this));
 }
 
-exports.KNode.prototype.delete = function(address, port, sl_portNum, sync_interest_list, metadata, cb) {
+exports.KNode.prototype.delete = function(address, port, sl_portNum, sync_interest_list, metadata, isDisStop, cb) {
     var callback = cb || function() {};
     var contact = util.make_contact(address, port, sl_portNum, sync_interest_list, metadata);
 
     var message = this._MSG('DELETE', {
-        'contact': contact
+        'contact': contact,
+        'isDisStop': isDisStop
     });
 
     async.forEach(this._buckets, _.bind(function(contact, asyncCb) {
@@ -469,6 +472,8 @@ exports.KNode.prototype.delete = function(address, port, sl_portNum, sync_intere
             });
         }
     }, this), callback);
-    this._buckets = {};
-    this._updateContactEvent.emit('update_contact');
+    if (isDisStop) {
+        this._buckets = {};
+        this._updateContactEvent.emit('update_contact');
+    }
 }
