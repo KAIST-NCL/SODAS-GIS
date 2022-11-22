@@ -1,6 +1,6 @@
 const { Git } = require(__dirname + '/../Lib/git');
 const { ref_parser } = require('../Lib/ref_parser');
-const debug = require('debug')('sodas:versionController\t|');
+const debug = require('debug')('sodas:versionController|');
 
 class VC {
 
@@ -50,12 +50,14 @@ class publishVC extends VC{
         }else{
             // MUTEX ON
             vm.lockMutex(vm);
-            debug('[PublishVC Event]: ' + message + ' - bind because of Mutex');
+            debug('[PublishVC Event]: - bind because of Mutex');
+            debug(message);
             var commitNum = await this.git.commit(filepath, message);
             debug(commitNum);
             // MUTEX OFF
             vm.unlockMutex(vm);
-            debug('[PublishVC Event]: ' + message + ' - Mutex unlock');
+            debug('[PublishVC Event]: - Mutex unlock');
+            debug(message);
             if (commitNum != '') vm.reportCommit(vm, commitNum);
         }
     }

@@ -36,7 +36,8 @@ exports.vcModule = function(){
 
     var self = this;
     parentPort.on('message', message => {
-        debug("[LOG] Received message: ", message);
+        debug("[LOG] Received message: ");
+        debug(message);
         switch(message.event) {
             case 'UPDATE_REFERENCE_MODEL':
                 // Change Log -> added self as argument of addReferenceModel
