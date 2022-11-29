@@ -1,0 +1,19 @@
+{
+  "source": {
+    "include": ["../../Daemon/ctrlKafka",
+                "../../Daemon/DHDaemon",
+                "../../Lib", "../../RMSync", "../../SessionManager", "../../VersionControl"],
+    "includePattern": ".js$",
+    "excludePattern": "(node_modules/|docs)"
+  },
+  "plugins": ["node_modules/jsdoc/plugins/markdown"],
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": true
+  },
+  "opts": {
+    "recurse": true,
+    "destination": "../../docs/",
+    "readme": "../../README.md" // 마크다운 파일을 읽어들이기 위해 추가
+  }
+}

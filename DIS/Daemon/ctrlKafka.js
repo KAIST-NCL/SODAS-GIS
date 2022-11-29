@@ -9,6 +9,16 @@ const debug = require('debug')('sodas:kafka\t\t|');
 // KAFKA 관련 변경 사항: content는 무조건 string 포맷으로
 
 class ctrlConsumer extends Consumer{
+
+    /**
+     * ctrlConsumer
+     * 타겟이 되는 kafka 정보를 받아들여 주어진 조건을 만족하는 kafka로부터
+     * 'send.datahub' 토픽의 정보를 지속적으로 listening하는 ctrlConsumer 객체 생성
+     * @param {string} kafkaHost - kafka Host 정보
+     * @param {dictionary} options - options for kafka
+     * @param {DHDaemon} dhDaemon - dhDaemon object
+     * @param {dictionary} conf - configuration
+     */
     constructor(kafkaHost, options, dhDaemon, conf){
         const topics = [ {topic:'send.dataHub', partitions:0 } ];
         super(kafkaHost, topics, options);
@@ -17,6 +27,11 @@ class ctrlConsumer extends Consumer{
         this.governanceSystemIP = conf.get('GovernanceSystem', 'ip');
         this.governanceSystemPort = conf.get('GovernanceSystem', 'port');
     }
+    /**
+     * ctrlConsumer 의 onMessage 함수
+     * @throws {error} 메시지가 send.dataHub의 규약을 따르지 않는 경우 에러 반환
+     * @returns {eventSwitch(event, msg)} eventSwitch
+     */
     onMessage = function(){
         debug('[RUNNING] Kafka consumer for control signal is running ');
         const that = this;
@@ -33,6 +48,13 @@ class ctrlConsumer extends Consumer{
             }
         });
     };
+    /**
+     * send.datahub로 들어오는 메시지의 event 형태에 따른 대응
+     * {START} - reference model 동기화 시작
+     * {STOP} - DIS 동작 종료
+     * {UPDATE} - 관심 허브 정보 등록
+     * {SYNC_ON} - 특정 데이터 허브와 동기화 시작
+     */
     eventSwitch = function(event, msg){
         switch(event){
             case 'START':

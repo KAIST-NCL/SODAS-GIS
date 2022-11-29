@@ -17,6 +17,10 @@ if (tty.isatty(process.stderr.fd)) {
 }
 const debug = require('debug')('sodas:daemon\t\t|');
 
+/**
+ * DHDaemon
+ * @constructor
+ */
 exports.DHDaemon = function(){
 
     this.conf = new ConfigParser();
@@ -68,6 +72,11 @@ exports.DHDaemon = function(){
     this.bucketList = null;
     this.myNodeId = crypto.createHash('sha1').update(this.disIp + ':' + this.dsPortNum).digest('hex');
 };
+/**
+ * DHDaemon 초기화 함수로,
+ * 처음 DIS가 시작할 때 호출됨.
+ * @returns {Promise<void>}
+ */
 exports.DHDaemon.prototype.init = async function(){
     // create kafka topic if doesn't exist
     self = this;
