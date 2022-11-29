@@ -1,0 +1,42 @@
+{
+    "id": "standard02",
+    "name": "Standard 02",
+    "description": "description",
+    "state": "published",
+    "extras": [],
+    "standardSpecifications": [
+        {
+			"id": "constraint002",
+			"standardId": "standard02",
+			"classId": "class02",
+            "propertyId": "property02",
+			"alias": "alias02",
+			"cardinalityMin": 0,
+            "cardinalityMax": 1,
+            "standardUsageRules": [
+                {
+                    "id": "constraintRule002",
+                    "standardConstraintId": "constraint002",
+                    "type": "type",
+                    "name": "name",
+                    "datatype": "datatype",
+                    "operator": "operator",
+                    "vallue": "value",
+                    "isNot": true,
+                    "issued": "2021-07-14T14:19:09.288Z",
+                    "issuerId": "issuerId",
+                    "modified": "2021-07-15T14:19:09.288Z",
+                    "modifierId": "modifierId"
+                }
+            ],
+			"issued": "2021-07-14T14:19:09.288Z",
+			"issuerId": "issuerId",
+			"modified": "2021-07-15T14:19:09.288Z",
+			"modifierId": "modifierId"
+		}
+    ],
+	"issued": "2021-07-07T14:19:09.288Z",
+	"issuerId": "issuerId",
+	"modified": "2021-07-08T14:19:09.288Z",
+	"modifierId": "modifierId"
+}

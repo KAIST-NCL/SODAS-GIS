@@ -1,4 +1,3 @@
-
 const PROTO_PATH = __dirname+'/proto/bootstrap.proto';
 const { parentPort, workerData } = require('worker_threads');
 const dh = require(__dirname+'/api/dhnode');
@@ -6,26 +5,27 @@ const knode = require(__dirname+'/kademlia/knode');
 const dhsearch = require(__dirname+'/dhSearch');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
-const debug = require('debug')('sodas:dhSearch');
+const debug = require('debug')('sodas:dhSearch\t|');
 
 exports.DHSearch = function(){
 
     self = this;
     parentPort.on('message', function(message) {self._dhDaemonListener(message)});
 
-    this.ip = workerData.dmIp;
+    this.ip = workerData.disIp;
     this.dsPortNum = workerData.dsPortNum;
     this.slPortNum = workerData.slPortNum;
     this.bootstrapServerIp = workerData.bootstrapIp + ':' + workerData.bootstrapPortNum;
 
     this.seedNode = dh.seedNodeInfo({address: this.ip, port: parseInt(workerData.dsPortNum), slPortNum: parseInt(workerData.slPortNum)});
-    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.dsPortNum), slPortNum: parseInt(workerData.slPortNum), syncInterestList: []});
+    this.node = new knode.KNode({address: this.ip, port: parseInt(workerData.dsPortNum), slPortNum: parseInt(workerData.slPortNum), syncInterestList: [], metadata: null});
     this.node._updateContactEvent.on('update_contact', () => {
         this._dmUpdateBucketList()
     });
     this.seedNodeList = [];
     this.oldBucketList = [];
     this.syncInterestList = [];
+    this.metadata = null;
 
     const packageDefinition = protoLoader.loadSync(
         PROTO_PATH,{
@@ -51,15 +51,17 @@ exports.DHSearch.prototype.run = function(){
 exports.DHSearch.prototype._dhDaemonListener = function(message){
     switch (message.event) {
         case 'UPDATE_INTEREST_TOPIC':
-            this.syncInterestList = message.data.syncInterestList;
-            this.seedNode['syncInterestList'] = message.data.syncInterestList;
-            this.node.self.syncInterestList = message.data.syncInterestList;
-            debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DISDaemon');
-            this.run()
+            if (this.metadata) {
+                this._deleteMyInfoFromKademlia().then(r => {
+                    this._updateInterestInfo(message.data);
+                })
+            } else {
+                this._updateInterestInfo(message.data);
+            }
             break;
         case 'DIS_STOP':
             debug('[LOG] DHSearch thread receive [DIS_STOP] event from DISDaemon');
-            this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList);
+            this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList, this.metadata, true);
             dhSearch.bootstrapClient.DeleteSeedNode(this.seedNode, function(err, response) {
                 if (!err) {
                     debug(response);
@@ -108,8 +110,22 @@ exports.DHSearch.prototype._bootstrapProcess = async function() {
 exports.DHSearch.prototype._discoverProcess = async function() {
     debug('[LOG] Start distributed search')
     for (var seedNodeIndex of this.seedNodeList) {
-        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.slPortNum, seedNodeIndex.syncInterestList);
+        var connect = await this.node.connect(seedNodeIndex.address, seedNodeIndex.port, seedNodeIndex.slPortNum, seedNodeIndex.syncInterestList, seedNodeIndex.metadata);
     }
+    return null;
+}
+exports.DHSearch.prototype._deleteMyInfoFromKademlia = function() {
+    return Promise.resolve(this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList, this.metadata, false))
+}
+exports.DHSearch.prototype._updateInterestInfo = function(messageData) {
+    this.syncInterestList = messageData.syncInterestList.interestTopic;
+    this.seedNode['syncInterestList'] = messageData.syncInterestList.interestTopic;
+    this.node.self.syncInterestList = messageData.syncInterestList.interestTopic;
+    this.metadata = messageData.syncInterestList.content;
+    this.seedNode['metadata'] = messageData.syncInterestList.content;
+    this.node.self.metadata = messageData.syncInterestList.content;
+    debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DISDaemon');
+    this.run()
     return null;
 }
 exports.DHSearch.prototype._setInterestTopic = function() {

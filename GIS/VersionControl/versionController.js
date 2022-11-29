@@ -13,23 +13,27 @@ class VC {
 
     async init(){
         var value = '';
+        var self = this;
         await this.git.init()
             .then((commnum) => {
                 //Create 2 folders for each rdf type
                 value = (' ' + commnum).slice(1);
-                if (!fs.existsSync(this.vcRoot+'/'+'domain')){
-                    fs.mkdir(this.vcRoot+'/'+'domain', function(err) {
-                        if (err) {
-                            console.log(err);
-                        }});
-                };
-                if (!fs.existsSync(this.vcRoot+'/'+'domain_version')){
-                    fs.mkdir(this.vcRoot+'/'+'domain_version', function(err) {
-                        if (err) {
-                            console.log(err);
-                        }});  
+                var makeFolder = function(self, typeName) {
+                    if (!fs.existsSync(self.vcRoot+'/'+typeName)){
+                        fs.mkdirSync(self.vcRoot+'/'+typeName);
+                    };
                 }
-                // 추후 group, taxonomy, taxonomyVersion으로 수정할 필요 있음
+                // dictionary 폴더 생성
+                makeFolder(self, 'dictionary');
+                makeFolder(self, 'dictionary/codeSystem');
+                makeFolder(self, 'dictionary/vocabulary');
+                makeFolder(self, 'dictionary/standard');
+                // referenceModel 폴더 생성
+                makeFolder(self, 'referenceModel');
+                makeFolder(self, 'referenceModel/domain');
+                makeFolder(self, 'referenceModel/tenantGroup');
+                makeFolder(self, 'referenceModel/taxonomy');
+                makeFolder(self, 'referenceModel/taxonomyVersion');
             })
             .catch((e) => {debug(e)});
         this.isInit = true;

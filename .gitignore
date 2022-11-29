@@ -8,3 +8,12 @@ node_modules/
 .env.development.local
 .env.test.local
 .env.production.local
+TestTools/token
+TestTools/Producer/asset_producer/log.txt
+TestTools/Producer/reference_producer/taxonomyVersion01-01_KAIST.json
+TestTools/Producer/reference_producer/taxonomyVersion01-02_KAIST.json
+TestTools/Producer/reference_producer/taxonomyVersion01-03_KAIST.json
+TestTools/Producer/reference_producer/taxonomyVersion02-01_KAIST.json
+TestTools/referenceModels_example/taxonomyVersion/taxonomyVersion01-01.json
+TestTools/Producer/reference_producer/taxonomyVersion02-02_KAIST.json
+TestTools/referenceModels_example/taxonomyVersion/taxonomyVersion01-01.json

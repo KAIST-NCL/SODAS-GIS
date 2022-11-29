@@ -2,7 +2,6 @@ const ConfigParser = require('configparser');
 const { Worker, MessageChannel } = require("worker_threads");
 const dm = require('./DHDaemon');
 const { ctrlConsumer, ctrlProducer } = require('./ctrlKafka');
-const debug = require('debug')('sodas:daemon');
 const fs = require("fs");
 const bucketparser = require('../Lib/bucketparser');
 'use strict';
@@ -11,6 +10,12 @@ const crypto = require("crypto");
 const nets = networkInterfaces();
 const ips = Object.create(null); // Or just '{}', an empty object
 const ip = require('ip');
+const path = require('path');
+const tty = require('tty');
+if (tty.isatty(process.stderr.fd)) {
+    process.env.DEBUG_COLORS = 'true';
+}
+const debug = require('debug')('sodas:daemon\t\t|');
 
 exports.DHDaemon = function(){
 
@@ -46,21 +51,22 @@ exports.DHDaemon = function(){
         }
     };
 
-    this.dmIp = ip.address();
-    debug('[LOG]: ip', this.dmIp);
-    debug('[LOG]: session negotiation option', this.snOptions);
+    this.disIp = ip.address();
+    debug('[LOG]: ip', this.disIp);
+    debug('[LOG]: session negotiation option');
+    debug(this.snOptions);
     this.pubvcRoot = this.conf.get('VersionControl', 'pubvc_root');
     this.subvcRoot = this.conf.get('VersionControl', 'subvc_root');
     this.commitPeriod = this.conf.get('VersionControl', 'commit_period');
 
     process.env.DH_HOME = this.conf.get('ENV', 'DH_HOME');
-    debug('[SETTING] DataHub daemon is running with %s:%s', this.dmIp, this.dmPortNum);
+    debug('[SETTING] DataHub daemon is running with %s:%s', this.disIp, this.dmPortNum);
     this.ctrlProducer = new ctrlProducer(this.kafka);
     // ctrlConsumer will be created in init()
 
     this.interest = [];
     this.bucketList = null;
-    this.dhId = crypto.createHash('sha1').update(this.dmIp + ':' + this.dsPortNum).digest('hex');
+    this.myNodeId = crypto.createHash('sha1').update(this.disIp + ':' + this.dsPortNum).digest('hex');
 };
 exports.DHDaemon.prototype.init = async function(){
     // create kafka topic if doesn't exist
@@ -85,11 +91,11 @@ exports.DHDaemon.prototype.run = function(){
     self = this;
 
     // setEnvironmentData
-    const dmServerParam = {'dmIp': this.dmIp, 'dmPortNum': this.dmPortNum, 'name': this.name};
-    const dhSearchParam = {'dmIp': this.dmIp, 'dsPortNum': this.dsPortNum, 'slPortNum': this.slPortNum, 'bootstrapIp': this.bsIp, 'bootstrapPortNum': this.bsPortNum};
+    const dmServerParam = {'disIp': this.disIp, 'dmPortNum': this.dmPortNum, 'name': this.name};
+    const dhSearchParam = {'disIp': this.disIp, 'dsPortNum': this.dsPortNum, 'slPortNum': this.slPortNum, 'bootstrapIp': this.bsIp, 'bootstrapPortNum': this.bsPortNum};
     const vcParam = {'smPort': msgChn.port1, 'rmsyncRootDir': this.rmSyncRootDir, 'kafka': this.kafka, 'kafkaOptions': this.kafkaOptions, 'pubvcRoot': this.pubvcRoot, 'commitPeriod': this.commitPeriod, 'mutexFlag': mutexFlag};
-    const smParam = {'vcPort': msgChn.port2, 'kafka': this.kafka, 'dhId': this.dhId, 'dmIp': this.dmIp, 'slPortNum': this.slPortNum, 'snOptions':this.snOptions, 'pubvcRoot': this.pubvcRoot, 'subvcRoot': this.subvcRoot, 'mutexFlag': mutexFlag};
-    const rmSyncParam = {'dmIp': this.dmIp, 'rmPort': this.rmPortNum, 'gsIp': this.gsIp, 'gsPortNum': this.gsPortNum, 'rmsyncRootDir': this.rmSyncRootDir};
+    const smParam = {'vcPort': msgChn.port2, 'kafka': this.kafka, 'myNodeId': this.myNodeId, 'disIp': this.disIp, 'slPortNum': this.slPortNum, 'snOptions':this.snOptions, 'pubvcRoot': this.pubvcRoot, 'subvcRoot': this.subvcRoot, 'mutexFlag': mutexFlag};
+    const rmSyncParam = {'disIp': this.disIp, 'rmPort': this.rmPortNum, 'gsIp': this.gsIp, 'gsPortNum': this.gsPortNum, 'rmsyncRootDir': this.rmSyncRootDir};
 
     // run daemonServer
     this.daemonServer = new Worker('./daemonServer.js', { workerData: dmServerParam });
@@ -150,7 +156,7 @@ exports.DHDaemon.prototype._dhSearchListener = function(message){
             this._dmServerSetBucketList(this.bucketList);
             this.ctrlProducer._produce( 'recv.dataHubList', {
                 operation: 'UPDATE',
-                content: JSON.stringify(this.bucketList)
+                content: JSON.stringify(bucketparser.bucketToList(this.bucketList))
             });
             break;
         default:
@@ -187,12 +193,62 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
     switch (message.event) {
         case 'UPDATE_REFERENCE_MODEL':
             debug('[DEBUG] UPDATE_REFERENCE_MODEL is passed. The reference models are transferred to ctrlProducer', message.data);
+            // init.txt는 제외 대상이다.
+            for (var i=0; i < message.data.path.length; i++) {
+                if (message.data.path[i] == 'init.txt') {
+                    message.data.path.splice(i, 1);
+                    i--;
+                }
+            }
+            message.data.path.sort(function(a,b) {
+                const a_path = self.rmSyncRootDir+ '/gitDB/' + a;
+                const b_path = self.rmSyncRootDir+ '/gitDB/' + b;
+
+                const a_msg = JSON.parse(fs.readFileSync(a_path).toString())
+                const b_msg = JSON.parse(fs.readFileSync(b_path).toString())
+
+                // a가 먼저면 음수 반환, b가 먼저면 양수 반환
+                return a_msg.timestamp - b_msg.timestamp;
+            })
+
+
             for (var i = 0; i < message.data.path.length; i++) {
+                // 파일 내용 추출
                 const rmPath = self.rmSyncRootDir+ '/gitDB/' + message.data.path[i];
                 debug('[DEBUG] read ' + rmPath + ' file (reference models...)')
-                fs.readFile(rmPath, 'utf8', function(err, data){
-                    self.ctrlProducer.sendUpdate(rmPath, data);
-                });
+
+                // referenceModel인지 dictionary인지 분간
+                var topic = "";
+                var t = rmPath.split(path.sep);
+                switch (t[t.length-3]) {
+                    case "referenceModel":
+                        topic = topic + "recv.referenceModel";
+                        break;
+                    case "dictionary":
+                        topic = topic + "recv.dictionary";
+                        break;
+                    default:
+                        debug("Something Wrong");
+                        break;
+                }
+                if (topic == "") continue;
+
+                const msg_ = JSON.parse(fs.readFileSync(rmPath, 'utf8').toString());
+                const content = msg_.content
+                const operation = (message.data.operation == 'CREATE') ? message.data.operation : msg_.operation
+
+                // 내용 operation, type, id, content, publishingType, timestamp
+                // 임시 방편으로 operation은 UPDATE 고정
+                var msg = {
+                    "operation": operation,
+                    "type": msg_.type,
+                    "id": msg_.id,
+                    "content": content,
+                    "publishingType": msg_.publishingType
+                }
+
+                debug("Producing [" + topic + "] Message with type " + msg_.type);
+                self.ctrlProducer._produce(topic, msg);
             }
             debug('[Function Test / UPDATE REFERENCE MODEL] UPDATE event is sent to Kafka');
             this._vcUpdateReferenceModel(message.data.path);

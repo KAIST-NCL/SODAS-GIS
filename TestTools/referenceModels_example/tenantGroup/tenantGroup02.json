@@ -1,0 +1,13 @@
+{
+    "id": "tenantGroup02",
+	"domainId": "domain02",
+	"standardId": "standard02",
+    "name": "tenant group name",
+    "description": "tenant group description",
+    "state": "published",
+    "published": "2022-06-10",
+	"issued": "2021-07-07T14:19:09.288Z",
+	"issuerId": "issuerId",
+	"modified": "2021-07-08T14:19:09.288Z",
+	"modifierId": "modifierId"
+}

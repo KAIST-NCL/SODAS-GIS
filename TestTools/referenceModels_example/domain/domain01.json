@@ -1,0 +1,10 @@
+{
+    "id": "domain01",
+    "name": "Domain 01",
+    "description": "description",
+    "state": "published",
+	"issued": "2021-07-07T14:19:09.288Z",
+	"issuerId": "issuerId",
+	"modified": "2021-07-08T14:19:09.288Z",
+	"modifierId": "modifierId"
+}

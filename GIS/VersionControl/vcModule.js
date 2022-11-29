@@ -3,8 +3,6 @@ const { parentPort, workerData } = require('worker_threads');
 const { publishVC } = require(__dirname + '/versionController');
 const { vcConsumer } = require(__dirname+'/vcConsumer');
 const vcModule = require(__dirname+'/vcModule');
-const diff_parser = require(__dirname+'/../Lib/diff_parser');
-const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:vcModule');
 
 /// Constructor
@@ -48,7 +46,7 @@ exports.vcModule.prototype.reportCommit = function(self, commitNumber){
     const msg = {
         event: 'UPDATE_REFERENCE_MODEL',
         data: {
-            commit_number: commitNumber,
+            commitNumber: commitNumber,
         }
     };
     this.smPort.postMessage(msg);
@@ -62,7 +60,7 @@ exports.vcModule.prototype.editFile = async function(option, filepath, type, con
             break;
         case 'DELETE':
             if (type != 'domain'){
-                console.log("group/taxonomy/taxonomyVersion file cannot be deleted");
+                console.log("tenantGroup/taxonomy/taxonomyVersion file cannot be deleted");
                 break;
             }
             this.vc.git.deleteFile(fp);

@@ -5,7 +5,7 @@ const { vcConsumer } = require(__dirname+'/vcConsumer');
 const vcModule = require(__dirname+'/vcModule');
 const diff_parser = require(__dirname+'/../Lib/diff_parser');
 const execSync = require('child_process').execSync;
-const debug = require('debug')('sodas:vcModule');
+const debug = require('debug')('sodas:vcModule\t|');
 
 /// Constructor
 exports.vcModule = function(){
@@ -36,7 +36,8 @@ exports.vcModule = function(){
 
     var self = this;
     parentPort.on('message', message => {
-        debug("[LOG] Received message: ", message);
+        debug("[LOG] Received message: ");
+        debug(message);
         switch(message.event) {
             case 'UPDATE_REFERENCE_MODEL':
                 // Change Log -> added self as argument of addReferenceModel
@@ -87,6 +88,9 @@ exports.vcModule.prototype.reportCommit = function(self, commitNumber){
 exports.vcModule.prototype.editFile = async function(option, filepath, content) {
     var fp = this.vc.vcRoot + '/' + filepath;
     switch (option) {
+        case 'CREATE':
+            this.vc.git.editFile(fp, content);
+            break;
         case 'UPDATE':
             this.vc.git.editFile(fp, content);
             break;

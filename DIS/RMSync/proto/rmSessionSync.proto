@@ -12,6 +12,7 @@ message PublishRefMap {
     string transID = 1; // 트랜잭션 번호 {Timestamp} + {Datamap Filename} + 'SEND'
     string gitPatch = 2; // git_patch 파일
     string receiverId = 3;
+    string operation = 4;
 }
 
 message ACKMessage {

@@ -5,7 +5,7 @@ const sr = require(__dirname+'/sessionRequester');
 const policy = require(__dirname+'/../api/sync_policy');
 const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
-const debug = require('debug')('sodas:sessionRequester');
+const debug = require('debug')('sodas:sessionRequester|');
 
 exports.SessionRequester = function () {
 
@@ -15,7 +15,7 @@ exports.SessionRequester = function () {
     this.mySessionDesc = {};
     this.myEndPoint = {};
 
-    this.mySessionDesc.sessionCreator = workerData.dhId;
+    this.mySessionDesc.sessionCreator = workerData.myNodeId;
     this.snOptions = workerData.snOptions;
 
     const packageDefinition = protoLoader.loadSync(

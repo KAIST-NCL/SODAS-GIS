@@ -6,7 +6,7 @@ const detect = require('detect-port');
 
 const MIN_PORT_NUM_OF_SESSION = 55000;
 const MAX_PORT_NUM_OF_SESSION = 65535;
-const debug = require('debug')('sodas:sessionManager');
+const debug = require('debug')('sodas:sessionManager\t|');
 
 exports.SessionManager = function() {
 
@@ -16,10 +16,10 @@ exports.SessionManager = function() {
     this.VC = workerData.vcPort;
     this.VC.on('message', this._vcListener);
 
-    this.dhId = workerData.dhId;
-    this.dmIp = workerData.dmIp;
+    this.myNodeId = workerData.myNodeId;
+    this.disIp = workerData.disIp;
     this.kafka = workerData.kafka;
-    this.slAddr = workerData.dmIp + ':' + workerData.slPortNum;
+    this.slAddr = workerData.disIp + ':' + workerData.slPortNum;
     this.snOptions = workerData.snOptions;
     this.pubvcRoot = workerData.pubvcRoot;
     this.subvcRoot = workerData.subvcRoot;
@@ -34,8 +34,8 @@ exports.SessionManager = function() {
 };
 exports.SessionManager.prototype.run = function (){
 
-    const srParam = {'snOptions': this.snOptions, 'dhId': this.dhId}
-    const slParam = {'snOptions': this.snOptions, 'dhId': this.dhId, 'slAddr': this.slAddr}
+    const srParam = {'snOptions': this.snOptions, 'myNodeId': this.myNodeId}
+    const slParam = {'snOptions': this.snOptions, 'myNodeId': this.myNodeId, 'slAddr': this.slAddr}
 
     this.sessionRequester = new Worker(__dirname+'/DHSessionRequester/sessionRequester.js', {workerData: srParam});
     this.sessionListener = new Worker(__dirname+'/DHSessionListener/sessionListener.js', {workerData: slParam});
@@ -108,22 +108,11 @@ exports.SessionManager.prototype._vcListener = function (message){
         case 'UPDATE_PUB_ASSET':
             debug('[RX: UPDATE_PUB_ASSET] from VersionControl');
             debug(message.data);
-
-            let sync_list = [];
             for (let t = 0; t < message.data.filepath.length; t++) {
-                let sync_element = message.data.filepath[t].split("/").slice(0,-1);
-                sync_list = sync_list.concat(sync_element)
-                const uniqueArr = sync_list.filter((element, index) => {
-                    return sync_list.indexOf(element) === index
-                });
-                if ((t+1) === message.data.filepath.length) {
-                    for (let i = 0; i < uniqueArr.length; i++) {
-                        let sync_target = uniqueArr[i]
-                        debug(sync_target)
-                        if (sessionManager.sessionList[sync_target]) {
-                            for (let j = 0; j < sessionManager.sessionList[sync_target].length; j++) {
-                                sessionManager._sessionUpdatePubAsset(sessionManager.sessionList[sync_target][j].worker, message.data.commitNumber)
-                            }
+                for (let key in sessionManager.sessionList) {
+                    if (message.data.filepath[t].includes(key)) {
+                        for (let u = 0; u < sessionManager.sessionList[key].length; u++) {
+                            sessionManager._sessionUpdatePubAsset(sessionManager.sessionList[key][u].worker, message.data.commitNumber)
                         }
                     }
                 }
@@ -141,7 +130,7 @@ exports.SessionManager.prototype._srListener = function (message){
             sessionManager.srTempSession.otherPort = message.data.endPoint.port;
 
             // todo: daemon 에 GET_SESSION_LIST_INFO
-            sessionManager.sessionListToDaemon.push(sessionManager._refactoringSessionInfo(sessionManager.srTempSession));
+            sessionManager.sessionListToDaemon.push(sessionManager._refactoringSessionInfo(sessionManager.srTempSession, message.data.sessionDesc.sessionCreator));
             sessionManager._dmGetSessionListInfo();
 
             // todo: srTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
@@ -182,7 +171,7 @@ exports.SessionManager.prototype._slListener = function (message){
             sessionManager.slTempSession.otherIp = message.data.endPoint.ip;
             sessionManager.slTempSession.otherPort = message.data.endPoint.port;
 
-            sessionManager.sessionListToDaemon.push(sessionManager._refactoringSessionInfo(sessionManager.slTempSession));
+            sessionManager.sessionListToDaemon.push(sessionManager._refactoringSessionInfo(sessionManager.slTempSession, message.data.sessionDesc.sessionCreator));
             sessionManager._dmGetSessionListInfo();
 
             // todo: slTempSession 에 TRANSMIT_NEGOTIATION_RESULT 전송
@@ -315,7 +304,7 @@ exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorke
 exports.SessionManager.prototype._createSession = async function () {
     var session = {};
     session.sessionId = crypto.randomBytes(20).toString('hex');
-    session.myIp = this.dmIp
+    session.myIp = this.disIp
     await this._setSessionPort().then(value => session.myPort = value);
     session.worker = await new Worker(__dirname+'/DHSession/session.js', { workerData: {'mySessionId': session.sessionId, 'myIp': session.myIp, 'myPortNum': session.myPort, 'kafka': sessionManager.kafka, 'pubvcRoot': sessionManager.pubvcRoot, 'subvcRoot': sessionManager.subvcRoot, 'mutexFlag': sessionManager.mutexFlag} });
     session.worker.on('message', this._sessionListener);
@@ -333,12 +322,14 @@ exports.SessionManager.prototype._setSessionPort = async function () {
     return detect();
 }
 
-exports.SessionManager.prototype._refactoringSessionInfo = function (tempSession) {
+exports.SessionManager.prototype._refactoringSessionInfo = function (tempSession, otherNodeId) {
     let append_session = {};
 
     append_session.sessionId = tempSession.sessionId;
+    append_session.myNodeId = this.myNodeId;
     append_session.myIp = tempSession.myIp;
     append_session.myPort = tempSession.myPort;
+    append_session.otherNodeId = otherNodeId;
     append_session.otherIp = tempSession.otherIp;
     append_session.otherPort = tempSession.otherPort;
     append_session.snResult = tempSession.snResult;

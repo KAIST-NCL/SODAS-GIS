@@ -18,13 +18,14 @@ const packageDefinition = protoLoader.loadSync(
     })
 const session_sync = grpc.loadPackageDefinition(packageDefinition).SessionSyncModule;
 const session = require(__dirname + '/session');
-const debug = require('debug')('sodas:session');
+const debug = require('debug')('sodas:session\t\t|');
 const tools = require('../../Lib/tools');
 
 /// Constructor
 // workerData -> my_session_id, my_ip, my_portNum
 exports.Session = function() {
-    debug("[LOG] Session Created");
+    debug("[LOG-Session:" + workerData.mySessionId + "]: Session is Created");
+    debug("[LOG-Session:" + workerData.mySessionId + "]:");
     debug(workerData);
     this.countMsg = 0;
 
@@ -43,7 +44,7 @@ exports.Session = function() {
     // Settings for GitDB
     this.VC = new subscribeVC(this.rootDir+'/gitDB');
     this.VC.init();
-    
+
     // Mutex_Flag for Git
     this.flag = workerData.mutexFlag; // mutex flag
 
@@ -75,7 +76,7 @@ exports.Session = function() {
             case 'TRANSMIT_NEGOTIATION_RESULT':
                 // Get the counter session's address + port
                 this.target = message.data.endPoint.ip + ':' + message.data.endPoint.port;
-                debug('[LOG] Target:' + this.target);
+                debug("[Session ID: " + this.id + "] Target:" + this.target);
                 // gRPC client creation
                 this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
                 this.sessionDesc = message.data.sessionDesc;
@@ -110,7 +111,7 @@ exports.Session.prototype.prePublish = function(self, message) {
     content.commitNumber.push(message.commitNumber);
     self.__save_dict(content);
     if (self.countMsg >= self.snOptions.syncDesc.syncCount[0]) {
-        debug("[LOG] Sync_count reached - clearTimeOout");
+        debug("[LOG-Session:" + self.id + "]: Sync_count reached - clearTime Out");
         clearTimeout(self.setTimeoutID);
         self.run(self);
     }
@@ -119,36 +120,37 @@ exports.Session.prototype.prePublish = function(self, message) {
 /// If the count / sync time reaches some point, extract the git diff and publish it to other session
 exports.Session.prototype.onMaxCount = async function(self) {
     self.countMsg = 0;
-    debug("[LOG] onMaxCount");
+    debug("[LOG-Session:" + self.id + "]: onMaxCount");
     // Read file first and reset the file
     const topublish = self.__read_dict();
     self._reset_count(topublish.commitNumber[topublish.commitNumber.length - 1]);
     // git diff extraction
-    git_diff = await self.extractGitDiff(topublish)
-    // Send gRPC message 
-    if (git_diff) self.Publish(git_diff);
+    self.extractGitDiff(self, topublish)
+
 }
 
 /// To extract git diff using two git commit numbers
 // topublish: dict. Result of reading log file
-exports.Session.prototype.extractGitDiff = async function(topublish) {
+exports.Session.prototype.extractGitDiff = async function(self, topublish) {
     // mutex 적용
-    if (this.flag[0] == 1) {
+    debug("[LOG-Session:" + self.id + "]: gitDiff mutex - " + self.flag[0])
+    if (self.flag[0] == 1) {
         // retry diff
         const timeOut = 100;
-        setTimeout(this.extractGitDiff.bind(this), timeOut, topublish);
+        setTimeout(self.extractGitDiff.bind(self), timeOut, self, topublish);
     }
     else {
         // mutex on
-        this.flag[0] = 1;
+        self.flag[0] = 1;
         var diff_directories = ' --';
-        for (var i = 0; i < this.snOptions.datamapDesc.syncInterestList.length; i++) {
-            diff_directories = diff_directories + ' ' + this.snOptions.datamapDesc.syncInterestList[i];
+        for (var i = 0; i < self.snOptions.datamapDesc.syncInterestList.length; i++) {
+            diff_directories = diff_directories + ' ' + self.snOptions.datamapDesc.syncInterestList[i];
         }
-        var git_diff = execSync('cd ' + this.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1] + diff_directories);
-        this.flag[0] = 0;
+        var git_diff = execSync('cd ' + self.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1] + diff_directories);
         // mutex off
-        return git_diff;
+        self.flag[0] = 0;
+        // Send gRPC message
+        if (git_diff) self.Publish(git_diff);
     }
 }
 
@@ -169,7 +171,7 @@ exports.Session.prototype._reset_count = function(last_commit) {
 /// [5]: Publish to the counter Session
 // git_patch: string. Git diff Extraction result
 exports.Session.prototype.Publish = function(git_patch) {
-    debug("[LOG] Publish");
+    debug("[LOG-Session:" + ss.id + "]: Publish");
     // Change Log -> Now, does not send the related and filepath information through the gRPC. Subscriber extracts that information from git diff file
 
     // Make the message body to send
@@ -181,10 +183,10 @@ exports.Session.prototype.Publish = function(git_patch) {
     this.grpc_client.SessionComm(toSend, function(err, response) {
         if (err) throw err;
         if (response.transID = toSend.transID && response.result == 0) {
-            debug("[LOG] Publish Communicateion Successfull");
+            debug("[LOG-Session:" + ss.id + "]:  gRPC publish communication is completed");
         }
         else {
-            debug("[ERROR] Error on Publish Communication");
+            debug("[ERROR-Session:" + ss.id + "]:  gRPC publish communication ");
         }
     });
 }
@@ -192,10 +194,10 @@ exports.Session.prototype.Publish = function(git_patch) {
 /// (1): Subscribe from the other session
 // Change Log -> seperated from the constructor as an function
 exports.Session.prototype.Subscribe = function(self, call, callback) {
-    debug('[LOG] Server: ' + self.id + ' gRPC Received: to ' + call.request.receiverId);
+    debug("[LOG-Session:" + self.id + "]: gRPC Received: from " + call.request.receiverId);
     // Only process the things when sender's id is the same one with the counter session's id
     if (call.request.receiverId == self.id) {
-        debug("[LOG] Git Patch Start");
+        debug("[LOG-Session:" + self.id + "]: start to apply GitPatch");
         // git Patch apply
         var result = self.gitPatch(call.request.gitPatch, self);
         // ACK Transimittion
@@ -214,14 +216,14 @@ exports.Session.prototype.gitPatch = function(git_patch, self) {
     try {
         fs.writeFileSync(temp, git_patch);
     } catch (err) {
-        debug("[ERROR] ", err);
+        debug("[ERROR" + self.id + "]:", err);
         return 1;
     }
     self.VC.apply("../" + patch);
     // remove the temporal file
     fs.existsSync(temp) && fs.unlink(temp, function (err) {
         if (err) {
-            debug("[ERROR] ", err);
+            debug("[ERROR" + self.id + "]:", err);
         }
     });
     return 0;
@@ -239,20 +241,12 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     var payload_list = [];
     for (var i = 0; i < filepath_list.length; i++) {
         var filepath = filepath_list[i];
-        var related = diff_parser.file_path_to_related(filepath);
 
-        var temp = {
-            "id": path.basename(filepath, '.asset'),
-            "operation": "UPDATE",
-            "type": "asset",
-            "related": related,
-            "content": fs.readFileSync(self.VC.vcRoot + '/' + filepath).toString()
-        }
+        var msg_ = JSON.parse(fs.readFileSync(self.VC.vcRoot + '/' + filepath).toString())
+
+        var temp = msg_
         payload_list.push(temp);
-        debug("[LOG] Payload added " + temp.id);
     }
-    
-    debug('[LOG] kafka Producer start');
 
     var Producer = kafka.Producer;
     var client = new kafka.KafkaClient({kafkaHost: this.kafka});
@@ -265,7 +259,7 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
         });
     })
 
-    debug('[LOG] kafka Producer done');
+    debug("[LOG-Session:" + self.id + "]: Kafka producer completed ");
 }
 
 // Data Storing

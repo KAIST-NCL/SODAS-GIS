@@ -1,0 +1,93 @@
+{
+	"id": "taxonomyVersion01-03",
+	"taxonomyId": "taxonomy01",
+	"previousVersionId": "taxonomyVersion02",
+	"name": "taxonomy version name",
+	"description": "taxonomy version description",
+	"state": "latest",
+	"published": "2022-06-10",
+	"issued": "2021-08-19T14:19:09.288Z",
+	"issuerId": "issuerId",
+	"modified": "2021-08-20T14:19:09.288Z",
+	"modifierId": "modifierId",
+	"categories": [{
+			"id": "category01-03-002-001",
+			"versionId": "taxonomyVersion01-03",
+			"parentId": "category01-01-002",
+			"imagePath": "images/logo.jpg",
+			"name": "category name",
+			"description": "category description",
+			"isDeprecated": false,
+			"isDeprecatedDraft": false,
+			"orgId": null,
+			"profile": {
+					"id": "profile01-03-002-001",
+					"standardId": "standard01",
+					"name": "profile",
+					"description": "description",
+					"extras": [],
+					"profileResourceDescriptors": [{
+									"id": "profileResourceDescriptor01-03-002-001-01",
+									"role": "specification",
+									"content": "text",
+									"issued": "2021-07-07T14:19:09.288Z",
+									"issuerId": "issuerId",
+									"modified": "2021-07-08T14:19:09.288Z",
+									"modifierId": "modifierId"
+							},
+							{
+									"id": "profileResourceDescriptor01-03-002-001-02",
+									"role": "constraint",
+									"constraints": [{
+											"id": "constraint001",
+											"profileResourceDescriptorId": "profileResourceDescriptor000002",
+											"classId": "class01",
+											"propertyId": "property01",
+											"alias": "alias01",
+											"cardinalityMin": 0,
+											"cardinalityMax": 1,
+											"rules": [{
+													"id": "constraintRule0001",
+													"profileRoleConstraintId": "constraint0001",
+													"type": "type",
+													"name": "name",
+													"datatype": "datatype",
+													"operator": "operator",
+													"vallue": "value",
+													"isNot": true,
+													"issued": "2021-07-07T14:19:09.288Z",
+													"issuerId": "issuerId",
+													"modified": "2021-07-08T14:19:09.288Z",
+													"modifierId": "modifierId"
+											}],
+											"issued": "2021-07-07T14:19:09.288Z",
+											"issuerId": "issuerId",
+											"modified": "2021-07-08T14:19:09.288Z",
+											"modifierId": "modifierId"
+									}],
+									"issued": "2021-07-07T14:19:09.288Z",
+									"issuerId": "issuerId",
+									"modified": "2021-07-08T14:19:09.288Z",
+									"modifierId": "modifierId"
+							},
+							{
+									"id": "profileResourceDescriptor01-03-002-001-03",
+									"role": "vocabulary",
+									"vocabularyId": "vocabulary01",
+									"issued": "2021-07-07T14:19:09.288Z",
+									"issuerId": "issuerId",
+									"modified": "2021-07-08T14:19:09.288Z",
+									"modifierId": "modifierId"
+							}
+					],
+					"issued": "2021-07-10T14:19:09.288Z",
+					"issuerId": "issuerId",
+					"modified": "2021-07-11T14:19:09.288Z",
+					"modifierId": "modifierId"
+			},
+			"issued": "2021-08-24T14:19:09.288Z",
+			"issuerId": "issuerId",
+			"modified": "2021-08-25T14:19:09.288Z",
+			"modifierId": "modifierId"
+	}]
+}

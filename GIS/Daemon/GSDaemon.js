@@ -104,6 +104,13 @@ exports.GSDaemon.prototype._vcListener = function(message){
     }
 };
 
+exports.GSDaemon.prototype._rmSMInit = function() {
+    this.rmSessionManager.postMessage({
+        event: 'INIT',
+        data: {}
+    })
+}
+
 const daemon = new gs.GSDaemon();
 daemon.init()
     .then(() => {
