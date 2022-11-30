@@ -10,10 +10,6 @@ const nets = networkInterfaces();
 const ips = Object.create(null); // Or just '{}', an empty object
 const ip = require('ip');
 const path = require('path');
-const tty = require('tty');
-if (tty.isatty(process.stderr.fd)) {
-    process.env.DEBUG_COLORS = 'true';
-}
 const debug = require('debug')('sodas:daemon\t\t|');
 
 /**
