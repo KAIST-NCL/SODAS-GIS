@@ -13,9 +13,9 @@ ctrlKafka 모듈은 DISDaemon과 data map 관리 시스템 사이의 통신을 �
 
 ======================================
 
-*******
+*********************
 ctrlConsumer
-*******
+*********************
 
 .. js:autoclass:: ctrlConsumer
    :members:
@@ -26,9 +26,9 @@ ctrlConsumer
 
 ======================================
 
-*******
+**************
 ctrlProducer
-*******
+**************
 
 .. js:autoclass:: ctrlProducer
     :members:
