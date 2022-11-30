@@ -48,12 +48,15 @@ class ctrlConsumer extends Consumer{
             }
         });
     };
+
     /**
      * send.datahub로 들어오는 메시지의 event 형태에 따른 대응
-     * {START} - reference model 동기화 시작
-     * {STOP} - DIS 동작 종료
-     * {UPDATE} - 관심 허브 정보 등록
-     * {SYNC_ON} - 특정 데이터 허브와 동기화 시작
+     * @param {event} event -
+     * `START` : reference model 동기화 시작 /
+     * `STOP` - DIS 동작 종료 /
+     * `UPDATE` - 관심 허브 정보 등록 /
+     * `SYNC_ON` - 특정 데이터 허브와 동기화 시작
+     * @param {string} msg - detailed message
      */
     eventSwitch = function(event, msg){
         switch(event){
@@ -91,11 +94,20 @@ class ctrlConsumer extends Consumer{
     };
 }
 
+/**
+ * Kafka producer
+ * @param {string} kafkaHost - 카프카 정보
+ */
 exports.ctrlProducer = function(kafkaHost){
     this.client = new kafka.KafkaClient({kafkaHost: kafkaHost});
     this.producer = new Producer(this.client);
 };
 
+/**
+ * 카프카 토픽 생성하는 메서드
+ * @async
+ * @returns {Promise<void>}
+ */
 exports.ctrlProducer.prototype.createCtrlTopics = async function(){
     // create topics for DHDaemon
     var IS_COMPLETED = false;
