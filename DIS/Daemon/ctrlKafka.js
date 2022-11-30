@@ -29,8 +29,11 @@ class ctrlConsumer extends Consumer{
     }
     /**
      * ctrlConsumer 의 onMessage 함수
+     * 해당 토픽으로 들어오는 메시지를 이벤트와 메시지로 파싱한 후 이벤트 종류에 따른 처리를 위해 ``ctrlConsumer.eventSwitch`` 로 전달
+     * @method
      * @throws {error} 메시지가 send.dataHub의 규약을 따르지 않는 경우 에러 반환
      * @returns {eventSwitch(event, msg)} eventSwitch
+     * @see ctrlConsumer.eventSwitch
      */
     onMessage = function(){
         debug('[RUNNING] Kafka consumer for control signal is running ');
@@ -51,11 +54,16 @@ class ctrlConsumer extends Consumer{
 
     /**
      * send.datahub로 들어오는 메시지의 event 형태에 따른 대응
-     * @param {event} event -
-     * `START` : reference model 동기화 시작 /
-     * `STOP` - DIS 동작 종료 /
-     * `UPDATE` - 관심 허브 정보 등록 /
-     * `SYNC_ON` - 특정 데이터 허브와 동기화 시작
+     * <p> ``START`` : reference model 동기화 시작 ``DHDaemon._rmSyncInit`` </p>
+     * <p> ``STOP`` : DIS 동작 종료 (not yet implemented) </p>
+     * <p> ``UPDATE`` : 관심 허브 정보 등록 ``DHDaemon._dhSearchUpdateInterestTopic`` , ``DHDaemon._smUpdateInterestTopic`` </p>
+     * <p> ``SYNC_ON`` : 특정 데이터 허브와 동기화 시작 ``DHDaemon._smSyncOn`` </p>
+     * @method
+     * @see DHDaemon._rmSyncInit
+     * @see DHDaemon._dhSearchUpdateInterestTopic
+     * @see DHDaemon._smUpdateInterestTopic
+     * @see DHDaemon._smSyncOn
+     * @param {event} event - event {``START``, ``STOP``, ``UPDATE``, ``SYNC_ON``}
      * @param {string} msg - detailed message
      */
     eventSwitch = function(event, msg){
@@ -104,9 +112,11 @@ exports.ctrlProducer = function(kafkaHost){
 };
 
 /**
- * 카프카 토픽 생성하는 메서드
- * @async
- * @returns {Promise<void>}
+ * 카프카 토픽 생성하는 메서드로 DIS에서 사용하는 모든 토픽을 생성함.
+ * 해당 토픽이 이미 생성되어 있는 경우 생성하지 않으며,
+ * 토픽이 없는 경우 시스템이 동작할 수 없으므로 모든 토픽이 생성된 후 반환 됨.
+ * @method
+ * @returns {Promise<void>} createTopics()
  */
 exports.ctrlProducer.prototype.createCtrlTopics = async function(){
     // create topics for DHDaemon
@@ -130,6 +140,13 @@ exports.ctrlProducer.prototype.createCtrlTopics = async function(){
     debug('[Function Test / Init Process] creating control topics is completed');
 };
 
+/**
+ * 지정한 토픽으로 메시지를 전송하는 메서드
+ * @method
+ * @param {string}topic - 이벤트 토픽
+ * @param {string}msg - 전송할 이벤트 스트링
+ * @private
+ */
 exports.ctrlProducer.prototype._produce = function(topic, msg){
     msg_ = JSON.stringify(msg);
     const payloads = [{ topic, messages: msg_ , partition: 0}];
@@ -138,6 +155,12 @@ exports.ctrlProducer.prototype._produce = function(topic, msg){
     });
 };
 
+/**
+ * 에러 메시지 전달
+ * @method
+ * @param errorCode
+ * @see ctrlProducer._produce
+ */
 exports.ctrlProducer.prototype.sendError = function(errorCode){
     this._produce(this.topic, {'operation':'ERROR', 'error_code': errorCode});
 };

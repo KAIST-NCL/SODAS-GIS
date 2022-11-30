@@ -1,3 +1,5 @@
+.. _ctrlKafka:
+
 ctrlKafka
 ======================================
 
@@ -9,7 +11,7 @@ ctrlKafka
 
 
 ctrlKafka 모듈은 DISDaemon과 data map 관리 시스템 사이의 통신을 위한 Kafka 라이브러리를 포함한다.
-약속된 DISDaemon이 통신하기위한 ``ctrlConsumer`` 와 ``ctrlProducer`` 모듈을 포함한다.
+약속된 DISDaemon이 통신하기위한 `ctrlConsumer`_ 와 `ctrlProducer`_ 모듈을 포함한다.
 
 ======================================
 
@@ -19,9 +21,7 @@ ctrlConsumer
 
 .. js:autoclass:: ctrlConsumer
    :members:
-
-.. js:autofunction:: eventSwitch
-.. js:autofunction:: onMessage
+   :private-members:
 
 
 ======================================
@@ -32,5 +32,5 @@ ctrlProducer
 
 .. js:autoclass:: ctrlProducer
     :members:
+    :private-members:
 
-.. js:autofunction:: createCtrlTopics
