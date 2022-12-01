@@ -35,6 +35,11 @@ _.str = require('underscore.string');
 var MC = util.message_contact;
 var MID = util.message_rpcID;
 
+/**
+ *
+ * @param desc
+ * @constructor
+ */
 exports.KNode = function(desc) {
     // TODO: probably want to persist node_id
     this.self = _.defaults({ nodeID: util.nodeID(desc.address, desc.port) }, desc);
@@ -46,12 +51,25 @@ exports.KNode = function(desc) {
     this._updateContactEvent = new EventEmitter();
 }
 
+/**
+ * @member
+ * @param type
+ * @param params
+ * @returns {*}
+ * @private
+ */
 exports.KNode.prototype._MSG = function(type, params) {
     // NOTE: always keep this.self last. This way users of _MSG
     // don't have to worry about accidentally overriding self properties
     return _.extend({ type: type}, params, this.self);
 }
 
+
+/**
+ * @member
+ * @param message
+ * @private
+ */
 exports.KNode.prototype._onMessage = function(message) {
     if (!message.type || typeof message.type !== 'string')
         return;
@@ -67,6 +85,11 @@ exports.KNode.prototype._onMessage = function(message) {
         console.warn("Unknown message", message);
 }
 
+/**
+ * @member
+ * @param message
+ * @private
+ */
 exports.KNode.prototype._onPing = function(message) {
     // this can be made more intelligent such that
     // if an outgoing message is present, piggyback the pong
@@ -74,6 +97,12 @@ exports.KNode.prototype._onPing = function(message) {
     this._rpc.send(MC(message), this._MSG('PONG', {'replyTo': MID(message)}));
 }
 
+/**
+ * @member
+ * @param contact
+ * @param cb
+ * @private
+ */
 exports.KNode.prototype._updateContact = function(contact, cb) {
     if (!contact)
         return;
@@ -118,6 +147,11 @@ exports.KNode.prototype._updateContact = function(contact, cb) {
 
 // TODO: handle large values which
 // won't fit in single UDP packets
+/**
+ * @member
+ * @param message
+ * @private
+ */
 exports.KNode.prototype._onStore = function(message) {
     if (!message.key || message.key.length !== constants.B/4)
         return;
@@ -147,12 +181,26 @@ exports.KNode.prototype._onDelete = function(message) {
     }
 }
 
-// This is just to prevent Unknown message errors
+/**
+ * This is just to prevent Unknown message errors
+ * @member
+ * @param message
+ * @private
+ */
 exports.KNode.prototype._onDeleteReply = function (message) {}
 
-// This is just to prevent Unknown message errors
+/**
+ * This is just to prevent Unknown message errors
+ * @member
+ * @private
+ */
 exports.KNode.prototype._onStoreReply = function() {}
 
+/**
+ * @member
+ * @param message
+ * @private
+ */
 exports.KNode.prototype._onFindValue = function(message) {
     if (!message.key || message.key.length !== constants.B/4)
         return;
@@ -176,6 +224,14 @@ exports.KNode.prototype._onFindValue = function(message) {
     }
 }
 
+/**
+ * @member
+ * @param key
+ * @param howMany
+ * @param exclude
+ * @returns {*[]}
+ * @private
+ */
 exports.KNode.prototype._findClosestNodes = function(key, howMany, exclude) {
     var contacts = [];
     function addContact(contact) {
@@ -240,12 +296,23 @@ exports.KNode.prototype._findClosestNodes = function(key, howMany, exclude) {
     return contacts;
 }
 
+/**
+ * @member
+ * @param bucketIndex
+ * @param callback
+ * @private
+ */
 exports.KNode.prototype._refreshBucket = function(bucketIndex, callback) {
     var random = util.randomInBucketRangeBuffer(bucketIndex);
     this._iterativeFindNode(random.toString('hex'), callback);
 }
 
-// this is a primitive operation, no network activity allowed
+/**
+ * this is a primitive operation, no network activity allowed
+ * @member
+ * @param message
+ * @private
+ */
 exports.KNode.prototype._onFindNode = function(message) {
     if (!message.key || message.key.length !== constants.B/4 || !MC(message))
         return;
@@ -261,6 +328,16 @@ exports.KNode.prototype._onFindNode = function(message) {
 // cb should be function(err, type, result)
 // where type == 'VALUE' -> result is the value
 //       type == 'NODE'  -> result is [list of contacts]
+/**
+ * <p> cb should be function(err, type, result) </p>
+ * <p> where type == 'VALUE' -> result is the value </p>
+ * <p>       type == 'NODE'  -> result is [list of contacts] </p>
+ * @member
+ * @param key
+ * @param mode
+ * @param cb
+ * @private
+ */
 exports.KNode.prototype._iterativeFind = function(key, mode, cb) {
     assert.ok(_.include(['NODE', 'VALUE'], mode));
     var externalCallback = cb || function() {};
@@ -363,16 +440,27 @@ exports.KNode.prototype._iterativeFind = function(key, mode, cb) {
     _.bind(xyz, this)(shortlist);
 }
 
+/**
+ * @member
+ * @param nodeID
+ * @param cb
+ * @private
+ */
 exports.KNode.prototype._iterativeFindNode = function(nodeID, cb) {
     this._iterativeFind(nodeID, 'NODE', cb);
 }
 
-// cb -> function(err, value)
-// this does not map over directly to the spec
-// rather iterativeFind already does the related things
-// if the callback gets a list of contacts, it simply
-// assumes the key does not exist in the DHT (atleast with
-// available knowledge)
+/**
+ * this does not map over directly to the spec
+ * rather iterativeFind already does the related things
+ * if the callback gets a list of contacts, it simply
+ * assumes the key does not exist in the DHT (atleast with
+ * available knowledge)
+ * @member
+ * @param key
+ * @param cb : cb -> function(err, value)
+ * @private
+ */
 exports.KNode.prototype._iterativeFindValue = function(key, cb) {
     var callback = cb || function() {};
     this._iterativeFind(key, 'VALUE', _.bind(function(err, type, result) {
@@ -386,10 +474,17 @@ exports.KNode.prototype._iterativeFindValue = function(key, cb) {
     }, this));
 }
 
+/**
+ * @member
+ * @returns {string}
+ */
 exports.KNode.prototype.toString = function() {
     return "Node " + this.self.nodeID + ":" + this.self.address + ":" + this.self.port;
 }
 
+/**
+ * @member
+ */
 exports.KNode.prototype.debug = function() {
     console.log(this.toString());
     _(this._buckets).each(function(bucket, j) {
@@ -398,7 +493,15 @@ exports.KNode.prototype.debug = function() {
     console.log("store", this._storage);
 }
 
-/***** Public API *****/
+/**
+ * @member
+ * @param address
+ * @param port
+ * @param sl_portNum
+ * @param sync_interest_list
+ * @param metadata
+ * @param cb
+ */
 exports.KNode.prototype.connect = function(address, port, sl_portNum, sync_interest_list, metadata, cb) {
     var callback = cb || function() {};
     assert.ok(this.self.nodeID);
@@ -430,11 +533,22 @@ exports.KNode.prototype.connect = function(address, port, sl_portNum, sync_inter
     ], callback);
 }
 
+/**
+ * @member
+ * @param key
+ * @param cb
+ */
 exports.KNode.prototype.get = function(key, cb) {
     var callback = cb || function() {};
     this._iterativeFindValue(util.id(key), callback);
 }
 
+/**
+ * @member
+ * @param key
+ * @param value
+ * @param cb
+ */
 exports.KNode.prototype.set = function(key, value, cb) {
     var callback = cb || function() {};
     var message = this._MSG('STORE', {
@@ -455,6 +569,16 @@ exports.KNode.prototype.set = function(key, value, cb) {
     }, this));
 }
 
+/**
+ * @member
+ * @param address
+ * @param port
+ * @param sl_portNum
+ * @param sync_interest_list
+ * @param metadata
+ * @param isDisStop
+ * @param cb
+ */
 exports.KNode.prototype.delete = function(address, port, sl_portNum, sync_interest_list, metadata, isDisStop, cb) {
     var callback = cb || function() {};
     var contact = util.make_contact(address, port, sl_portNum, sync_interest_list, metadata);

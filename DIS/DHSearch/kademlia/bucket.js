@@ -25,42 +25,85 @@ var _ = require('underscore');
 
 var constants = require('./constants');
 
+/**
+ * @member
+ * @param index
+ * @param value
+ * @returns {Array}
+ */
 Array.prototype.insert = function(index, value) {
     this.splice(index, 0, value);
     return this;
 };
 
+/**
+ * @member
+ * @param index
+ * @returns {Array}
+ */
 Array.prototype.remove = function(index) {
     this.splice(index, 1);
     return this;
 };
 
+/**
+ *
+ * @param contact
+ * @returns {*}
+ */
 var lastSeenIterator = function(contact) {
     return contact.lastSeen;
 };
 
+/**
+ * @constructor
+ * @type {exports.Bucket}
+ */
 var Bucket = exports.Bucket = function() {
     this._contacts = [];
 };
 
+/**
+ * @member
+ * @returns {*}
+ */
 Bucket.prototype.size = function() {
     return this._contacts.length;
 };
 
+/**
+ * @member
+ * @returns {*}
+ */
 Bucket.prototype.contacts = function() {
     return _.clone(this._contacts);
 };
 
+/**
+ * @member
+ * @param index
+ * @returns {*}
+ */
 Bucket.prototype.get = function(index) {
     assert.ok(index >= 0);
     assert.ok(index < constants.B);
     return this._contacts[index];
 };
 
+/**
+ * @member
+ * @param contact
+ * @returns {boolean}
+ */
 Bucket.prototype.contains = function(contact) {
     return this.findContact(contact.nodeID) != undefined;
 };
 
+/**
+ * @member
+ * @param contact
+ * @returns {Bucket}
+ */
 Bucket.prototype.add = function(contact) {
     if (!this.contains(contact)) {
         var idx = _.sortedIndex(this._contacts, contact, lastSeenIterator);
@@ -69,22 +112,42 @@ Bucket.prototype.add = function(contact) {
     return this;
 };
 
+/**
+ * @member
+ * @param contact
+ * @returns {Bucket}
+ */
 Bucket.prototype.remove = function(contact) {
     // removing elements DOES NOT affect the sort order
     var idx = this.indexOf(contact);
     return this.removeIndex(idx);
 };
 
+/**
+ * @member
+ * @param index
+ * @returns {Bucket}
+ */
 Bucket.prototype.removeIndex = function(index) {
     if (index != -1)
         this._contacts.remove(index);
     return this;
 };
 
+/**
+ * @member
+ * @param id
+ * @returns {*}
+ */
 Bucket.prototype.findContact = function(id) {
     return _.detect(this._contacts, function(contact) { return contact.nodeID == id });
 };
 
+/**
+ * @member
+ * @param contact
+ * @returns {number}
+ */
 Bucket.prototype.indexOf = function(contact) {
     for (var i = 0; i < this.size(); i++)
         if (this.get(i).nodeID == contact.nodeID)
@@ -92,6 +155,10 @@ Bucket.prototype.indexOf = function(contact) {
     return -1;
 };
 
+/**
+ * @member
+ * @returns {string}
+ */
 Bucket.prototype.toString = function() {
     var list = [];
     for (var i = 0; i < this.size(); i++) {

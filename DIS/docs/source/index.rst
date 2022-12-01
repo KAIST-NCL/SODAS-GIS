@@ -30,7 +30,7 @@ SODAS+ 는 오픈 데이터 생태계 구축 플랫폼으로, 생태계에 참�
    :maxdepth: 3
    :caption: Modules:
 
-   daemon
+   Daemon
    DHSearch
 
 

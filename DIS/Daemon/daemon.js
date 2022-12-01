@@ -150,7 +150,6 @@ exports.DHDaemon.prototype.stop = function(){
     this.rmSync.exit();
 };
 
-/* Worker threads Listener */
 /**
  * 데몬용 CLI API를 처리하기위한 daemon server listener
  * @param {dictionary(event, message)} message - event와 message key 값을 가진 메시지
@@ -206,7 +205,7 @@ exports.DHDaemon.prototype._dhSearchListener = function(message){
 };
 
 /**
- * sessionManager 모듈로부터 전달되는 메시지를 처리하기 위한 Listener로 ``GET_SESSION_LIST_INFO``메시지가 들어오는 경우
+ * sessionManager 모듈로부터 전달되는 메시지를 처리하기 위한 Listener로 ``GET_SESSION_LIST_INFO`` 메시지가 들어오는 경우
  * 획득된 session list 정보를 ``recv.sessionList`` 토픽으로 전달
  * @param message
  * @private
@@ -324,7 +323,7 @@ exports.DHDaemon.prototype._rmSyncListener = function(message){
  * 데이터 허브의 관심 주제 (interest topic)이 업데이트 되는 경우 ``dhSearch`` 모듈로 해당 이벤트를 전달하는 메서드
  * @param interestTopic
  * @private
- * @see dhSearch._dhDaemonListener
+ * @see DHSearch._dhDaemonListener
  */
 exports.DHDaemon.prototype._dhSearchUpdateInterestTopic = function(interestTopic){
     this.dhSearch.postMessage({
@@ -390,6 +389,7 @@ exports.DHDaemon.prototype._smUpdateNegotiation = function(session_negotiation_o
  * sessionManager로 SYNC_ON 메시지를 전달하는 메서드로
  * datahub 아이디 리스트가 주어지면 해당 리스트의 노드 ID 정보로부터 버킷 정보를 추출하여
  * sessionManager 모듈에 SYNC_ON 메시지와 함께 전달
+ * [postMessage] to sessionManager {'event':'SYNC_ON'}
  * @param {list(string)} datahubs
  * @returns {number}
  * @private
@@ -408,7 +408,8 @@ exports.DHDaemon.prototype._smSyncOn = function(datahubs){
 };
 
 /**
- *
+ * initialize Version Control module
+ * [postMessage] to versionControl module {'event':'INIT'}
  * @private
  */
 exports.DHDaemon.prototype._vcInit = function(){
@@ -417,6 +418,14 @@ exports.DHDaemon.prototype._vcInit = function(){
         data: {}
     });
 };
+
+/**
+ * 참조 모델 (reference model)을 governance system으로부터 전달받은 경우 (CREATE/UPDATE)
+ * 수정된 참조 모델을 바탕으로 파일 트리를 형성하도록 해당 정보를 version control 모듈로 전달함
+ *  <p> [postMessage] to versionControl module ``{'event': 'UPDATE_REFERENCE_MODEL', 'data': referenceModel}`` </p>
+ * @param referenceModel
+ * @private
+ */
 exports.DHDaemon.prototype._vcUpdateReferenceModel = function(referenceModel){
     this.VC.postMessage({
         event: 'UPDATE_REFERENCE_MODEL',
@@ -425,25 +434,54 @@ exports.DHDaemon.prototype._vcUpdateReferenceModel = function(referenceModel){
     debug('[Function Test / UPDATE Process] UPDATE reference model ', referenceModel);
 };
 
-/* Daemon Server methods */
+/**
+ * CLI 데이터 업데이트를 위해 데몬이 가진 정보를 dmServer 모듈로 전달
+ * 수정된 버킷 리스트 정보를 dmServer 모듈로 전달함.
+ * [postMessage] to daemonServer
+ * @param bucket_list
+ * @private
+ */
 exports.DHDaemon.prototype._dmServerSetBucketList = function(bucket_list){
     this.daemonServer.postMessage({
         event: 'UPDATE_BUCKET_LIST',
         data: bucket_list
     });
 };
+
+/**
+ * CLI 데이터 업데이트를 위해 데몬이 가진 정보를 dmServer 모듈로 전달
+ * 수정된 참조 모델 (referenceModel) 정보를 dmServer 모듈로 전달함.
+ * [postMessage] to daemonServer
+ * @param referenceModel
+ * @private
+ */
 exports.DHDaemon.prototype._dmServerSetRM = function(referenceModel){
     this.daemonServer.postMessage({
         event: 'UPDATE_REFERENCE_MODEL',
         data: referenceModel
     });
 };
+
+
+/**
+ * CLI 데이터 업데이트를 위해 데몬이 가진 정보를 dmServer 모듈로 전달
+ * 수정된 세션 리스트 정보를 dmServer 모듈로 전달함.
+ * [postMessage] to daemonServer
+ * @param {list(string)}sessionList
+ * @private
+ */
 exports.DHDaemon.prototype._dmServerSetSessionList = function(sessionList){
     this.daemonServer.postMessage({
         event: 'UPDATE_SESSION_LIST',
         data: sessionList
     });
 };
+
+/**
+ * 에러 메시지 전달
+ * @param errorCode
+ * @private
+ */
 exports.DHDaemon.prototype._raiseError = function(errorCode){
     debug(errorCode);
     this.ctrlProducer.sendError(errorCode);

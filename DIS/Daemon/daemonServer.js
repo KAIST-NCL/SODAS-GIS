@@ -5,7 +5,10 @@ const DS = require('./daemonServer');
 const { parentPort, workerData } = require('worker_threads');
 const debug = require('debug')('sodas:daemon:server\t|');
 
-// daemonServer
+/**
+ * daemonServer 클래스로, DIS 시스템의 client CLI를 지원하기위한 서버 모듈
+ * @constructor
+ */
 dServer = function(){
 
     // grpc option
@@ -27,7 +30,7 @@ dServer = function(){
     this.sessList = [];
     this.rm = [];
 };
-// This method is only for test
+
 dServer.prototype.testSetting = function(){
     this.dhList = [
         {name: 'KAIST', ip:'127.0.0.1', portNum:'50049', syncInterestList:['DO1.CA1', 'DO1.CA2']},
@@ -38,13 +41,33 @@ dServer.prototype.testSetting = function(){
             minSyncTime: 30, maxSyncTime: 500, syncCount: 10, transferInterface: 'gRPC', dataCatalogVocab: 'DCAT:V2'},
     ];
 };
-// gRPC service function (여기서는 this 대신 ds 사용해야함)
+
+/**
+ * 데이터 허브 리스트 조회 API
+ * @method
+ * @param call
+ * @param callback
+ */
 dServer.prototype.getDhList = function(call, callback){
     callback(null, {dhList: ds.dhList});
 };
+
+/**
+ * 세션 리스트 조회 API
+ * @method
+ * @param call
+ * @param callback
+ */
 dServer.prototype.getSessionList = function(call, callback){
     callback(null, {sessionList: ds.sessList});
 };
+
+/**
+ * 관심 토픽 설정 API
+ * @method
+ * @param call
+ * @param callback
+ */
 dServer.prototype.setInterest = function(call, callback){
     ds.syncInterestList = call.request.syncKeywords;
     ds._dmSetInterest(ds.syncInterestList);
@@ -56,14 +79,34 @@ dServer.prototype.setInterest = function(call, callback){
     };
     callback(null,DataHub);
 };
+
+/**
+ * startSignal API
+ * @method
+ * @param call
+ * @param callback
+ */
 dServer.prototype.startSignal = function(call, callback){
     ds._dmStart();
     callback(null, null);
 };
+
+/**
+ * syncOn API
+ * @method
+ * @param call
+ * @param callback
+ */
 dServer.prototype.syncOnSignal = function(call, callback){
     ds._dmSyncOn();
     callback(null, null);
 };
+
+/**
+ * daemonServer (gRPC server) 정보 반환
+ * @method
+ * @returns {*}
+ */
 dServer.prototype.getDaemonServer = function(){
     this.server = new grpc.Server();
     this.server.addService(this.ds.daemonServer.service, {
@@ -75,6 +118,11 @@ dServer.prototype.getDaemonServer = function(){
     });
     return this.server;
 };
+
+/**
+ * start API
+ * @method
+ */
 dServer.prototype.start = function(){
     self = this;
     this.daemonServer = this.getDaemonServer();
@@ -85,25 +133,50 @@ dServer.prototype.start = function(){
         });
     parentPort.on('message', function(message) {self._parentSwitch(message)});
 };
-// dServer methods
+
+/**
+ * setInterest 동작
+ * @method
+ * @param interestList
+ * @private
+ */
 dServer.prototype._dmSetInterest = function(interestList){
     parentPort.postMessage({
         event: 'UPDATE_INTEREST_TOPIC',
         data: {interest: interestList}
     });
 };
+
+/**
+ * daemonStart 동작
+ * @method
+ * @private
+ */
 dServer.prototype._dmStart = function(){
     parentPort.postMessage({
         event: 'START',
         data: null
     });
 };
+
+/**
+ * daemonSyncOn 동작
+ * @method
+ * @private
+ */
 dServer.prototype._dmSyncOn = function(){
     parentPort.postMessage({
         event: 'SYNC_ON',
         data: null
     });
 };
+
+/**
+ * 메시지 스위칭을 위한 private method
+ * @method
+ * @param message
+ * @private
+ */
 dServer.prototype._parentSwitch = function(message){
     switch(message.event){
         case 'UPDATE_BUCKET_LIST':
