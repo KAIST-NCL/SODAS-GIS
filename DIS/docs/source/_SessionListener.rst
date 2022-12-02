@@ -1,6 +1,6 @@
-.. _dhSearch:
+.. _sessionListener:
 
-DHSearch
+SessionListener
 ======================================
 
 :Authors:
@@ -10,6 +10,6 @@ DHSearch
 :Version: 3.0.0 of 2022.11.30
 
 
-.. js:autoclass:: DHSearch
+.. js:autoclass:: SessionListener
    :members:
    :private-members:

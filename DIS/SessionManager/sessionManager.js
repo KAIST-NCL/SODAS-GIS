@@ -8,6 +8,11 @@ const MIN_PORT_NUM_OF_SESSION = 55000;
 const MAX_PORT_NUM_OF_SESSION = 65535;
 const debug = require('debug')('sodas:sessionManager\t|');
 
+
+/**
+ * SessionManager
+ * @constructor
+ */
 exports.SessionManager = function() {
 
     self = this;
@@ -32,6 +37,11 @@ exports.SessionManager = function() {
 
     debug('[SETTING] SessionManager Created');
 };
+
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype.run = function (){
 
     const srParam = {'snOptions': this.snOptions, 'myNodeId': this.myNodeId}
@@ -56,6 +66,16 @@ exports.SessionManager.prototype.run = function (){
 }
 
 /* Worker threads Listener */
+/**
+ * _dhDaemonListener
+ * @method
+ * @param message
+ * @private
+ * @see DHDaemon._smInit
+ * @see DHDaemon._smUpdateInterestTopic
+ * @see DHDaemon._smUpdateNegotiation
+ * @see DHDaemon._smSyncOn
+ */
 exports.SessionManager.prototype._dhDaemonListener = function (message){
     switch (message.event) {
         // interest_list 정보 업데이트
@@ -101,6 +121,10 @@ exports.SessionManager.prototype._dhDaemonListener = function (message){
             break;
     }
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._vcListener = function (message){
     switch (message.event) {
         // ETRI's KAFKA 에서 Asset 데이터맵 변화 이벤트 감지 시, 해당 데이터맵 및 git Commit 정보를 전달받아서
@@ -120,6 +144,10 @@ exports.SessionManager.prototype._vcListener = function (message){
             break;
     }
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._srListener = function (message){
     switch (message.event) {
         // SessionRequester 에서 세션 협상 완료된 Event 로, 타 데이터 허브의 Session의 end-point 전송 받음
@@ -162,6 +190,10 @@ exports.SessionManager.prototype._srListener = function (message){
             break;
     }
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._slListener = function (message){
     switch (message.event) {
         // 데이터 허브 간 세션 협상에 의해 세션 연동이 결정난 경우, 상대방 세션의 endpoint 전달받는 이벤트
@@ -203,6 +235,10 @@ exports.SessionManager.prototype._slListener = function (message){
             break;
     }
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._sessionListener = function (message){
     switch (message.event) {
         // 데이터 허브 간 세션 협상에 의해 세션 연동이 결정난 경우, 상대방 세션의 endpoint 전달받는 이벤트
@@ -212,6 +248,10 @@ exports.SessionManager.prototype._sessionListener = function (message){
 }
 
 /* DHDaemon methods */
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._dmGetSessionListInfo = function () {
     // [SessionManager -> DHDaemon] [GET_SESSION_LIST_INFO]
     debug('[TX: GET_SESSION_LIST_INFO] to DHDaemon')
@@ -223,30 +263,50 @@ exports.SessionManager.prototype._dmGetSessionListInfo = function () {
 }
 
 /* SessionRequester methods */
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._srInit = function () {
     this.sessionRequester.postMessage({
         event: "INIT",
         data: null
     });
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._srStartSessionConnection = function (bucketList) {
     this.sessionRequester.postMessage({
         event: "START_SESSION_CONNECTION",
         data: bucketList
     });
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._srGetNewSessionInfo = function () {
     this.sessionRequester.postMessage({
         event: "GET_NEW_SESSION_INFO",
         data: {'sessId': sessionManager.srTempSession.sessionId, 'sessIp': sessionManager.srTempSession.myIp, 'sessPortNum': sessionManager.srTempSession.myPort}
     });
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._srUpdateInterestList = function () {
     this.sessionRequester.postMessage({
         event: "UPDATE_INTEREST_LIST",
         data: {'syncInterestList': sessionManager.snOptions.datamapDesc.syncInterestList}
     });
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
     this.sessionRequester.postMessage({
         event: "UPDATE_NEGOTIATION_OPTIONS",
@@ -255,24 +315,40 @@ exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
 }
 
 /* SessionListener methods */
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._slInit = function () {
     this.sessionListener.postMessage({
         event: "INIT",
         data: null
     });
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._slGetNewSessionInfo = function () {
     this.sessionListener.postMessage({
         event: "GET_NEW_SESSION_INFO",
         data: {'sessId': sessionManager.slTempSession.sessionId, 'sessIp': sessionManager.slTempSession.myIp, 'sessPortNum': sessionManager.slTempSession.myPort}
     });
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._slUpdateInterestList = function () {
     this.sessionListener.postMessage({
         event: "UPDATE_INTEREST_LIST",
         data: {'syncInterestList': sessionManager.snOptions.datamapDesc.syncInterestList}
     });
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
     this.sessionListener.postMessage({
         event: "UPDATE_NEGOTIATION_OPTIONS",
@@ -281,18 +357,30 @@ exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
 }
 
 /* Session methods */
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
     sessionWorker.postMessage({
         event: "INIT",
         data: null
     });
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (sessionWorker, end_point, session_desc, sn_options) {
     sessionWorker.postMessage({
         event: "TRANSMIT_NEGOTIATION_RESULT",
         data: { endPoint: end_point, sessionDesc: session_desc, snOptions: sn_options }
     });
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorker, commit_number) {
     sessionWorker.postMessage({
         event: "UPDATE_PUB_ASSET",
@@ -301,6 +389,10 @@ exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorke
 }
 
 /* sessionManager methods */
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._createSession = async function () {
     var session = {};
     session.sessionId = crypto.randomBytes(20).toString('hex');
@@ -312,6 +404,10 @@ exports.SessionManager.prototype._createSession = async function () {
     return session
 }
 
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._setSessionPort = async function () {
     await detect(MIN_PORT_NUM_OF_SESSION)
         .then(_port => {
@@ -322,6 +418,10 @@ exports.SessionManager.prototype._setSessionPort = async function () {
     return detect();
 }
 
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._refactoringSessionInfo = function (tempSession, otherNodeId) {
     let append_session = {};
 
@@ -337,6 +437,10 @@ exports.SessionManager.prototype._refactoringSessionInfo = function (tempSession
     return append_session
 }
 
+/**
+ * @method
+ * @private
+ */
 exports.SessionManager.prototype._isEmptyObj = function (obj) {
     if (obj.constructor === Object && Object.keys(obj).length === 0) {
         return true;

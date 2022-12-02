@@ -94,6 +94,7 @@ exports.DHSearch.prototype._dhDaemonListener = function(message){
 /**
  * @method
  * @private
+ * @see DHDaemon._dhSearchListener
  */
 exports.DHSearch.prototype._dmUpdateBucketList = function(){
     if (this.oldBucketList !== JSON.stringify(this.node._buckets)) {
@@ -123,6 +124,7 @@ exports.DHSearch.prototype.getSeedNode = function(seedNode) {
 
 /* DHSearch methods */
 /**
+ *
  * @method
  * @returns {Promise<null>}
  * @private

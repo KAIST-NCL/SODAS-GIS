@@ -52,7 +52,7 @@ exports.KNode = function(desc) {
 }
 
 /**
- * @member
+ * @method
  * @param type
  * @param params
  * @returns {*}
@@ -66,7 +66,7 @@ exports.KNode.prototype._MSG = function(type, params) {
 
 
 /**
- * @member
+ * @method
  * @param message
  * @private
  */
@@ -86,7 +86,7 @@ exports.KNode.prototype._onMessage = function(message) {
 }
 
 /**
- * @member
+ * @method
  * @param message
  * @private
  */
@@ -98,7 +98,7 @@ exports.KNode.prototype._onPing = function(message) {
 }
 
 /**
- * @member
+ * @method
  * @param contact
  * @param cb
  * @private
@@ -148,7 +148,7 @@ exports.KNode.prototype._updateContact = function(contact, cb) {
 // TODO: handle large values which
 // won't fit in single UDP packets
 /**
- * @member
+ * @method
  * @param message
  * @private
  */
@@ -183,7 +183,7 @@ exports.KNode.prototype._onDelete = function(message) {
 
 /**
  * This is just to prevent Unknown message errors
- * @member
+ * @method
  * @param message
  * @private
  */
@@ -191,13 +191,13 @@ exports.KNode.prototype._onDeleteReply = function (message) {}
 
 /**
  * This is just to prevent Unknown message errors
- * @member
+ * @method
  * @private
  */
 exports.KNode.prototype._onStoreReply = function() {}
 
 /**
- * @member
+ * @method
  * @param message
  * @private
  */
@@ -225,11 +225,11 @@ exports.KNode.prototype._onFindValue = function(message) {
 }
 
 /**
- * @member
+ * @method
  * @param key
  * @param howMany
  * @param exclude
- * @returns {*[]}
+ * @returns contacts
  * @private
  */
 exports.KNode.prototype._findClosestNodes = function(key, howMany, exclude) {
@@ -297,7 +297,7 @@ exports.KNode.prototype._findClosestNodes = function(key, howMany, exclude) {
 }
 
 /**
- * @member
+ * @method
  * @param bucketIndex
  * @param callback
  * @private
@@ -309,7 +309,7 @@ exports.KNode.prototype._refreshBucket = function(bucketIndex, callback) {
 
 /**
  * this is a primitive operation, no network activity allowed
- * @member
+ * @method
  * @param message
  * @private
  */
@@ -332,7 +332,7 @@ exports.KNode.prototype._onFindNode = function(message) {
  * <p> cb should be function(err, type, result) </p>
  * <p> where type == 'VALUE' -> result is the value </p>
  * <p>       type == 'NODE'  -> result is [list of contacts] </p>
- * @member
+ * @method
  * @param key
  * @param mode
  * @param cb
@@ -441,7 +441,7 @@ exports.KNode.prototype._iterativeFind = function(key, mode, cb) {
 }
 
 /**
- * @member
+ * @method
  * @param nodeID
  * @param cb
  * @private
@@ -456,7 +456,7 @@ exports.KNode.prototype._iterativeFindNode = function(nodeID, cb) {
  * if the callback gets a list of contacts, it simply
  * assumes the key does not exist in the DHT (atleast with
  * available knowledge)
- * @member
+ * @method
  * @param key
  * @param cb : cb -> function(err, value)
  * @private
@@ -475,7 +475,7 @@ exports.KNode.prototype._iterativeFindValue = function(key, cb) {
 }
 
 /**
- * @member
+ * @method
  * @returns {string}
  */
 exports.KNode.prototype.toString = function() {
@@ -483,7 +483,7 @@ exports.KNode.prototype.toString = function() {
 }
 
 /**
- * @member
+ * @method
  */
 exports.KNode.prototype.debug = function() {
     console.log(this.toString());
@@ -494,7 +494,7 @@ exports.KNode.prototype.debug = function() {
 }
 
 /**
- * @member
+ * @method
  * @param address
  * @param port
  * @param sl_portNum
@@ -534,7 +534,7 @@ exports.KNode.prototype.connect = function(address, port, sl_portNum, sync_inter
 }
 
 /**
- * @member
+ * @method
  * @param key
  * @param cb
  */
@@ -544,7 +544,7 @@ exports.KNode.prototype.get = function(key, cb) {
 }
 
 /**
- * @member
+ * @method
  * @param key
  * @param value
  * @param cb
@@ -570,7 +570,7 @@ exports.KNode.prototype.set = function(key, value, cb) {
 }
 
 /**
- * @member
+ * @method
  * @param address
  * @param port
  * @param sl_portNum

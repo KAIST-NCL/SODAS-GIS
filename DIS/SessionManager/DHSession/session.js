@@ -23,6 +23,11 @@ const tools = require('../../Lib/tools');
 
 /// Constructor
 // workerData -> my_session_id, my_ip, my_portNum
+
+/**
+ * Session
+ * @constructor
+ */
 exports.Session = function() {
     debug("[LOG-Session:" + workerData.mySessionId + "]: Session is Created");
     debug("[LOG-Session:" + workerData.mySessionId + "]:");

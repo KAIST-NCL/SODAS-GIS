@@ -25,29 +25,17 @@ var _ = require('underscore');
 
 var constants = require('./constants');
 
-/**
- * @member
- * @param index
- * @param value
- * @returns {Array}
- */
 Array.prototype.insert = function(index, value) {
     this.splice(index, 0, value);
     return this;
 };
 
-/**
- * @member
- * @param index
- * @returns {Array}
- */
 Array.prototype.remove = function(index) {
     this.splice(index, 1);
     return this;
 };
 
 /**
- *
  * @param contact
  * @returns {*}
  */
@@ -56,15 +44,21 @@ var lastSeenIterator = function(contact) {
 };
 
 /**
+ * Bucket
  * @constructor
  * @type {exports.Bucket}
  */
 var Bucket = exports.Bucket = function() {
+    /**
+     * Contact List
+     * @member
+     */
     this._contacts = [];
 };
 
 /**
- * @member
+ * Bucket 내 관리하고 있는 Contact List 내 contact 개수를 반환.
+ * @method
  * @returns {*}
  */
 Bucket.prototype.size = function() {
@@ -72,7 +66,8 @@ Bucket.prototype.size = function() {
 };
 
 /**
- * @member
+ * Bucket 내 관리하고 있는 Contact List 객체의 clone 을 반환.
+ * @method
  * @returns {*}
  */
 Bucket.prototype.contacts = function() {
@@ -80,9 +75,10 @@ Bucket.prototype.contacts = function() {
 };
 
 /**
- * @member
+ * Bucket 내 관리하고 있는 Contact List 의 index 번째에 해당하는 contact 객체 반환.
+ * @method
  * @param index
- * @returns {*}
+ * @returns contact
  */
 Bucket.prototype.get = function(index) {
     assert.ok(index >= 0);
@@ -91,7 +87,8 @@ Bucket.prototype.get = function(index) {
 };
 
 /**
- * @member
+ * contact 의 nodeID 를 이용하여 Bucket 내 관리하고 있는 Contact List 에 해당 contact 객체가 있는지 유무를 반환.
+ * @method
  * @param contact
  * @returns {boolean}
  */
@@ -100,7 +97,8 @@ Bucket.prototype.contains = function(contact) {
 };
 
 /**
- * @member
+ * Bucket 내 관리하고 있는 Contact List 에 새로 추가될 contact 를 lastSeen 기준으로 정렬한 위치에 추가함.
+ * @method
  * @param contact
  * @returns {Bucket}
  */
@@ -113,7 +111,8 @@ Bucket.prototype.add = function(contact) {
 };
 
 /**
- * @member
+ *
+ * @method
  * @param contact
  * @returns {Bucket}
  */
@@ -124,7 +123,8 @@ Bucket.prototype.remove = function(contact) {
 };
 
 /**
- * @member
+ *
+ * @method
  * @param index
  * @returns {Bucket}
  */
@@ -135,7 +135,8 @@ Bucket.prototype.removeIndex = function(index) {
 };
 
 /**
- * @member
+ *
+ * @method
  * @param id
  * @returns {*}
  */
@@ -144,7 +145,8 @@ Bucket.prototype.findContact = function(id) {
 };
 
 /**
- * @member
+ *
+ * @method
  * @param contact
  * @returns {number}
  */
@@ -156,7 +158,8 @@ Bucket.prototype.indexOf = function(contact) {
 };
 
 /**
- * @member
+ *
+ * @method
  * @returns {string}
  */
 Bucket.prototype.toString = function() {
