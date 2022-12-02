@@ -1,3 +1,5 @@
+.. _SessionManagerModule:
+
 SessionManager
 ======================================
 

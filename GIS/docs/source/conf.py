@@ -6,10 +6,10 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'SODAS+ DIS'
+project = 'SODAS GIS'
 copyright = '2022, KAIST NCL'
 author = 'KAIST NCL'
-release = '3.0.0'
+release = '1.0.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -66,6 +66,3 @@ latex_elements = {
 
 ''',
 }
-
-def setup(app):
-   app.add_css_file('css/custom.css')
