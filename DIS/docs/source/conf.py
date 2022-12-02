@@ -66,3 +66,6 @@ latex_elements = {
 
 ''',
 }
+
+def setup(app):
+   app.add_css_file('css/custom.css')
