@@ -145,8 +145,10 @@ exports.SessionManager.prototype._vcListener = function (message){
     }
 }
 /**
+ * _srListener
  * @method
  * @private
+ * @see SessionRequester._smTransmitNegotiationResult
  */
 exports.SessionManager.prototype._srListener = function (message){
     switch (message.event) {
@@ -191,8 +193,12 @@ exports.SessionManager.prototype._srListener = function (message){
     }
 }
 /**
+ * _slListener
  * @method
+ * @param message:event -
+ * @param message:data -
  * @private
+ * @see SessionListener._smTransmitNegotiationResult
  */
 exports.SessionManager.prototype._slListener = function (message){
     switch (message.event) {
@@ -231,7 +237,6 @@ exports.SessionManager.prototype._slListener = function (message){
                 sessionManager._slGetNewSessionInfo();
                 debug('[LOG] Session List: ',sessionManager.sessionList)
             });
-
             break;
     }
 }
@@ -264,8 +269,10 @@ exports.SessionManager.prototype._dmGetSessionListInfo = function () {
 
 /* SessionRequester methods */
 /**
+ * _srInit
  * @method
  * @private
+ * @see SessionRequester._smListener
  */
 exports.SessionManager.prototype._srInit = function () {
     this.sessionRequester.postMessage({
@@ -274,8 +281,10 @@ exports.SessionManager.prototype._srInit = function () {
     });
 }
 /**
+ * _srStartSessionConnection
  * @method
  * @private
+ * @see SessionRequester._smListener
  */
 exports.SessionManager.prototype._srStartSessionConnection = function (bucketList) {
     this.sessionRequester.postMessage({
@@ -284,8 +293,10 @@ exports.SessionManager.prototype._srStartSessionConnection = function (bucketLis
     });
 }
 /**
+ * _srGetNewSessionInfo
  * @method
  * @private
+ * @see SessionRequester._smListener
  */
 exports.SessionManager.prototype._srGetNewSessionInfo = function () {
     this.sessionRequester.postMessage({
@@ -294,8 +305,10 @@ exports.SessionManager.prototype._srGetNewSessionInfo = function () {
     });
 }
 /**
+ * _srUpdateInterestList
  * @method
  * @private
+ * @see SessionRequester._smListener
  */
 exports.SessionManager.prototype._srUpdateInterestList = function () {
     this.sessionRequester.postMessage({
@@ -304,8 +317,10 @@ exports.SessionManager.prototype._srUpdateInterestList = function () {
     });
 }
 /**
+ * _srUpdateNegotiationOptions
  * @method
  * @private
+ * @see SessionRequester._smListener
  */
 exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
     this.sessionRequester.postMessage({
@@ -316,8 +331,10 @@ exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
 
 /* SessionListener methods */
 /**
+ * _slInit
  * @method
  * @private
+ * @see SessionListener._smListener
  */
 exports.SessionManager.prototype._slInit = function () {
     this.sessionListener.postMessage({
@@ -326,8 +343,10 @@ exports.SessionManager.prototype._slInit = function () {
     });
 }
 /**
+ * _slGetNewSessionInfo
  * @method
  * @private
+ * @see SessionListener._smListener
  */
 exports.SessionManager.prototype._slGetNewSessionInfo = function () {
     this.sessionListener.postMessage({
@@ -336,8 +355,10 @@ exports.SessionManager.prototype._slGetNewSessionInfo = function () {
     });
 }
 /**
+ * _slUpdateInterestList
  * @method
  * @private
+ * @see SessionListener._smListener
  */
 exports.SessionManager.prototype._slUpdateInterestList = function () {
     this.sessionListener.postMessage({
@@ -346,8 +367,10 @@ exports.SessionManager.prototype._slUpdateInterestList = function () {
     });
 }
 /**
+ * _slUpdateNegotiationOptions
  * @method
  * @private
+ * @see SessionListener._smListener
  */
 exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
     this.sessionListener.postMessage({
@@ -358,8 +381,11 @@ exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
 
 /* Session methods */
 /**
+ * _sessionInit
  * @method
+ * @param sessionWorker - 세션 협상에 대비하여, 신규 생성한 세션 객체
  * @private
+ * @see Session._dhDaemonListener
  */
 exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
     sessionWorker.postMessage({
@@ -368,8 +394,14 @@ exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
     });
 }
 /**
+ * _sessionTransmitNegotiationResult
  * @method
+ * @param sessionWorker - 세션 협상 체결 이후, 다른 데이터 허브의 세션 모듈과 연동할 내부 세션 객체
+ * @param end_point - 다른 데이터 허브의 세션 모듈의 접속 정보(IP, Port)
+ * @param session_desc - 세션 객체의 메타데이터(세션 생성자 정보, 세션 ID)
+ * @param sn_options - 세션 협상 결과
  * @private
+ * @see Session._dhDaemonListener
  */
 exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (sessionWorker, end_point, session_desc, sn_options) {
     sessionWorker.postMessage({
@@ -378,8 +410,12 @@ exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (s
     });
 }
 /**
+ * _sessionUpdatePubAsset
  * @method
+ * @param sessionWorker - 변경된 Pub 데이터맵이 동기화 수준에 해당하는 세션 모듈 객체
+ * @param commit_number - VC 모듈에서 최근 커밋한 커밋 번호
  * @private
+ * @see Session._dhDaemonListener
  */
 exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorker, commit_number) {
     sessionWorker.postMessage({
@@ -390,6 +426,7 @@ exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorke
 
 /* sessionManager methods */
 /**
+ * _createSession
  * @method
  * @private
  */
@@ -405,6 +442,7 @@ exports.SessionManager.prototype._createSession = async function () {
 }
 
 /**
+ * _setSessionPort
  * @method
  * @private
  */

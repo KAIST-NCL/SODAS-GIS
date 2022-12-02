@@ -37,11 +37,25 @@ exports.SessionRequester = function () {
     debug('[SETTING] SessionRequester Created');
 
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionRequester.prototype.run = function () {
     debug('[SETTING] SessionRequester is running');
 }
 
 /* Worker threads Listener */
+/**
+ * _smListener
+ * @method
+ * @private
+ * @see SessionManager._srInit
+ * @see SessionManager._srStartSessionConnection
+ * @see SessionManager._srGetNewSessionInfo
+ * @see SessionManager._srUpdateInterestList
+ * @see SessionManager._srUpdateNegotiationOptions
+ */
 exports.SessionRequester.prototype._smListener = function (message) {
     switch (message.event) {
         case 'INIT':
@@ -72,6 +86,12 @@ exports.SessionRequester.prototype._smListener = function (message) {
 }
 
 /* SessionManager methods */
+/**
+ * _smTransmitNegotiationResult
+ * @method
+ * @private
+ * @see SessionManager._srListener
+ */
 exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_point, session_desc, sn_result) {
     debug('[TX: TRANSMIT_NEGOTIATION_RESULT] to SessionManager');
     parentPort.postMessage({
@@ -81,13 +101,25 @@ exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_
 }
 
 /* SessionRequester methods */
+/**
+ * @method
+ * @private
+ */
 exports.SessionRequester.prototype._initConnection = function (sl_ip) {
     return new this.SNproto(sl_ip, grpc.credentials.createInsecure());
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionRequester.prototype._closeConnection = function () {
     grpc.closeClient(this.sessionNegotiationClient);
     debug('gRPC session closed with other datahub SessionListener');
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionRequester.prototype._snProcess = async function (bucketList) {
 
     // session 생성되어 있어야함. 즉, session_desc.session_id 가 null 이 아닐 경우 진행. null 이면 wait
