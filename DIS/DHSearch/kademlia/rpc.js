@@ -27,6 +27,10 @@ var dgram = require('dgram');
 var _ = require('underscore');
 var hat = require('hat');
 
+/**
+ * RPC
+ * @constructor
+ */
 exports.RPC = function(bindAddress, callback) {
     this._socket = dgram.createSocket('udp4', _.bind(this._onMessage, this));
     this._socket.bind(bindAddress.port, bindAddress.address || undefined);

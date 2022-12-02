@@ -7,8 +7,11 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const debug = require('debug')('sodas:sessionListener\t|');
 
-const workerName = 'SessionListener';
 
+/**
+ * SessionListener
+ * @constructor
+ */
 exports.SessionListener = function () {
 
     self = this;

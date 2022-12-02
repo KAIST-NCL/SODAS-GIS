@@ -7,6 +7,11 @@ const grpc = require('@grpc/grpc-js');
 const protoLoader = require('@grpc/proto-loader');
 const debug = require('debug')('sodas:sessionRequester|');
 
+
+/**
+ * SessionRequester
+ * @constructor
+ */
 exports.SessionRequester = function () {
 
     self = this;

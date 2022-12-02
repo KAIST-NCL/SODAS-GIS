@@ -187,6 +187,7 @@ exports.DHDaemon.prototype._dmServerListener = function(message){
  * 탐색된 버킷 리스트를 ``recv.dataHubList`` 토픽으로 전송함.
  * @param {dictionary(event, message)}message - 이벤트 종류와 메시지를 저장한 딕셔너리 구조
  * @private
+ * @see DHSearch._dmUpdateBucketList
  */
 exports.DHDaemon.prototype._dhSearchListener = function(message){
     switch(message.event){
@@ -246,6 +247,7 @@ exports.DHDaemon.prototype._vcListener = function(message){
  * ``UPDATE_REFERENCE_MODEL`` 이벤트가 들어오는 경우 데이터 허브로 들어온 오픈 참조 모델을 데이터 허브로 전달
  * @param message
  * @private
+ * @see RMSync._dmUpdateReferenceModel
  */
 exports.DHDaemon.prototype._rmSyncListener = function(message){
     self = this;
@@ -336,7 +338,7 @@ exports.DHDaemon.prototype._dhSearchUpdateInterestTopic = function(interestTopic
 /**
  * rmSync 모듈로 ``INIT`` 메시지를 전달하는 메서드
  * @private
- * @see rmSync._dhDaemonListener
+ * @see RMSync._dhDaemonListener
  */
 exports.DHDaemon.prototype._rmSyncInit = function(){
     this.rmSync.postMessage({
@@ -348,7 +350,7 @@ exports.DHDaemon.prototype._rmSyncInit = function(){
 /**
  * sessionManager 모듈로 ``INIT`` 메시지를 전달하는 메서드
  * @private
- * @see sessionManager._dhDaemonListener
+ * @see SessionManager._dhDaemonListener
  */
 exports.DHDaemon.prototype._smInit= function(){
     this.sessionManager.postMessage({
@@ -361,7 +363,7 @@ exports.DHDaemon.prototype._smInit= function(){
  * sessionManager로 관심 토픽 정보를 전달하는 메서드
  * @param {list(string)} interestTopic - 관심 토픽 정보 리스트
  * @private
- * @see sessionManager._dhDaemonListener
+ * @see SessionManager._dhDaemonListener
  */
 exports.DHDaemon.prototype._smUpdateInterestTopic = function(interestTopic){
     this.sessionManager.postMessage({
@@ -375,7 +377,7 @@ exports.DHDaemon.prototype._smUpdateInterestTopic = function(interestTopic){
  * sessionManager로 협상 옵션 정보를 전달하는 메서드
  * @param {dictionary} session_negotiation_option
  * @private
- * @see sessionManager._dhDaemonListener
+ * @see SessionManager._dhDaemonListener
  */
 exports.DHDaemon.prototype._smUpdateNegotiation = function(session_negotiation_option){
     this.sessionManager.postMessage({
@@ -393,7 +395,7 @@ exports.DHDaemon.prototype._smUpdateNegotiation = function(session_negotiation_o
  * @param {list(string)} datahubs
  * @returns {number}
  * @private
- * @see sessionManager._dhDaemonListener
+ * @see SessionManager._dhDaemonListener
  */
 exports.DHDaemon.prototype._smSyncOn = function(datahubs){
     debug('[Function Test / SYNCON Process] SYNC_ON event detected');

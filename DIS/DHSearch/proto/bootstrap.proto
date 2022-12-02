@@ -1,7 +1,10 @@
 syntax="proto3";
 package bootstrap;
 
-// bootstrap broker
+/**
+ * BootstrapBroker
+ * @method
+ */
 service BootstrapBroker{
 
   // return seed node list

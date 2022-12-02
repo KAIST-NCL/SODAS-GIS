@@ -1,6 +1,6 @@
-.. _dhSearch:
+.. _rmSync:
 
-DHSearch
+RMSync
 ======================================
 
 :Authors:
@@ -10,6 +10,6 @@ DHSearch
 :Version: 3.0.0 of 2022.11.30
 
 
-.. js:autoclass:: DHSearch
+.. js:autoclass:: RMSync
    :members:
    :private-members:
