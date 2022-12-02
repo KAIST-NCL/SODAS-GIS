@@ -1,0 +1,15 @@
+{
+  "source": {
+    "include": ["../../Daemon/GSDaemon.js"],
+    "includePattern": ".js$",
+    "excludePattern": "(node_modules/|docs)"
+  },
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": true
+  },
+  "opts": {
+    "recurse": true,
+    "destination": "../../docs/"
+  }
+}
