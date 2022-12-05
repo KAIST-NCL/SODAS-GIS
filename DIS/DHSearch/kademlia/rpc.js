@@ -42,6 +42,12 @@ exports.RPC = function(bindAddress, callback) {
     setInterval(_.bind(this._expireRPCs, this), constants.T_RESPONSETIMEOUT + 5);
 };
 
+/**
+ * 분산 탐색 네트워크 내 데이터 허브 간 UDP 통신을 전송함.
+ * @method
+ * @param node - UDP 통신을 전송할 대상 노드 end point
+ * @param message - (buffer) UDP 통신을 통해 전송할 데이터
+ */
 exports.RPC.prototype.send = function(node, message, callback) {
     if (!node)
         return;
@@ -57,19 +63,27 @@ exports.RPC.prototype.send = function(node, message, callback) {
     }
 };
 
+/**
+ * 기 연결되어 있는 UDP 통신 소켓을 종료하는 함수.
+ * @method
+ */
 exports.RPC.prototype.close = function() {
     this._socket.close();
 };
 
+/**
+ * UDP 통신을 전송하는 함수.
+ * @method
+ * @private
+ * @param data - UDF 메시지
+ */
 exports.RPC.prototype._onMessage = function(data, rinfo) {
     var message;
     try {
         message = JSON.parse(data.toString('utf8'));
     } catch (e) {
-        /* we simply drop the message, although this
-         * reduces the reliability of the overall network,
-         * we really don't want to implement a reliable
-         * network over UDP until it is really required.
+        /* we simply drop the message, although this reduces the reliability of the overall network,
+         * we really don't want to implement a reliable network over UDP until it is really required.
          */
         return;
     }
@@ -82,6 +96,11 @@ exports.RPC.prototype._onMessage = function(data, rinfo) {
     this._callback(message);
 };
 
+/**
+ * UDP 통신 중 RESPONSE TIMEOUT 을 초과할 경우, 해당 통신을 종료함.
+ * @method
+ * @private
+ */
 exports.RPC.prototype._expireRPCs = function() {
     var now = Date.now();
     var discarded = 0;

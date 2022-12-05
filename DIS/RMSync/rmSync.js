@@ -60,8 +60,11 @@ exports.RMSync = function () {
 };
 
 /**
- * run function of RMSync
+ * :ref:`dhDaemon` 으로부터 ``INIT`` 이벤트 수신 후, GIS 로부터의 오픈 참조 모델 동기화 수신을 위한
+ * gRPC 기반 세션 서버 구동 및 GIS RMSessionManager 로 세션 연동을 요청하는 RMSync 주요 로직을 수행
  * @method
+ * @see RMSync._setRMSyncServer
+ * @see RMSync.requestRMSession
  */
 exports.RMSync.prototype.run = function() {
     this.rmSyncServer = this._setRMSyncServer();
@@ -75,10 +78,11 @@ exports.RMSync.prototype.run = function() {
 
 /* Worker threads Listener */
 /**
- * _dhDaemonListener
+ * :ref:`dhDaemon` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너
  * @method
- * @param message
  * @private
+ * @param message - dictionary(event, message) 구조의 스레드 메시지
+ * @param message:event - ``INIT``
  * @see DHDaemon._rmSyncInit
  */
 exports.RMSync.prototype._dhDaemonListener = function(message) {
@@ -96,9 +100,15 @@ exports.RMSync.prototype._dhDaemonListener = function(message) {
 
 /* DHDaemon methods */
 /**
+ * GIS 로부터 오픈 참조 모델 동기화 전송을 받은 후, 업데이트된 오픈 참조 모델의 파일 경로와
+ * KAFKA 이벤트 메시지 생성을 위한 업데이트된 오픈 참조 모델의 변경 operation(CREATE, UPDATE)를
+ * :ref:`dhDaemon` 로 ``UPDATE_REFERENCE_MODEL`` 스레드 메시지를 전송함.
  * @method
  * @private
+ * @param path_list - 업데이트된 오픈 참조 모델의 파일 경로
+ * @param operation - 업데이트된 오픈 참조 모델의 변경 operation(CREATE, UPDATE)
  * @see DHDaemon._rmSyncListener
+ * @see RMSync.Subscribe
  */
 exports.RMSync.prototype._dmUpdateReferenceModel = function(path_list, operation) {
     debug('[TX: UPDATE_REFERENCE_MODEL] to DHDaemon');
@@ -112,8 +122,10 @@ exports.RMSync.prototype._dmUpdateReferenceModel = function(path_list, operation
 };
 
 /**
+ * GIS RMSessionManager 로 오픈 참조 모델 동기화를 위한 세션 연동을 요청하는 gRPC 통신을 전송하며,
+ * 이때, DataHub 의 ID 와 기 구동한 gRPC 기반 세션 서버의 IP, Port 를 전송함.
  * @method
- * @private
+ * @see RMSync.run
  */
 exports.RMSync.prototype.requestRMSession = function() {
     rmSync.rmSessionClient.RequestRMSession({'dhId': crypto.randomBytes(20).toString('hex'), dhIp: rmSync.dhIp, dhPort: rmSync.rmPort}, (error, response) => {
@@ -129,8 +141,13 @@ exports.RMSync.prototype.requestRMSession = function() {
 
 /* RMSync methods */
 /**
+ * GIS 로부터의 오픈 참조 모델 동기화 수신을 위한 gRPC 기반 세션 서버를 구동함.
+ * 이후 GIS 에서 오픈 참조 모델이 업데이트될 경우, RMSync gRPC 기반 세션 서버의 Subscribe 함수를 호출하여,
+ * 오픈 참조 모델의 변경점만 추출한 git patch 파일을 전달받아 VC 기반 오픈 참조 모델 동기화를 수행함.
  * @method
  * @private
+ * @see RMSync.run
+ * @see RMSync.Subscribe
  */
 exports.RMSync.prototype._setRMSyncServer = function() {
     this.server = new grpc.Server();
@@ -143,8 +160,13 @@ exports.RMSync.prototype._setRMSyncServer = function() {
 };
 
 /**
+ * 오픈 참조 모델의 변경점만 추출한 git patch 파일을 전달받아 VC 기반 오픈 참조 모델 동기화를 수행 및
+ * :ref:`dhDaemon` 로 ``UPDATE_REFERENCE_MODEL`` 스레드 메시지를 전송하는 내부 함수 호출.
  * @method
- * @private
+ * @param self - RMSync 객체 (내부 변수 접근용)
+ * @see RMSync._setRMSyncServer
+ * @see RMSync.gitPatch
+ * @see RMSync._dmUpdateReferenceModel
  */
 exports.RMSync.prototype.Subscribe = function(self, call, callback) {
     debug('[LOG] Server: RMSync gRPC Received: to ' + call.request.receiverId);
@@ -160,8 +182,12 @@ exports.RMSync.prototype.Subscribe = function(self, call, callback) {
 }
 
 /**
+ * 오픈 참조 모델의 변경점만 추출한 git patch 파일을 전달받아, VC 모듈의 git apply 함수를 통한
+ * 로컬 gitDB 에 오픈 참조 모델 동기화(파일 저장)를 수행함.
  * @method
- * @private
+ * @param git_patch - 오픈 참조 모델의 변경점만 추출한 git patch 파일
+ * @param self - RMSync 객체 (내부 변수 접근용)
+ * @see RMSync.Subscribe
  */
 exports.RMSync.prototype.gitPatch = function(git_patch, self) {
     var patch_name = Math.random().toString(10).slice(2,5) + '.patch';

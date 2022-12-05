@@ -47,8 +47,12 @@ exports.DHSearch = function(){
 };
 
 /**
- * run function of DHSearch
+ * :ref:`dhDaemon` 으로부터 ``UPDATE_INTEREST_TOPIC`` 이벤트 수신 후, GIS BootstrapServer 로부터 SeedNode 리스트 조회 및
+ * 조회한 SeedNode end point 를 통해, 분산 탐색 네트워크에 연결하는 로직을 수행함.
  * @method
+ * @see DHSearch._updateInterestInfo
+ * @see DHSearch._bootstrapProcess
+ * @see DHSearch._discoverProcess
  */
 exports.DHSearch.prototype.run = function(){
     this._bootstrapProcess().then(r => {
@@ -57,11 +61,15 @@ exports.DHSearch.prototype.run = function(){
 };
 
 /**
- * _dhDaemonListener
+ * :ref:`dhDaemon` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
- * @param message
+ * @param message - dictionary(event, message) 구조의 스레드 메시지
+ * @param message:event - ``UPDATE_INTEREST_TOPIC``, ``DIS_STOP``
  * @private
  * @see DHDaemon._dhSearchUpdateInterestTopic
+ * @see DHSearch._deleteMyInfoFromKademlia
+ * @see DHSearch._updateInterestInfo
+ * @see KNode.delete
  */
 exports.DHSearch.prototype._dhDaemonListener = function(message){
     switch (message.event) {
@@ -92,6 +100,8 @@ exports.DHSearch.prototype._dhDaemonListener = function(message){
 };
 
 /**
+ * 분산 탐색 네트워크에 연결한 뒤 Bucket 정보가 업데이트될 때마다, Bucket 정보를
+ * :ref:`dhDaemon` 로 ``UPDATE_BUCKET_LIST`` 스레드 메시지를 전송함.
  * @method
  * @private
  * @see DHDaemon._dhSearchListener
@@ -108,9 +118,11 @@ exports.DHSearch.prototype._dmUpdateBucketList = function(){
 
 /* gRPC methods */
 /**
+ * GIS BootstrapServer 로 SeedNode 리스트를 조회하는 gRPC client.
  * @method
- * @param seedNode
- * @returns {Promise<unknown>}
+ * @param seedNode - GIS BootstrapServer 의 SeedNode 리스트에 등록할 자신의 노드 정보
+ * @returns Promise - GIS BootstrapServer 로부터 조회한 SeedNode 리스트
+ * @see DHSearch._bootstrapProcess
  */
 exports.DHSearch.prototype.getSeedNode = function(seedNode) {
     var promise = new Promise((resolve, reject) => dhSearch.bootstrapClient.GetSeedNodeList(seedNode, function(err, response) {
@@ -124,10 +136,12 @@ exports.DHSearch.prototype.getSeedNode = function(seedNode) {
 
 /* DHSearch methods */
 /**
- *
+ * GIS BootstrapServer 로 SeedNode 리스트를 조회한 결과를 내부 변수 ``seedNodeList`` 에 저장함.
  * @method
- * @returns {Promise<null>}
  * @private
+ * @returns Promise - null
+ * @see DHSearch.run
+ * @see DHSearch.getSeedNode
  */
 exports.DHSearch.prototype._bootstrapProcess = async function() {
     await this.getSeedNode(this.seedNode).then((value => {
@@ -139,9 +153,13 @@ exports.DHSearch.prototype._bootstrapProcess = async function() {
 }
 
 /**
+ * GIS BootstrapServer 로부터 조회한 SeedNode 리스트의 DataHub end point 를 통해,
+ * 분산 탐색 네트워크에 연결하는 :ref:`kademlia` ``KNode.connect`` 함수를 통해 분산 탐색 네트워크 참여함.
  * @method
- * @returns {Promise<null>}
  * @private
+ * @returns Promise - null
+ * @see DHSearch.run
+ * @see KNode.connect
  */
 exports.DHSearch.prototype._discoverProcess = async function() {
     debug('[LOG] Start distributed search')
@@ -152,19 +170,27 @@ exports.DHSearch.prototype._discoverProcess = async function() {
 }
 
 /**
+ * 분산 탐색 네트워크에서 연결을 해제하는 :ref:`kademlia` ``KNode.delete`` 함수를 통해,
+ * 분산 탐색 네트워크의 다른 데이터 허브의 Bucket 에서 해당 데이터 허브의 노드 정보를 삭제 요청함.
  * @method
- * @returns {Promise<unknown>}
  * @private
+ * @returns Promise - null
+ * @see DHSearch._dhDaemonListener
+ * @see KNode.delete
  */
 exports.DHSearch.prototype._deleteMyInfoFromKademlia = function() {
     return Promise.resolve(this.node.delete(this.ip, parseInt(this.dsPortNum), parseInt(this.slPortNum), this.syncInterestList, this.metadata, false))
 }
 
 /**
+ * ``UPDATE_INTEREST_TOPIC`` 이벤트 스레드 메시지와 함께 전달된 데이터(관심 동기화 수준, DataHub 메타데이터)를
+ * 내부 변수에 업데이트한 뒤, ``Bootstrap-DistributeSearch`` 로직을 수행하는 내부 함수 호출함.
  * @method
- * @param messageData
- * @returns {null}
  * @private
+ * @param messageData - ``UPDATE_INTEREST_TOPIC`` 이벤트 스레드 메시지와 함께 전달된 데이터(관심 동기화 수준, DataHub 메타데이터)
+ * @returns Promise - null
+ * @see DHSearch._dhDaemonListener
+ * @see DHSearch.run
  */
 exports.DHSearch.prototype._updateInterestInfo = function(messageData) {
     this.syncInterestList = messageData.syncInterestList.interestTopic;
@@ -176,14 +202,6 @@ exports.DHSearch.prototype._updateInterestInfo = function(messageData) {
     debug('[LOG] DHSearch thread receive [UPDATE_INTEREST_TOPIC] event from DISDaemon');
     this.run()
     return null;
-}
-
-/**
- * @method
- * @private
- */
-exports.DHSearch.prototype._setInterestTopic = function() {
-    // todo: InterestTopic 정보 받아와서 노드 ID 반영 및 kademlia set/get 수행 로직
 }
 
 const dhSearch = new dhsearch.DHSearch()

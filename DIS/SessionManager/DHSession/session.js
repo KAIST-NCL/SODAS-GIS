@@ -60,44 +60,58 @@ exports.Session = function() {
     this.ip = workerData.myIp;
     this.myPort = workerData.myPortNum;
     this.server = new grpc.Server();
-    var self = this;
+    self = this;
+    parentPort.on('message', function(message) {self._dhDaemonListener(message)});
+
     this.server.addService(session_sync.SessionSync.service, {
         // (1): Subscription from counter session
         SessionComm: (call, callback) => {
             self.Subscribe(self, call, callback);
         }
     });
+}
 
-    /// Thread Calls from Parent
-    parentPort.on('message', message => {
-        debug("[Session ID: " + this.id + "] Received Thread Msg ###");
-        debug(message);
-        switch(message.event) {
-            // Information to init the Session
-            case 'INIT':
-                this._init(this);
-                break;
-            // Information about counter session
-            case 'TRANSMIT_NEGOTIATION_RESULT':
-                // Get the counter session's address + port
-                this.target = message.data.endPoint.ip + ':' + message.data.endPoint.port;
-                debug("[Session ID: " + this.id + "] Target:" + this.target);
-                // gRPC client creation
-                this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
-                this.sessionDesc = message.data.sessionDesc;
-                this.snOptions = message.data.snOptions; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
-                this.run(this);
-                break;
-            // Things to publsih
-            case 'UPDATE_PUB_ASSET':
-                this.countMsg += 1;
-                this.prePublish(this, message.data);
-                break;
-        }
-    });
+/**
+ * _dhDaemonListener
+ * @method
+ * @param message
+ * @private
+ * @see SessionManager._sessionInit
+ * @see SessionManager._sessionTransmitNegotiationResult
+ * @see SessionManager._sessionUpdatePubAsset
+ */
+exports.Session.prototype._dhDaemonListener = function (message){
+    debug("[Session ID: " + this.id + "] Received Thread Msg ###");
+    debug(message);
+    switch(message.event) {
+        // Information to init the Session
+        case 'INIT':
+            this._init(this);
+            break;
+        // Information about counter session
+        case 'TRANSMIT_NEGOTIATION_RESULT':
+            // Get the counter session's address + port
+            this.target = message.data.endPoint.ip + ':' + message.data.endPoint.port;
+            debug("[Session ID: " + this.id + "] Target:" + this.target);
+            // gRPC client creation
+            this.grpc_client = new session_sync.SessionSync(this.target, grpc.credentials.createInsecure());
+            this.sessionDesc = message.data.sessionDesc;
+            this.snOptions = message.data.snOptions; // sync_interest_list, data_catalog_vocab, sync_time, sync_count, transfer_interface
+            this.run(this);
+            break;
+        // Things to publsih
+        case 'UPDATE_PUB_ASSET':
+            this.countMsg += 1;
+            this.prePublish(this, message.data);
+            break;
+    }
 }
 
 /// Initiate Session
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype._init = function(self) {
     const addr = self.ip+':'+self.myPort;
     self.server.bindAsync(addr, grpc.ServerCredentials.createInsecure(), ()=> {
@@ -107,6 +121,10 @@ exports.Session.prototype._init = function(self) {
 
 /// [4]: hanldes the msg from Session Manager
 // message: dict. data part of thread call "UPDATE_PUB_ASSET"
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.prePublish = function(self, message) {
     // save the things in message in a file as log
     // change log: Now only the commit number is needed
@@ -123,6 +141,10 @@ exports.Session.prototype.prePublish = function(self, message) {
 }
 
 /// If the count / sync time reaches some point, extract the git diff and publish it to other session
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.onMaxCount = async function(self) {
     self.countMsg = 0;
     debug("[LOG-Session:" + self.id + "]: onMaxCount");
@@ -136,6 +158,10 @@ exports.Session.prototype.onMaxCount = async function(self) {
 
 /// To extract git diff using two git commit numbers
 // topublish: dict. Result of reading log file
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.extractGitDiff = async function(self, topublish) {
     // mutex 적용
     debug("[LOG-Session:" + self.id + "]: gitDiff mutex - " + self.flag[0])
@@ -161,6 +187,10 @@ exports.Session.prototype.extractGitDiff = async function(self, topublish) {
 
 /// Reset count after publish
 // last_commit: string. commit # of last git commit
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype._reset_count = function(last_commit) {
     this.countMsg = 0;
     var lc = (typeof last_commit  === 'undefined') ? "" : last_commit;
@@ -175,6 +205,10 @@ exports.Session.prototype._reset_count = function(last_commit) {
 
 /// [5]: Publish to the counter Session
 // git_patch: string. Git diff Extraction result
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.Publish = function(git_patch) {
     debug("[LOG-Session:" + ss.id + "]: Publish");
     // Change Log -> Now, does not send the related and filepath information through the gRPC. Subscriber extracts that information from git diff file
@@ -198,6 +232,10 @@ exports.Session.prototype.Publish = function(git_patch) {
 
 /// (1): Subscribe from the other session
 // Change Log -> seperated from the constructor as an function
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.Subscribe = function(self, call, callback) {
     debug("[LOG-Session:" + self.id + "]: gRPC Received: from " + call.request.receiverId);
     // Only process the things when sender's id is the same one with the counter session's id
@@ -214,6 +252,10 @@ exports.Session.prototype.Subscribe = function(self, call, callback) {
 }
 
 // (2): Apply the git patch received through gRPC
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.gitPatch = function(git_patch, self) {
     // save git patch as a temporal file
     var patch = Math.random().toString(10).slice(2,5) + '.patch';
@@ -235,6 +277,10 @@ exports.Session.prototype.gitPatch = function(git_patch, self) {
 }
 
 // (3): Producer: send.asset Message creation and Sending it
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     // Change Log -> previous argument was {related, filepath} as json_string format. Now git diff
     // Change Log -> Extract the filepath and related information from the git diff string
@@ -268,16 +314,26 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
 }
 
 // Data Storing
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.__save_dict = function(content) {
     const contentJSON = JSON.stringify(content);
     fs.writeFileSync(this.msgStorepath, contentJSON);
 }
-
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.__read_dict = function() {
     return JSON.parse(fs.readFileSync(this.msgStorepath).toString());
 }
 
-
+/**
+ * @method
+ * @private
+ */
 exports.Session.prototype.run = function(self) {
     now = new Date().getTime();
     var condition_time = self.countMsg >= 1 && now - self.lastCommitTime >= self.snOptions.syncDesc.syncTime[0];
@@ -288,4 +344,5 @@ exports.Session.prototype.run = function(self) {
     }
     setTimeout(self.run, self.timeOut, self);
 }
+
 const ss = new session.Session();

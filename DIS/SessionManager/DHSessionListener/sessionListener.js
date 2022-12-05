@@ -41,6 +41,10 @@ exports.SessionListener = function () {
     debug('[SETTING] SessionListener Created');
 
 }
+/**
+ * @method
+ * @private
+ */
 exports.SessionListener.prototype.run = function () {
     this.sessionListenerServer = this._setListenerServer();
     this.sessionListenerServer.bindAsync(this.slAddr,
@@ -51,6 +55,15 @@ exports.SessionListener.prototype.run = function () {
 }
 
 /* Worker threads Listener */
+/**
+ * _smListener
+ * @method
+ * @private
+ * @see SessionManager._slInit
+ * @see SessionManager._slGetNewSessionInfo
+ * @see SessionManager._slUpdateInterestList
+ * @see SessionManager._slUpdateNegotiationOptions
+ */
 exports.SessionListener.prototype._smListener = function (message) {
     switch (message.event) {
         case 'INIT':
@@ -75,6 +88,12 @@ exports.SessionListener.prototype._smListener = function (message) {
 }
 
 /* SessionManager methods */
+/**
+ * _smTransmitNegotiationResult
+ * @method
+ * @private
+ * @see SessionManager._slListener
+ */
 exports.SessionListener.prototype._smTransmitNegotiationResult = function (end_point, session_desc, sn_result) {
     debug('[TX: TRANSMIT_NEGOTIATION_RESULT] to SessionManager');
     parentPort.postMessage({
@@ -84,6 +103,10 @@ exports.SessionListener.prototype._smTransmitNegotiationResult = function (end_p
 }
 
 /* gRPC methods */
+/**
+ * @method
+ * @private
+ */
 exports.SessionListener.prototype._requestSN = function (call, callback) {
     debug("[gRPC Call] RequestSessionNegotiation");
     let result = call.request;
@@ -104,6 +127,10 @@ exports.SessionListener.prototype._requestSN = function (call, callback) {
         sessionListener.otherSessionDesc = result.sessionDesc;
     }
 };
+/**
+ * @method
+ * @private
+ */
 exports.SessionListener.prototype._ackSN = function (call, callback) {
     let result = call.request;
     debug("[gRPC Call] CheckNegotiation");
@@ -115,6 +142,10 @@ exports.SessionListener.prototype._ackSN = function (call, callback) {
     debug(sessionListener.mySessionDesc.sessionId)
 };
 /* SessionListener methods */
+/**
+ * @method
+ * @private
+ */
 exports.SessionListener.prototype._setListenerServer = function () {
     this.server = new grpc.Server();
     this.server.addService(this.SNproto.service, {
