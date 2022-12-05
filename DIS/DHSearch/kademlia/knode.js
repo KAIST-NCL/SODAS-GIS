@@ -36,8 +36,8 @@ var MC = util.message_contact;
 var MID = util.message_rpcID;
 
 /**
- *
- * @param desc
+ * KNode
+ * @param desc - UDP 통신 수신자 end point
  * @constructor
  */
 exports.KNode = function(desc) {
@@ -52,11 +52,12 @@ exports.KNode = function(desc) {
 }
 
 /**
+ * 분산 탐색 네트워크에서 통신하는 UDP 프로토콜 메시지 규격으로 변환해주는 함수.
  * @method
- * @param type
- * @param params
- * @returns {*}
  * @private
+ * @param type - UDP 메시지 type
+ * @param params - 전송할 메시지
+ * @returns UDP_Message
  */
 exports.KNode.prototype._MSG = function(type, params) {
     // NOTE: always keep this.self last. This way users of _MSG
@@ -64,11 +65,16 @@ exports.KNode.prototype._MSG = function(type, params) {
     return _.extend({ type: type}, params, this.self);
 }
 
-
 /**
+ * 분산 탐색 네트워크에서 통신하는 노드 중 UDP 메시지를 수신하는 노드에서 UDP 메시지의 type 에 따라,
+ * 내부 처리 함수를 호출하는 브로커 함수.
  * @method
- * @param message
  * @private
+ * @param message - 수신한 UDP 메시지
+ * @see KNode._onPing
+ * @see KNode._onStore
+ * @see KNode._onDelete
+ * @see KNode._onFindValue
  */
 exports.KNode.prototype._onMessage = function(message) {
     if (!message.type || typeof message.type !== 'string')
@@ -86,22 +92,14 @@ exports.KNode.prototype._onMessage = function(message) {
 }
 
 /**
+ * 인자로 주어진 contact 객체 정보를 Bucket 에 업데이트하는 함수로,
+ * contact 객체 정보가 이미 Bucket 내에 있을 경우 최신 정보로 업데이트하며,
+ * contact 객체 정보가 신규 추가에 해당하고 동시에 Bucket Size 가 여유로울 때는 Bucket 에 신규 추가하며,
+ * Bucket Size 가 꽉 찼을 때는 Bucket 내 노드들에게 ``PING`` 메시지를 전송해서 응답하지 않는 contact 는 제거한 뒤, 신규 contact 를 추가함.
  * @method
- * @param message
  * @private
- */
-exports.KNode.prototype._onPing = function(message) {
-    // this can be made more intelligent such that
-    // if an outgoing message is present, piggyback the pong
-    // onto it rather than sending it separately
-    this._rpc.send(MC(message), this._MSG('PONG', {'replyTo': MID(message)}));
-}
-
-/**
- * @method
- * @param contact
- * @param cb
- * @private
+ * @param contact - Bucket 에 업데이트할 contact 객체 정보
+ * @param cb - callback 함수
  */
 exports.KNode.prototype._updateContact = function(contact, cb) {
     if (!contact)
@@ -148,9 +146,26 @@ exports.KNode.prototype._updateContact = function(contact, cb) {
 // TODO: handle large values which
 // won't fit in single UDP packets
 /**
+ * 수신한 UDP 메시지의 type 이 ``PING``에 해당할 때 호출되는 함수로,
+ * 분산 탐색 네트워크의 노드 간 네트워크 연결 여부를 확인하는 통신에 해당함.
  * @method
- * @param message
  * @private
+ * @param message - 수신한 UDP 메시지
+ */
+exports.KNode.prototype._onPing = function(message) {
+    // this can be made more intelligent such that
+    // if an outgoing message is present, piggyback the pong
+    // onto it rather than sending it separately
+    this._rpc.send(MC(message), this._MSG('PONG', {'replyTo': MID(message)}));
+}
+
+/**
+ * 수신한 UDP 메시지의 type 이 ``STORE``에 해당할 때 호출되는 함수로,
+ * 특정 contact 정보를 key, value 로 저장하는 통신에 해당함.
+ * @method
+ * @private
+ * @param message - 수신한 UDP 메시지
+ * @see KNode.set
  */
 exports.KNode.prototype._onStore = function(message) {
     if (!message.key || message.key.length !== constants.B/4)
@@ -164,6 +179,22 @@ exports.KNode.prototype._onStore = function(message) {
     }));
 }
 
+/**
+ * 수신한 UDP 메시지의 type 이 ``STORE_REPLY``에 해당할 때 호출되는 함수로,
+ * ``STORE`` 통신의 응답에 해당함.
+ * @method
+ * @private
+ * @see KNode._onStore
+ */
+exports.KNode.prototype._onStoreReply = function() {}
+
+/**
+ * 수신한 UDP 메시지의 type 이 ``DELETE``에 해당할 때 호출되는 함수로,
+ * 메시지 내 contact 객체 정보를 Bucket 내에서 삭제하는 통신에 해당함.
+ * @method
+ * @private
+ * @param message - 수신한 UDP 메시지
+ */
 exports.KNode.prototype._onDelete = function(message) {
     var bucketIndex = util.bucketIndex(this.self.nodeID, message.contact.nodeID);
     assert.ok(bucketIndex < constants.B);
@@ -182,24 +213,11 @@ exports.KNode.prototype._onDelete = function(message) {
 }
 
 /**
- * This is just to prevent Unknown message errors
- * @method
- * @param message
- * @private
- */
-exports.KNode.prototype._onDeleteReply = function (message) {}
-
-/**
- * This is just to prevent Unknown message errors
+ * 수신한 UDP 메시지의 type 이 ``FIND_VALUE``에 해당할 때 호출되는 함수로,
+ * message.key 값에 해당하는 value(contact 객체 정보)를 반환하는 통신에 해당함.
  * @method
  * @private
- */
-exports.KNode.prototype._onStoreReply = function() {}
-
-/**
- * @method
- * @param message
- * @private
+ * @param message - 수신한 UDP 메시지
  */
 exports.KNode.prototype._onFindValue = function(message) {
     if (!message.key || message.key.length !== constants.B/4)
@@ -225,12 +243,32 @@ exports.KNode.prototype._onFindValue = function(message) {
 }
 
 /**
+ * 수신한 UDP 메시지의 type 이 ``FIND_NODE``에 해당할 때 호출되는 함수로,
+ * message.key 와 XOR 거리 기반 가까운 노드들의 정보(contacts)를 반환하는 통신에 해당함.
  * @method
- * @param key
- * @param howMany
- * @param exclude
- * @returns contacts
  * @private
+ * @param message - 수신한 UDP 메시지
+ */
+exports.KNode.prototype._onFindNode = function(message) {
+    if (!message.key || message.key.length !== constants.B/4 || !MC(message))
+        return;
+
+    var contacts = this._findClosestNodes(message.key, constants.K, MC(message).nodeID);
+
+    this._rpc.send(MC(message), this._MSG('FIND_NODE_REPLY', {
+        'replyTo': MID(message),
+        'contacts': contacts
+    }));
+}
+
+/**
+ * Bucket 내 XOR 거리를 비교할 key 값과의 거리가 가까운 노드들의 정보(contacts)를 반환함.
+ * @method
+ * @private
+ * @param key - XOR 거리를 비교할 key 값
+ * @param howMany - contact 를 저장할 수 있는 contacts 의 최대 크기
+ * @param exclude - 비교 대상에서 제외할 nodeID(노드 자기 자신에 해당할 경우 제외.)
+ * @returns contacts
  */
 exports.KNode.prototype._findClosestNodes = function(key, howMany, exclude) {
     var contacts = [];
@@ -297,46 +335,29 @@ exports.KNode.prototype._findClosestNodes = function(key, howMany, exclude) {
 }
 
 /**
+ * 새로운 contact 가 Bucket 에 추가되면서, Bucket 내 contact 간 XOR 거리 기반 가까운 순으로 재정렬하는 함수.
  * @method
- * @param bucketIndex
- * @param callback
  * @private
+ * @param bucketIndex
+ * @param callback - callback 함수
  */
 exports.KNode.prototype._refreshBucket = function(bucketIndex, callback) {
     var random = util.randomInBucketRangeBuffer(bucketIndex);
     this._iterativeFindNode(random.toString('hex'), callback);
 }
 
-/**
- * this is a primitive operation, no network activity allowed
- * @method
- * @param message
- * @private
- */
-exports.KNode.prototype._onFindNode = function(message) {
-    if (!message.key || message.key.length !== constants.B/4 || !MC(message))
-        return;
-
-    var contacts = this._findClosestNodes(message.key, constants.K, MC(message).nodeID);
-
-    this._rpc.send(MC(message), this._MSG('FIND_NODE_REPLY', {
-        'replyTo': MID(message),
-        'contacts': contacts
-    }));
-}
-
 // cb should be function(err, type, result)
 // where type == 'VALUE' -> result is the value
 //       type == 'NODE'  -> result is [list of contacts]
 /**
- * <p> cb should be function(err, type, result) </p>
- * <p> where type == 'VALUE' -> result is the value </p>
- * <p>       type == 'NODE'  -> result is [list of contacts] </p>
+ * 분산 탐색 네트워크를 순회하면서 key 값에 해당하는 contact 객체를 탐색하면서, mode(``NODE``, ``VALUE``)에 따라
+ * UDP 통신을 전송하는 함수.
  * @method
- * @param key
- * @param mode
- * @param cb
  * @private
+ * @param key - 조회할 key or 노드 ID 값
+ * @param mode - ``NODE``, ``VALUE``
+ * @param cb - callback 함수
+ *
  */
 exports.KNode.prototype._iterativeFind = function(key, mode, cb) {
     assert.ok(_.include(['NODE', 'VALUE'], mode));
@@ -441,25 +462,29 @@ exports.KNode.prototype._iterativeFind = function(key, mode, cb) {
 }
 
 /**
+ * 분산 탐색 네트워크를 순회하면서 노드 ID 값에 해당하는 contact 객체를 탐색하는 함수.
  * @method
- * @param nodeID
- * @param cb
  * @private
+ * @param nodeID - 조회할 contact 노드 ID
+ * @param cb - callback 함수
+ * @see KNode.set
  */
 exports.KNode.prototype._iterativeFindNode = function(nodeID, cb) {
     this._iterativeFind(nodeID, 'NODE', cb);
 }
 
+//  * this does not map over directly to the spec
+//  * rather iterativeFind already does the related things
+//  * if the callback gets a list of contacts, it simply
+//  * assumes the key does not exist in the DHT (atleast with
+//  * available knowledge)
 /**
- * this does not map over directly to the spec
- * rather iterativeFind already does the related things
- * if the callback gets a list of contacts, it simply
- * assumes the key does not exist in the DHT (atleast with
- * available knowledge)
+ * 분산 탐색 네트워크를 순회하면서 key 값에 해당하는 value(contact 객체 정보)를 탐색하는 함수.
  * @method
- * @param key
- * @param cb : cb -> function(err, value)
  * @private
+ * @param key - 조회할 contact 객체 정보에 해당하는 key 값
+ * @param cb - callback 함수
+ * @see KNode.get
  */
 exports.KNode.prototype._iterativeFindValue = function(key, cb) {
     var callback = cb || function() {};
@@ -475,14 +500,16 @@ exports.KNode.prototype._iterativeFindValue = function(key, cb) {
 }
 
 /**
+ * 분산 탐색 네트워크에 등록될 자신의 노드 정보를 문자열로 변환한 뒤 반환함.
  * @method
- * @returns {string}
+ * @returns string
  */
 exports.KNode.prototype.toString = function() {
     return "Node " + this.self.nodeID + ":" + this.self.address + ":" + this.self.port;
 }
 
 /**
+ * 디버그용 Bucket 내 contact 정보를 콘솔에 출력하는 함수.
  * @method
  */
 exports.KNode.prototype.debug = function() {
@@ -494,13 +521,17 @@ exports.KNode.prototype.debug = function() {
 }
 
 /**
+ * 분산 탐색 네트워크에 연결하는 주요 API 로,
+ * 인자로 주어진 SeedNode 리스트 정보로 contact 객체를 생성한 뒤,
+ * 해당 contact 객체의 end point 정보를 통한 UDP 통신 기반 분산 탐색 네트워크에 연결함.
  * @method
- * @param address
- * @param port
- * @param sl_portNum
- * @param sync_interest_list
- * @param metadata
- * @param cb
+ * @param address - 분산 탐색 네트워크에 신규 참여할 DataHub 의 IP 주소
+ * @param port - 분산 탐색 네트워크에 신규 참여할 DataHub 의 Port 번호
+ * @param sl_portNum -분산 탐색 네트워크에 신규 참여할 DataHub 의 :ref:`sessionListener` gRPC 서버 Port 번호
+ * @param sync_interest_list -분산 탐색 네트워크에 신규 참여할 DataHub 의 관심 동기화 수준 리스트
+ * @param metadata - 분산 탐색 네트워크에 신규 참여할 DataHub 의 메타데이터
+ * @param cb - callback 함수
+ * @see DHSearch._discoverProcess
  */
 exports.KNode.prototype.connect = function(address, port, sl_portNum, sync_interest_list, metadata, cb) {
     var callback = cb || function() {};
@@ -534,9 +565,12 @@ exports.KNode.prototype.connect = function(address, port, sl_portNum, sync_inter
 }
 
 /**
+ * ``KNode.set`` 함수로 저장한 contact 정보를 key 값을 통해 조회하는 함수.
  * @method
- * @param key
- * @param cb
+ * @param key - 조회할 contact 객체 정보에 해당하는 key 값
+ * @param cb - callback 함수
+ * @see KNode._iterativeFindValue
+ * @see KNode.set
  */
 exports.KNode.prototype.get = function(key, cb) {
     var callback = cb || function() {};
@@ -544,10 +578,13 @@ exports.KNode.prototype.get = function(key, cb) {
 }
 
 /**
+ * 분산 탐색 네트워크에서 key, value 값으로 특정 contact 정보를 저장하는 함수.
  * @method
- * @param key
- * @param value
- * @param cb
+ * @param key - contact 객체 정보에 해당하는 key 값
+ * @param value - 저장할 contact 객체 정보
+ * @param cb - callback 함수
+ * @see KNode._iterativeFindNode
+ * @see KNode.get
  */
 exports.KNode.prototype.set = function(key, value, cb) {
     var callback = cb || function() {};
@@ -570,14 +607,19 @@ exports.KNode.prototype.set = function(key, value, cb) {
 }
 
 /**
+ * 주어진 인자로 contact 객체를 생성한 뒤,
+ * 분산 탐색 네트워크에 접속한 모든 데이터 허브들의 정보(Bucket 객체)를 조회하면서,
+ * 생성한 contact 정보를 삭제 요청하는 UDP 통신을 전송함.
  * @method
- * @param address
- * @param port
- * @param sl_portNum
- * @param sync_interest_list
- * @param metadata
- * @param isDisStop
- * @param cb
+ * @param address - 분산 탐색 네트워크에 신규 참여할 DataHub 의 IP 주소
+ * @param port - 분산 탐색 네트워크에 신규 참여할 DataHub 의 Port 번호
+ * @param sl_portNum -분산 탐색 네트워크에 신규 참여할 DataHub 의 :ref:`sessionListener` gRPC 서버 Port 번호
+ * @param sync_interest_list -분산 탐색 네트워크에 신규 참여할 DataHub 의 관심 동기화 수준 리스트
+ * @param metadata - 분산 탐색 네트워크에 신규 참여할 DataHub 의 메타데이터
+ * @param isDisStop - Bucket 정보 업데이트 Notification 간결화를 위한 Boolean
+ * @param cb - callback 함수
+ * @see DHSearch._dhDaemonListener
+ * @see DHSearch._deleteMyInfoFromKademlia
  */
 exports.KNode.prototype.delete = function(address, port, sl_portNum, sync_interest_list, metadata, isDisStop, cb) {
     var callback = cb || function() {};
