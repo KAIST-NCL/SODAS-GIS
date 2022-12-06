@@ -13,7 +13,7 @@ const path = require('path');
 const debug = require('debug')('sodas:daemon\t\t|');
 
 /**
- * DHDaemon
+ * DHDaemon 은 DIS 시스템의 데몬으로 생성자에서는 `setting.cfg`의 설정 내용을 바탕으로 DIS 프로그램에서 필요한 모듈들을 실행한다.
  * @constructor
  */
 exports.DHDaemon = function(){
@@ -136,11 +136,6 @@ exports.DHDaemon.prototype.run = function(){
 /**
  * DIS 데몬 종료
  * @method
- * @see daemonServer.exit
- * @see dhSearch.exit
- * @see vcModule.exit
- * @see sessionManager.exit
- * @see rmSync.exit
  */
 exports.DHDaemon.prototype.stop = function(){
     this.daemonServer.exit();
