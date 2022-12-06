@@ -39,8 +39,11 @@ exports.SessionManager = function() {
 };
 
 /**
+ * SessionManager 실행 함수로 :ref:`sessionRequester`, :ref:`sessionListener` 모듈들을 worker thread 로 실행하고,
+ * 각 모듈들의 초기화 실행을 위해 ``INIT`` 메시지를 전달함.
  * @method
- * @private
+ * @see sessionRequester
+ * @see sessionListener
  */
 exports.SessionManager.prototype.run = function (){
 
@@ -67,10 +70,11 @@ exports.SessionManager.prototype.run = function (){
 
 /* Worker threads Listener */
 /**
- * _dhDaemonListener
+ * :ref:`dhDaemon` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
- * @param message
  * @private
+ * @param message - dictionary(event, message) 구조의 스레드 메시지
+ * @param message:event - ``UPDATE_INTEREST_TOPIC``, ``UPDATE_NEGOTIATION_OPTIONS``, ``SYNC_ON``
  * @see DHDaemon._smInit
  * @see DHDaemon._smUpdateInterestTopic
  * @see DHDaemon._smUpdateNegotiation
@@ -122,8 +126,11 @@ exports.SessionManager.prototype._dhDaemonListener = function (message){
     }
 }
 /**
+ * :ref:`versionControl` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
  * @private
+ * @param message - dictionary(event, message) 구조의 스레드 메시지
+ * @param message:event - ``UPDATE_PUB_ASSET``
  */
 exports.SessionManager.prototype._vcListener = function (message){
     switch (message.event) {
@@ -145,9 +152,11 @@ exports.SessionManager.prototype._vcListener = function (message){
     }
 }
 /**
- * _srListener
+ * :ref:`sessionRequester` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
  * @private
+ * @param message - dictionary(event, message) 구조의 스레드 메시지
+ * @param message:event - ``TRANSMIT_NEGOTIATION_RESULT``
  * @see SessionRequester._smTransmitNegotiationResult
  */
 exports.SessionManager.prototype._srListener = function (message){
@@ -193,11 +202,11 @@ exports.SessionManager.prototype._srListener = function (message){
     }
 }
 /**
- * _slListener
+ * :ref:`sessionListener` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
- * @param message:event -
- * @param message:data -
  * @private
+ * @param message - dictionary(event, message) 구조의 스레드 메시지
+ * @param message:event - ``TRANSMIT_NEGOTIATION_RESULT``
  * @see SessionListener._smTransmitNegotiationResult
  */
 exports.SessionManager.prototype._slListener = function (message){
@@ -241,8 +250,11 @@ exports.SessionManager.prototype._slListener = function (message){
     }
 }
 /**
+ * :ref:`session` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
  * @private
+ * @param message - dictionary(event, message) 구조의 스레드 메시지
+ * @param message:event - ``RECONFIGURATION_NEGOTIATION_OPTIONS``
  */
 exports.SessionManager.prototype._sessionListener = function (message){
     switch (message.event) {
@@ -254,8 +266,11 @@ exports.SessionManager.prototype._sessionListener = function (message){
 
 /* DHDaemon methods */
 /**
+ * :ref:`sessionRequester` 와 :ref:`sessionListener` 간 세션 연동이 되어 세션 리스트가 업데이트된 경우,
+ * :ref:`dhDaemon` 으로 업데이트된 세션 리스트를 ``GET_SESSION_LIST_INFO`` 이벤트 스레드 메시지로 전달함.
  * @method
  * @private
+ * @see DHDaemon._smListener
  */
 exports.SessionManager.prototype._dmGetSessionListInfo = function () {
     // [SessionManager -> DHDaemon] [GET_SESSION_LIST_INFO]
@@ -269,7 +284,7 @@ exports.SessionManager.prototype._dmGetSessionListInfo = function () {
 
 /* SessionRequester methods */
 /**
- * _srInit
+ * :ref:`sessionRequester` worker thread 의 초기화 실행을 위한 함수로 ``INIT`` 이벤트 스레드 메시지를 전달함.
  * @method
  * @private
  * @see SessionRequester._smListener
@@ -281,9 +296,11 @@ exports.SessionManager.prototype._srInit = function () {
     });
 }
 /**
- * _srStartSessionConnection
+ * :ref:`dhDaemon` 으로부터 ``SYNC_ON`` 이벤트 스레드 메시지를 받으면 실행되는 함수로,
+ * :ref:`sessionRequester` 로 bucketList 내 데이터 허브 리스트와의 세션 협상을 시작하는 ``START_SESSION_CONNECTION`` 이벤트 스레드 메시지를 전달함.
  * @method
  * @private
+ * @param bucketList - 데이터맵 동기화 세션 연동을 위한 세션 협상 대상에 해당하는 데이터 허브 리스트
  * @see SessionRequester._smListener
  */
 exports.SessionManager.prototype._srStartSessionConnection = function (bucketList) {
@@ -293,7 +310,8 @@ exports.SessionManager.prototype._srStartSessionConnection = function (bucketLis
     });
 }
 /**
- * _srGetNewSessionInfo
+ * :ref:`sessionRequester` 로 세션 협상 과정에서 필요한 :ref:`session` worker thread 의 end point 정보를
+ * ``GET_NEW_SESSION_INFO`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @private
  * @see SessionRequester._smListener
@@ -305,7 +323,8 @@ exports.SessionManager.prototype._srGetNewSessionInfo = function () {
     });
 }
 /**
- * _srUpdateInterestList
+ * :ref:`dhDaemon` 으로부터 ``UPDATE_INTEREST_TOPIC`` 이벤트 스레드 메시지를 받으면 실행되는 함수로,
+ * :ref:`sessionRequester` 로 업데이트된 관심 동기화 수준 정보를 ``UPDATE_INTEREST_LIST`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @private
  * @see SessionRequester._smListener
@@ -317,7 +336,8 @@ exports.SessionManager.prototype._srUpdateInterestList = function () {
     });
 }
 /**
- * _srUpdateNegotiationOptions
+ * :ref:`dhDaemon` 으로부터 ``UPDATE_NEGOTIATION_OPTIONS`` 이벤트 스레드 메시지를 받으면 실행되는 함수로,
+ * :ref:`sessionRequester` 로 업데이트된 세션 협상 옵션 정보를 ``UPDATE_NEGOTIATION_OPTIONS`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @private
  * @see SessionRequester._smListener
@@ -331,7 +351,7 @@ exports.SessionManager.prototype._srUpdateNegotiationOptions = function () {
 
 /* SessionListener methods */
 /**
- * _slInit
+ * :ref:`sessionListener` worker thread 의 초기화 실행을 위한 함수로 ``INIT`` 이벤트 스레드 메시지를 전달함.
  * @method
  * @private
  * @see SessionListener._smListener
@@ -343,7 +363,8 @@ exports.SessionManager.prototype._slInit = function () {
     });
 }
 /**
- * _slGetNewSessionInfo
+ * :ref:`sessionListener` 로 세션 협상 과정에서 필요한 :ref:`session` worker thread 의 end point 정보를
+ * ``GET_NEW_SESSION_INFO`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @private
  * @see SessionListener._smListener
@@ -355,7 +376,8 @@ exports.SessionManager.prototype._slGetNewSessionInfo = function () {
     });
 }
 /**
- * _slUpdateInterestList
+ * :ref:`dhDaemon` 으로부터 ``UPDATE_INTEREST_TOPIC`` 이벤트 스레드 메시지를 받으면 실행되는 함수로,
+ * :ref:`sessionListener` 로 업데이트된 관심 동기화 수준 정보를 ``UPDATE_INTEREST_LIST`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @private
  * @see SessionListener._smListener
@@ -367,7 +389,8 @@ exports.SessionManager.prototype._slUpdateInterestList = function () {
     });
 }
 /**
- * _slUpdateNegotiationOptions
+ * :ref:`dhDaemon` 으로부터 ``UPDATE_NEGOTIATION_OPTIONS`` 이벤트 스레드 메시지를 받으면 실행되는 함수로,
+ * :ref:`sessionListener` 로 업데이트된 세션 협상 옵션 정보를 ``UPDATE_NEGOTIATION_OPTIONS`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @private
  * @see SessionListener._smListener
@@ -381,9 +404,9 @@ exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
 
 /* Session methods */
 /**
- * _sessionInit
+ * :ref:`session` worker thread 의 초기화 실행을 위한 함수로 ``INIT`` 이벤트 스레드 메시지를 전달함.
  * @method
- * @param sessionWorker - 세션 협상에 대비하여, 신규 생성한 세션 객체
+ * @param sessionWorker - 신규 생성한 세션 worker thread 객체
  * @private
  * @see Session._dhDaemonListener
  */
@@ -394,7 +417,8 @@ exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
     });
 }
 /**
- * _sessionTransmitNegotiationResult
+ * :ref:`sessionRequester` 와 :ref:`sessionListener` 간 세션 협상 체결이 된 경우,
+ * :ref:`session` 로 상대 세션 모듈의 end point 정보와 세션 협상 결과를 ``TRANSMIT_NEGOTIATION_RESULT`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @param sessionWorker - 세션 협상 체결 이후, 다른 데이터 허브의 세션 모듈과 연동할 내부 세션 객체
  * @param end_point - 다른 데이터 허브의 세션 모듈의 접속 정보(IP, Port)
@@ -409,8 +433,12 @@ exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (s
         data: { endPoint: end_point, sessionDesc: session_desc, snOptions: sn_options }
     });
 }
+// ETRI's KAFKA 에서 Asset 데이터맵 변화 이벤트 감지 시, 해당 데이터맵 및 git Commit 정보를 전달받아서
+// sessionList 정보 조회 후, 해당 session 에게 UPDATE_PUB_ASSET 이벤트 전달
 /**
- * _sessionUpdatePubAsset
+ * :ref:`versionControl` 에서 ``send.asset`` 토픽을 통해 데이터맵 변화 이벤트 감지 및 git commit 실행한 뒤,
+ * SessionManager 모듈로 ``UPDATE_PUB_ASSET`` 이벤트 스레드 메시지로 전달하고, SessionManager 모듈은 업데이트된 데이터맵 수준을 포함하는 관심 동기화 수준으로 협상된
+ * :ref:`session` 모듈로 commit number 를 ``UPDATE_PUB_ASSET`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @param sessionWorker - 변경된 Pub 데이터맵이 동기화 수준에 해당하는 세션 모듈 객체
  * @param commit_number - VC 모듈에서 최근 커밋한 커밋 번호
@@ -426,7 +454,7 @@ exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorke
 
 /* sessionManager methods */
 /**
- * _createSession
+ * :ref:`session` 모듈을 worker thread 로 실행하고, 미사용 Port 번호를 할당하는 함수.
  * @method
  * @private
  */
@@ -442,7 +470,7 @@ exports.SessionManager.prototype._createSession = async function () {
 }
 
 /**
- * _setSessionPort
+ * 신규 :ref:`session` 모듈 생성을 위한, 미사용 Port 번호를 조회하는 함수.
  * @method
  * @private
  */
@@ -457,8 +485,12 @@ exports.SessionManager.prototype._setSessionPort = async function () {
 }
 
 /**
+ * :ref:`sessionRequester` 와 :ref:`sessionListener` 간 세션 연동이 되어 세션 리스트가 업데이트된 경우,
+ * 업데이트된 내부 세션 관리용 dictionary 에서 :ref:`dhDaemon` 으로 전달하는 세션 리스트로 자료구조를 리팩토링하는 함수.
  * @method
  * @private
+ * @param tempSession - 신규 연동된 임시 세션 객체
+ * @param otherNodeId - 세션 연동을 할 상대 데이터 허브의 ID
  */
 exports.SessionManager.prototype._refactoringSessionInfo = function (tempSession, otherNodeId) {
     let append_session = {};
@@ -476,8 +508,10 @@ exports.SessionManager.prototype._refactoringSessionInfo = function (tempSession
 }
 
 /**
+ * 인자로 주어진 dictionary 가 빈 객체인지를 체크하는 함수.
  * @method
  * @private
+ * @param obj - 빈 객체인지를 확인하기 위한 dictionary
  */
 exports.SessionManager.prototype._isEmptyObj = function (obj) {
     if (obj.constructor === Object && Object.keys(obj).length === 0) {

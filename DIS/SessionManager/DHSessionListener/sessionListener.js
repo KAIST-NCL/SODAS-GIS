@@ -42,6 +42,7 @@ exports.SessionListener = function () {
 
 }
 /**
+ * SessionListener 실행 함수로 다른 데이터 허브의 :ref:`sessionRequester` 로부터의 세션 협상 요청에 응답하는 gRPC 서버를 구동함.
  * @method
  * @private
  */
@@ -56,9 +57,11 @@ exports.SessionListener.prototype.run = function () {
 
 /* Worker threads Listener */
 /**
- * _smListener
+ * :ref:`sessionManager` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
  * @private
+ * @param message - dictionary(event, message) 구조의 스레드 메시지
+ * @param message:event - ``INIT``, ``GET_NEW_SESSION_INFO``, ``UPDATE_INTEREST_LIST``, ``UPDATE_NEGOTIATION_OPTIONS``
  * @see SessionManager._slInit
  * @see SessionManager._slGetNewSessionInfo
  * @see SessionManager._slUpdateInterestList
@@ -89,9 +92,13 @@ exports.SessionListener.prototype._smListener = function (message) {
 
 /* SessionManager methods */
 /**
- * _smTransmitNegotiationResult
+ * SessionListener 모듈과 다른 데이터 허브의 :ref:`sessionRequester` 간 세션 협상 체결이 된 경우,
+ * :ref:`sessionManager` 로 상대 세션 모듈의 end point 정보와 세션 협상 결과를 ``TRANSMIT_NEGOTIATION_RESULT`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @private
+ * @param end_point - 다른 데이터 허브의 세션 모듈의 접속 정보(IP, Port)
+ * @param session_desc - 세션 객체의 메타데이터(세션 생성자 정보, 세션 ID)
+ * @param sn_result - 세션 협상 결과
  * @see SessionManager._slListener
  */
 exports.SessionListener.prototype._smTransmitNegotiationResult = function (end_point, session_desc, sn_result) {
@@ -104,8 +111,12 @@ exports.SessionListener.prototype._smTransmitNegotiationResult = function (end_p
 
 /* gRPC methods */
 /**
+ * 다른 데이터 허브의 :ref:`sessionRequester` 로부터 세션 협상 요청에 대응하는 gRPC 함수로,
+ * 다른 데이터 허브의 관심 동기화 수준 및 세션 협상 옵션을 비교하여, 세션 협상 체결 여부를 결정 및 세션 협상 결과를 :ref:`sessionRequester` 로 전달함.
+ * (세션 협상 체결시, 연동할 세션 end point 도 함께 전달함.)
  * @method
  * @private
+ * @see SessionRequester._snProcess
  */
 exports.SessionListener.prototype._requestSN = function (call, callback) {
     debug("[gRPC Call] RequestSessionNegotiation");
@@ -128,8 +139,11 @@ exports.SessionListener.prototype._requestSN = function (call, callback) {
     }
 };
 /**
+ * 다른 데이터 허브의 :ref:`sessionRequester` 와의 세션 협상 체결이 결정된 이후,
+ * :ref:`sessionRequester` 로부터 다른 데이터 허브의 연동할 세션 end point 를 전달받는 gRPC 함수.
  * @method
  * @private
+ * @see SessionRequester._snProcess
  */
 exports.SessionListener.prototype._ackSN = function (call, callback) {
     let result = call.request;
@@ -143,6 +157,7 @@ exports.SessionListener.prototype._ackSN = function (call, callback) {
 };
 /* SessionListener methods */
 /**
+ * 세션 협상 요청을 응답할 gRPC 서버를 구동하는 함수.
  * @method
  * @private
  */

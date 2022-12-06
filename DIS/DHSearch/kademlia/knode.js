@@ -146,7 +146,7 @@ exports.KNode.prototype._updateContact = function(contact, cb) {
 // TODO: handle large values which
 // won't fit in single UDP packets
 /**
- * 수신한 UDP 메시지의 type 이 ``PING``에 해당할 때 호출되는 함수로,
+ * 수신한 UDP 메시지의 type 이 ``PING`` 에 해당할 때 호출되는 함수로,
  * 분산 탐색 네트워크의 노드 간 네트워크 연결 여부를 확인하는 통신에 해당함.
  * @method
  * @private
@@ -160,7 +160,7 @@ exports.KNode.prototype._onPing = function(message) {
 }
 
 /**
- * 수신한 UDP 메시지의 type 이 ``STORE``에 해당할 때 호출되는 함수로,
+ * 수신한 UDP 메시지의 type 이 ``STORE`` 에 해당할 때 호출되는 함수로,
  * 특정 contact 정보를 key, value 로 저장하는 통신에 해당함.
  * @method
  * @private
@@ -180,7 +180,7 @@ exports.KNode.prototype._onStore = function(message) {
 }
 
 /**
- * 수신한 UDP 메시지의 type 이 ``STORE_REPLY``에 해당할 때 호출되는 함수로,
+ * 수신한 UDP 메시지의 type 이 ``STORE_REPLY`` 에 해당할 때 호출되는 함수로,
  * ``STORE`` 통신의 응답에 해당함.
  * @method
  * @private
@@ -189,7 +189,7 @@ exports.KNode.prototype._onStore = function(message) {
 exports.KNode.prototype._onStoreReply = function() {}
 
 /**
- * 수신한 UDP 메시지의 type 이 ``DELETE``에 해당할 때 호출되는 함수로,
+ * 수신한 UDP 메시지의 type 이 ``DELETE`` 에 해당할 때 호출되는 함수로,
  * 메시지 내 contact 객체 정보를 Bucket 내에서 삭제하는 통신에 해당함.
  * @method
  * @private
@@ -213,7 +213,7 @@ exports.KNode.prototype._onDelete = function(message) {
 }
 
 /**
- * 수신한 UDP 메시지의 type 이 ``FIND_VALUE``에 해당할 때 호출되는 함수로,
+ * 수신한 UDP 메시지의 type 이 ``FIND_VALUE`` 에 해당할 때 호출되는 함수로,
  * message.key 값에 해당하는 value(contact 객체 정보)를 반환하는 통신에 해당함.
  * @method
  * @private
@@ -243,7 +243,7 @@ exports.KNode.prototype._onFindValue = function(message) {
 }
 
 /**
- * 수신한 UDP 메시지의 type 이 ``FIND_NODE``에 해당할 때 호출되는 함수로,
+ * 수신한 UDP 메시지의 type 이 ``FIND_NODE`` 에 해당할 때 호출되는 함수로,
  * message.key 와 XOR 거리 기반 가까운 노드들의 정보(contacts)를 반환하는 통신에 해당함.
  * @method
  * @private

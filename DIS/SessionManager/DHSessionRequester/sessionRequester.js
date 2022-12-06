@@ -47,9 +47,11 @@ exports.SessionRequester.prototype.run = function () {
 
 /* Worker threads Listener */
 /**
- * _smListener
+ * :ref:`sessionManager` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
  * @private
+ * @param message - dictionary(event, message) 구조의 스레드 메시지
+ * @param message:event - ``INIT``, ``START_SESSION_CONNECTION``, ``GET_NEW_SESSION_INFO``, ``UPDATE_INTEREST_LIST``, ``UPDATE_NEGOTIATION_OPTIONS``
  * @see SessionManager._srInit
  * @see SessionManager._srStartSessionConnection
  * @see SessionManager._srGetNewSessionInfo
@@ -87,9 +89,13 @@ exports.SessionRequester.prototype._smListener = function (message) {
 
 /* SessionManager methods */
 /**
- * _smTransmitNegotiationResult
+ * SessionRequester 모듈과 다른 데이터 허브의 :ref:`sessionListener` 간 세션 협상 체결이 된 경우,
+ * :ref:`sessionManager` 로 상대 세션 모듈의 end point 정보와 세션 협상 결과를 ``TRANSMIT_NEGOTIATION_RESULT`` 이벤트 스레드 메시지와 함께 전달함.
  * @method
  * @private
+ * @param end_point - 다른 데이터 허브의 세션 모듈의 접속 정보(IP, Port)
+ * @param session_desc - 세션 객체의 메타데이터(세션 생성자 정보, 세션 ID)
+ * @param sn_result - 세션 협상 결과
  * @see SessionManager._srListener
  */
 exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_point, session_desc, sn_result) {
@@ -102,13 +108,16 @@ exports.SessionRequester.prototype._smTransmitNegotiationResult = function (end_
 
 /* SessionRequester methods */
 /**
+ * 세션 협상 요청을 보낼 다른 데이터 허브의 :ref:`sessionListener` gRPC 서버와 통신할 gRPC client 객체 생성.
  * @method
  * @private
+ * @param sl_ip - 세션 협상 요청을 보낼 다른 데이터 허브의 :ref:`sessionListener` gRPC 서버 end point
  */
 exports.SessionRequester.prototype._initConnection = function (sl_ip) {
     return new this.SNproto(sl_ip, grpc.credentials.createInsecure());
 }
 /**
+ * 다른 데이터 허브의 :ref:`sessionListener` gRPC 서버와의 통신 종료.
  * @method
  * @private
  */
@@ -117,8 +126,13 @@ exports.SessionRequester.prototype._closeConnection = function () {
     debug('gRPC session closed with other datahub SessionListener');
 }
 /**
+ * :ref:`sessionManager` 로부터 ``SYNC_ON`` 이벤트를 전달받은 뒤,
+ * bucketList 내 세션 협상 요청을 보낼 데이터 허브 리브스틀 순회하면서, 세션 협상 요청을 처리하는 로직을 수행함.
  * @method
  * @private
+ * @param bucketList - 세션 협상 요청을 보낼 데이터 허브 리스트
+ * @see SessionListener._requestSN
+ * @see SessionListener._ackSN
  */
 exports.SessionRequester.prototype._snProcess = async function (bucketList) {
 

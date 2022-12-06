@@ -210,6 +210,7 @@ exports.DHDaemon.prototype._dhSearchListener = function(message){
  * 획득된 session list 정보를 ``recv.sessionList`` 토픽으로 전달
  * @param message
  * @private
+ * @see SessionManager._dmGetSessionListInfo
  */
 exports.DHDaemon.prototype._smListener = function(message){
     switch(message.event){
