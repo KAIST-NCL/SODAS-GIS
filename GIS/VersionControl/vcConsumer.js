@@ -1,14 +1,25 @@
 const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
 const debug = require('debug')('sodas:vcConsumer');
 
+/**
+ * send.referenceModel 과 send.dictionary 를 수신하여 처리하는 Kafka Consumer 객체
+ * @constructor
+ * @param {string} kafkaHost - kafka Host 정보
+ * @param {dictionary} options - options for kafka
+ * @param {vcModule} VC - vcModule 객체
+ */
 class vcConsumer extends Consumer{
     constructor(kafkaHost, options, VC) {
         const topics = [ {topic:'send.referenceModel', partitions:0},
                          {topic:'send.dictionary', partitions:0} ];
         console.log(kafkaHost,topics,options);
-        super(kafkaHost, topics, options); 
-        this.VC = VC; 
+        super(kafkaHost, topics, options);
+        this.VC = VC;
     }
+    /**
+     * Kafka Consumer handler 등록을 통한 Kafka Consumer 를 구동하는 함수.
+     * @method
+     */
     run(){
         debug('[RUNNING] kafka consumer for VC of GS is running');
         const that = this;
@@ -18,7 +29,12 @@ class vcConsumer extends Consumer{
             that.handler(message, that);
         });
     }
-    // Kafka message received event handler
+    /**
+     * 지정된 메시지 수신 시, 메시지 파싱 후 파일 생성 및 업데이트
+     * @method
+     * @param {dictionary} message - Kafka 메시지 {topic: "", value: {}}
+     * @param {vcConsumer} self - vcConsumer 객체
+     */
     handler(message, self){
         try {
             debug('[LOG] Kafka Message for GS is received - ' + message.topic);
@@ -31,7 +47,7 @@ class vcConsumer extends Consumer{
             else if (message.topic == 'send.dictionary') tp = 'dictionary';
 
             var filepath = self.VC.vc.vcRoot + '/' + tp + '/' + message_.type+ '/'+ message_.id + '.json';
-            
+
             // 메시지를 통째로 저장한다
             // do the operation right away
             self.VC.editFile(event, filepath,message_.type, JSON.stringify(message_)).then(() => {
@@ -47,8 +63,3 @@ class vcConsumer extends Consumer{
 }
 
 exports.vcConsumer = vcConsumer;
-
-// 수정해야하는 사항
-// 기존과 다르게 파싱하지 말고 JSON 방식으로 메시지 저장
-// 나중에 불러올 때 JSON content내용 파싱하게끔 수정
-// 다만, 저장하는 이름은 원래 저장하던 이름과 동일하게

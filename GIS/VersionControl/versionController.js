@@ -1,6 +1,12 @@
 const { Git } = require(__dirname + '/../Lib/git');
 const debug = require('debug')('sodas:versionController');
 const fs= require('fs');
+
+/**
+ * VersionController
+ * @constructor
+ * @param {string} RMgitDir - referenceModel, dictionary 를 저장할 gitDB 의 최상위 경로
+ */
 class VC {
     static Flag = false;
     static FirstCommit = 'asdfasdf';
@@ -11,6 +17,10 @@ class VC {
         this.isInit = false;
     }
 
+    /**
+     * pubvc gitDB 초기화 함수.
+     * @method
+     */
     async init(){
         var value = '';
         var self = this;
@@ -39,15 +49,36 @@ class VC {
         this.isInit = true;
         return value;
     }
+
+    /**
+     * 지정된 경로의 gitDB 로부터 최초 commit 번호를 추출
+     * @method
+     * @param {VC} self - VC 객체
+     * @param {string} dir - gitDB 경로
+     * @returns commitNumber - 최초 commit 번호
+     */
     returnFirstCommit(self, dir) {
         return self.git.getInitCommit(dir);
     }
 }
 
+/**
+ * vcModuel 에서 관리하는 gitDB 와 연동된 VC 상속 클래스
+ * @constructor
+ * @param {string} RMgitDir - referenceModel, dictionary를 저장할 gitDB의 최상위 경로
+ */
 class publishVC extends VC{
     constructor(RMgitDir) {
         super(RMgitDir);
     }
+
+    /**
+     * gitDB의 변동사항을 git에 add하고 commit하는 함수
+     * @method
+     * @param {string} filepath - 파일 경로
+     * @param {string} message - commit message
+     * @param {vcModule} vm - vcModule 객체
+     */
     async commit(filepath, message, vm){
         // Flag=1 means not be able to commit, 0 means be able to commit
         if(vm.flag[0] == 1){

@@ -9,6 +9,10 @@ const crypto = require("crypto");
 const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:rmSessionManager');
 
+/**
+ * RMSessionManager
+ * @constructor
+ */
 exports.RMSessionManager = function () {
 
     self = this;
@@ -44,11 +48,33 @@ exports.RMSessionManager = function () {
 
     var self = this;
     parentPort.on('message', (message)=> {
-        self._gsdaemonListener(message);
+        self._gsDaemonListener(message);
     })
 };
 
-exports.RMSessionManager.prototype._gsdaemonListener = function(message) {
+/**
+ * :ref:`gsDaemon` 에 의해 RMSessionManager 모듈이 생성된 이후 바로 실행되는 함수로,
+ * SODAS+ DIS RMSync 로부터의 오픈 참조 모델 동기화를 위한 세션 연동 요청을 처리하는 gRPC 서버를 구동함.
+ * @method
+ */
+exports.RMSessionManager.prototype.run = function () {
+    rmSessionManager.rmSMServer = rmSessionManager._setRMSessionManager();
+    rmSessionManager.rmSMServer.bindAsync('0.0.0.0:' + workerData.smPortNum,
+        grpc.ServerCredentials.createInsecure(), () => {
+            debug('gRPC Server running at ' + rmSessionManager.rmSmAddr);
+            rmSessionManager.rmSMServer.start();
+        });
+}
+
+/**
+ * :ref:`gsDaemon` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
+ * @method
+ * @private
+ * @param {dictionary(event,data)} message - 스레드 메시지
+ * @param {string} message:event - ``INIT``
+ * @see GSDaemon._rmSMInit
+ */
+exports.RMSessionManager.prototype._gsDaemonListener = function(message) {
     switch (message.event) {
         case 'INIT':
             this.init();
@@ -59,34 +85,14 @@ exports.RMSessionManager.prototype._gsdaemonListener = function(message) {
     }
 }
 
-/* Init Function */
-exports.RMSessionManager.prototype.init = function() {
-    debug('RMSessionManager Initializing...');
-    // kafka On
-    this.VC.on('message', this._vcListener);
-    
-    // git Init
-    var first_commit= rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot);
-    if(!fs.existsSync(rmSessionManager.msgStorepath)) rmSessionManager._save_last_commit(rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot));
-    var content = rmSessionManager.__read_dict();
-    debug("First Commit: " + first_commit);
-    debug("Previous LC: " + content.previousLastCommit);
-    if (first_commit == content.previousLastCommit) {
-        // first add all the things in the folder and commit them
-        // 처음에 시드 없이 시작할 때를 대비해서 init.txt에 아무 값이나 집어넣기
-        fs.writeFileSync(rmSessionManager.pVC.vcRoot + '/' + "init.txt", "initialized", 'utf8');
-        execSync('cd ' + rmSessionManager.pVC.vcRoot + " && git add ./");
-        var stdout = execSync('cd ' + rmSessionManager.pVC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
-        var printed = stdout.toString().split('\n');
-        printed.pop();
-        var comm = printed.pop();
-        content.stored = content.stored+1;
-        content.commitNumber.push(comm);
-        rmSessionManager._save_last_commit(comm);
-    }
-}
-
-/* Worker threads Listener */
+/**
+ * :ref:`versionControl` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
+ * @method
+ * @private
+ * @param {dictionary(event,data)} message - 스레드 메시지
+ * @param {string} message:event - ``UPDATE_REFERENCE_MODEL``
+ * @see vcModule.reportCommit
+ */
 exports.RMSessionManager.prototype._vcListener = function (message){
     switch (message.event) {
         case 'UPDATE_REFERENCE_MODEL':
@@ -113,17 +119,35 @@ exports.RMSessionManager.prototype._vcListener = function (message){
     }
 }
 
-exports.RMSessionManager.prototype._rmSessionUpdateReferenceModel = function (rmSessionWorker, git_patch) {
+/**
+ * :ref:`versionControl` 에서 ``UPDATE_REFERENCE_MODEL`` 이벤트 스레드 메시지를 받은 뒤,
+ * SODAS+ DIS RMSync 모듈과 연동된 :ref:`rmSession` 으로
+ * referenceModel/dictionary pubvc gitDB 에 commit 및 diff 추출을 통해 생성한 gitPatch file 을 ``UPDATE_REFERENCE_MODEL`` 이벤트 스레드 메시지로 전달함.
+ * @method
+ * @private
+ * @param {worker} rmSessionWorker - SODAS+ DIS RMSync 모듈의 오픈 참조 모델 동기화 정보를 전송받는 gRPC 서버와 연동되어 있는 rmSession worker 객체
+ * @param {dictionary(patch,commitNumbers)} gitPatch - 업데이트된 오픈 참조 모델의 gitPatch file 과 관련 commit 번호
+ * @see RMSession._smListener
+ */
+exports.RMSessionManager.prototype._rmSessionUpdateReferenceModel = function (rmSessionWorker, gitPatch) {
     rmSessionWorker.postMessage({
         event: "UPDATE_REFERENCE_MODEL",
-        data: { 
-            patch: git_patch.patch,
-            commitNumbers: git_patch.commitNumbers,
+        data: {
+            patch: gitPatch.patch,
+            commitNumbers: gitPatch.commitNumbers,
             operation: "UPDATE"
         }
     });
 }
 
+/**
+ * SODAS+ DIS RMSync 모듈에서 오픈 참조 모델 동기화를 위한 세션 연동 요청을 처리하는 함수로,
+ * 신규 :ref:`rmSession` 생성하고, DIS RMSync 모듈의 gRPC 서버 end point 정보를 전달함.
+ * @method
+ * @private
+ * @param call - gRPC client 가 전송한 메시지
+ * @param callback - callback 함수
+ */
 exports.RMSessionManager.prototype._requestRMSession = function (call, callback) {
     debug("[GS] [RMSessionManager] - RequestRMSession");
     var dhNode = call.request
@@ -133,6 +157,13 @@ exports.RMSessionManager.prototype._requestRMSession = function (call, callback)
     callback(null, {result: 'OK', rmSessionId: rmSessionManager.rmSessionListToDaemon[0].sessionId})
 };
 
+/**
+ * SODAS+ DIS RMSync 로부터의 오픈 참조 모델 동기화를 위한 세션 연동 요청을 처리하는 gRPC 서버를 구동하는 함수로,
+ * 해당 기능을 처리하는 내부함수를 gRPC 서비스로 연동함.
+ * @method
+ * @private
+ * @see RMSessionManager._requestRMSession
+ */
 exports.RMSessionManager.prototype._setRMSessionManager = function () {
     rmSessionManager.server = new grpc.Server();
     rmSessionManager.server.addService(rmSessionManager.rmSessionproto.service, {
@@ -141,15 +172,14 @@ exports.RMSessionManager.prototype._setRMSessionManager = function () {
     return rmSessionManager.server;
 }
 
-exports.RMSessionManager.prototype.run = function () {
-    rmSessionManager.rmSMServer = rmSessionManager._setRMSessionManager();
-    rmSessionManager.rmSMServer.bindAsync('0.0.0.0:' + workerData.smPortNum,
-        grpc.ServerCredentials.createInsecure(), () => {
-            debug('gRPC Server running at ' + rmSessionManager.rmSmAddr);
-            rmSessionManager.rmSMServer.start();
-        });
-}
-
+/**
+ * :ref:`rmSession` 모듈을 worker thread 로 실행하고, 생성된 신규 rmSession 모듈에서 기존 관리되고 있는 오픈 참조 모델을 처음으로 동기화하도록 하는
+ * ``RMSessionManager.sessionInitPatch`` 함수를 호출함.
+ * @method
+ * @private
+ * @param {dictionary(sessionId,dhId,dhIp,dhPort)} dhNode - 오픈 참조 모델 동기화를 위한 세션 연동 요청을 전송한 SODAS+ DIS 의 end point 정보
+ * @see RMSession._smListener
+ */
 exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     dhNode['sessionId'] = crypto.randomBytes(20).toString('hex')
     var rmSessParam = {
@@ -167,7 +197,7 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     rmSessionManager.rmSessionListToDaemon.push(dhNode);
     rmSessionManager.rmSessionDict[dhNode.sessionId] = rmSession;
 
-    rmSessionManager.session_init_patch().then((git_patch) => {
+    rmSessionManager.sessionInitPatch().then((git_patch) => {
         debug("git Patch")
         debug(git_patch.commitNumbers);
         rmSession.postMessage({
@@ -181,77 +211,126 @@ exports.RMSessionManager.prototype._createNewRMSession = function (dhNode) {
     });
 };
 
+/**
+ * @method
+ */
+exports.RMSessionManager.prototype.init = function() {
+    debug('RMSessionManager Initializing...');
+    // kafka On
+    this.VC.on('message', this._vcListener);
 
-// Session 최초 연결 시 최초 git_patch 보내는 함수
-exports.RMSessionManager.prototype.session_init_patch = async function() {
-    debug("Session Init Patch");
-    var first_commit= rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot);
+    // git Init
+    var first_commit = rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot);
     if(!fs.existsSync(rmSessionManager.msgStorepath)) rmSessionManager._save_last_commit(rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot));
-    var content = rmSessionManager.__read_dict();
+    var content = rmSessionManager.__readDict();
     debug("First Commit: " + first_commit);
     debug("Previous LC: " + content.previousLastCommit);
     if (first_commit == content.previousLastCommit) {
+        // first add all the things in the folder and commit them
+        // 처음에 시드 없이 시작할 때를 대비해서 init.txt에 아무 값이나 집어넣기
+        fs.writeFileSync(rmSessionManager.pVC.vcRoot + '/' + "init.txt", "initialized", 'utf8');
+        execSync('cd ' + rmSessionManager.pVC.vcRoot + " && git add ./");
+        var stdout = execSync('cd ' + rmSessionManager.pVC.vcRoot + ' && git commit -m "asdf" && git rev-parse HEAD');
+        var printed = stdout.toString().split('\n');
+        printed.pop();
+        var comm = printed.pop();
+        content.stored = content.stored+1;
+        content.commitNumber.push(comm);
+        rmSessionManager._save_last_commit(comm);
+    }
+}
+
+/**
+ * 신규 연동된 SODAS+ DIS 에게 최초로 전달할 gitPatch file 을 생성하는 함수로,
+ * gitDB 의 최초 commit 부터 마지막 commit 사이의 Patch 를 추출한다
+ * @method
+ * @return initGitPatch - 최초 commit 부터 마지막 commit 사이의 Patch file
+ */
+exports.RMSessionManager.prototype.sessionInitPatch = async function() {
+    debug("Session Init Patch");
+    var firstCommit= rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot);
+    if(!fs.existsSync(rmSessionManager.msgStorepath)) rmSessionManager._save_last_commit(rmSessionManager.pVC.returnFirstCommit(rmSessionManager.pVC, rmSessionManager.pubvcRoot));
+    var content = rmSessionManager.__readDict();
+    debug("First Commit: " + firstCommit);
+    debug("Previous LC: " + content.previousLastCommit);
+    if (firstCommit == content.previousLastCommit) {
         debug(" Not Initialized before ");
     }
     else {
-        var git_patch = await rmSessionManager.extractInitPatch(content.previousLastCommit, first_commit);
-        return git_patch;
+        var initGitPatch = await rmSessionManager.extractInitPatch(content.previousLastCommit, firstCommit);
+        return initGitPatch;
     }
 }
 
-// 구현해야야 하는 기능 목록 
-// 1. UPDATE 마다 GIT PATCH 추출해서 보내기
-// 2. 특정 Session에서 오류가 발생한 경우, 기다리기
-// 3. Commit 번호 기억하기
-// 4. gRPC에 Commit번호 추가로 보내기
-
-
-// 1
-exports.RMSessionManager.prototype.extractInitPatch= async function(last_commit, first_commit){
+/**
+ * 인자로 받은 최초 commit 부터 마지막 commit 사이의 gitPatch file 을 추출한 뒤, 반환하는 함수.
+ * @method
+ * @param {string} lastCommit - git Patch 추출 대상이 되는 마지막 commit 번호
+ * @param {string} firstCommit - git Patch 추출 대상이 되는 첫번째 commit 번호
+ * @returns toReturn - dictionary(patch, commitNumbers) 구조의 gitPatch file 과 관련 commit 번호
+ */
+exports.RMSessionManager.prototype.extractInitPatch= async function(lastCommit, firstCommit){
     // patch from the first commit. Ref: https://stackoverflow.com/a/40884093
-    var patch= execSync('cd ' + rmSessionManager.pubvcRoot + ' && git diff --no-color ' + first_commit + ' '+ last_commit);
-    var toreturn = {
+    var patch = execSync('cd ' + rmSessionManager.pubvcRoot + ' && git diff --no-color ' + firstCommit + ' '+ lastCommit);
+    var toReturn = {
         patch: patch.toString(),
-        commitNumbers: [first_commit, last_commit]
+        commitNumbers: [firstCommit, lastCommit]
     };
-    return toreturn;
+    return toReturn;
 }
 
-exports.RMSessionManager.prototype.extractGitDiff = async function(topublish) {
+/**
+ * 오픈 참조 모델 동기화 세션이 연동되어 있는 SODAS+ DIS RMSync 모듈에게 전달할 gitPatch file 을 추출하는 함수
+ * @method
+ * @param {dictionary(stored,commitNumber,previousLastCommit)} toPublish - DIS 에게 전달할 git Diff 를 추출하는데 필요한 내용
+ * @returns toReturn - dictionary(patch, commitNumbers) 구조의 gitPatch file 과 관련 commit 번호
+ */
+exports.RMSessionManager.prototype.extractGitDiff = async function(toPublish) {
     if (rmSessionManager.mutexFlag[0] == 1) {
         const timeOut = 100;
-        setTimeout(rmSessionManager.extractGitDiff.bind(rmSessionManager), timeOut, topublish);
+        setTimeout(rmSessionManager.extractGitDiff.bind(rmSessionManager), timeOut, toPublish);
     }
     else {
         rmSessionManager.mutexFlag[0] = 1;
-        var git_diff = execSync('cd ' + rmSessionManager.pubvcRoot + ' && git diff --no-color ' + topublish.previousLastCommit + ' ' + topublish.commitNumber[topublish.stored - 1]);
+        var gitDiff = execSync('cd ' + rmSessionManager.pubvcRoot + ' && git diff --no-color ' + toPublish.previousLastCommit + ' ' + toPublish.commitNumber[toPublish.stored - 1]);
         rmSessionManager.mutexFlag[0] = 0;
-        debug(git_diff);
-        var toreturn = {
-            patch: git_diff.toString(),
-            commitNumbers: [topublish.previousLastCommit, topublish.commitNumber[topublish.stored - 1]]
+        debug(gitDiff);
+        var toReturn = {
+            patch: gitDiff.toString(),
+            commitNumbers: [toPublish.previousLastCommit, toPublish.commitNumber[toPublish.stored - 1]]
         }
-        return toreturn;
+        return toReturn;
     }
 }
 
-exports.RMSessionManager.prototype.updateHandler = function(commit_number) {
+/**
+ * :ref:`versionControl` 에서 ``UPDATE_REFERENCE_MODEL`` 이벤트 스레드 메시지를 받은 뒤,
+ * 새로운 referenceModel/dictionary file 정보가 pubvc gitDB 에 업데이트 될 경우,
+ * 해당 내용을 기록/관리하고 연동된 DIS 에게 전달하는 함수
+ * @method
+ * @param {string} commitNumber - 업데이트 된 referenceModel/dictionary file 과 관련된 commit 번호
+ */
+exports.RMSessionManager.prototype.updateHandler = function(commitNumber) {
     // GIT PATCH EXTRACTION
-    var content = rmSessionManager.__read_dict();
+    var content = rmSessionManager.__readDict();
     content.stored = content.stored + 1;
-    content.commitNumber.push(commit_number);
-    rmSessionManager.__save_dict(content);
+    content.commitNumber.push(commitNumber);
+    rmSessionManager.__saveDict(content);
 
-    const topublish = rmSessionManager.__read_dict();
-    rmSessionManager._save_last_commit(topublish.commitNumber[topublish.commitNumber.length - 1]);
-    rmSessionManager.extractGitDiff(topublish).then((git_patch) => {
+    const toPublish = rmSessionManager.__readDict();
+    rmSessionManager._save_last_commit(toPublish.commitNumber[toPublish.commitNumber.length - 1]);
+    rmSessionManager.extractGitDiff(toPublish).then((gitPatch) => {
         // GIT PATCH BROADCAST
         for (var key in rmSessionManager.rmSessionDict) {
-            rmSessionManager._rmSessionUpdateReferenceModel(rmSessionManager.rmSessionDict[key], git_patch)
+            rmSessionManager._rmSessionUpdateReferenceModel(rmSessionManager.rmSessionDict[key], gitPatch)
         }
     });
 }
 
+/**
+ * 만약 DIS 와 연동된 session 이 오작동하여 업데이트 내용이 전달되지 않은 경우 해당 오류가 고쳐진 뒤 다시 업데이트 내용을 전송하는 함수
+ * @method
+ */
 exports.RMSessionManager.prototype.delayed_updateHandler = function() {
     if (rmSessionManager.errorSession[0] > 0) {
         rmSessionManager.poolTimer = setTimeout(rmSessionManager.delayed_updateHandler, 100);
@@ -263,24 +342,36 @@ exports.RMSessionManager.prototype.delayed_updateHandler = function() {
     }
 }
 
-// 3
-exports.RMSessionManager.prototype.__save_dict = function(content) {
+/**
+ * @method
+ * @private
+ */
+exports.RMSessionManager.prototype.__saveDict = function(content) {
     const contentJSON = JSON.stringify(content);
     fs.writeFileSync(rmSessionManager.msgStorepath, contentJSON);
 }
 
-exports.RMSessionManager.prototype.__read_dict = function() {
+/**
+ * @method
+ * @private
+ */
+exports.RMSessionManager.prototype.__readDict = function() {
     return JSON.parse(fs.readFileSync(rmSessionManager.msgStorepath).toString());
 }
 
-exports.RMSessionManager.prototype._save_last_commit = function(last_commit) {
-    var lc = (typeof last_commit  === 'undefined') ? "" : last_commit;
+/**
+ * @method
+ * @private
+ * @param {string} lastCommit - pubvb gitDB 에 마지막으로 commit 된 commit 번호
+ */
+exports.RMSessionManager.prototype._save_last_commit = function(lastCommit) {
+    var lc = (typeof lastCommit  === 'undefined') ? "" : lastCommit;
     const content = {
         stored: 0,
         commitNumber: [],
         previousLastCommit: lc
     }
-    rmSessionManager.__save_dict(content);
+    rmSessionManager.__saveDict(content);
 }
 
 const rmSessionManager = new rmSM.RMSessionManager();
