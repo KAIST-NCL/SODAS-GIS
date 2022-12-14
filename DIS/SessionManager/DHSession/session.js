@@ -61,7 +61,7 @@ exports.Session = function() {
     this.myPort = workerData.myPortNum;
     this.server = new grpc.Server();
     self = this;
-    parentPort.on('message', function(message) {self._dhDaemonListener(message)});
+    parentPort.on('message', function(message) {self._smListener(message)});
 
     this.server.addService(session_sync.SessionSync.service, {
         // (1): Subscription from counter session
@@ -72,15 +72,16 @@ exports.Session = function() {
 }
 
 /**
- * _dhDaemonListener
+ * :ref:`sessionManager` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
- * @param message
  * @private
+ * @param {dictionary(event,data)} message - 스레드 메시지
+ * @param {string} message:event - ``INIT``, ``TRANSMIT_NEGOTIATION_RESULT``, ``UPDATE_PUB_ASSET``
  * @see SessionManager._sessionInit
  * @see SessionManager._sessionTransmitNegotiationResult
  * @see SessionManager._sessionUpdatePubAsset
  */
-exports.Session.prototype._dhDaemonListener = function (message){
+exports.Session.prototype._smListener = function (message) {
     debug("[Session ID: " + this.id + "] Received Thread Msg ###");
     debug(message);
     switch(message.event) {

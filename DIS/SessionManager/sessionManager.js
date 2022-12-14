@@ -8,7 +8,6 @@ const MIN_PORT_NUM_OF_SESSION = 55000;
 const MAX_PORT_NUM_OF_SESSION = 65535;
 const debug = require('debug')('sodas:sessionManager\t|');
 
-
 /**
  * SessionManager
  * @constructor
@@ -406,9 +405,9 @@ exports.SessionManager.prototype._slUpdateNegotiationOptions = function () {
 /**
  * :ref:`session` worker thread 의 초기화 실행을 위한 함수로 ``INIT`` 이벤트 스레드 메시지를 전달함.
  * @method
- * @param sessionWorker - 신규 생성한 세션 worker thread 객체
  * @private
- * @see Session._dhDaemonListener
+ * @param sessionWorker - 신규 생성한 세션 worker thread 객체
+ * @see Session._smListener
  */
 exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
     sessionWorker.postMessage({
@@ -425,7 +424,7 @@ exports.SessionManager.prototype._sessionInit = function (sessionWorker) {
  * @param session_desc - 세션 객체의 메타데이터(세션 생성자 정보, 세션 ID)
  * @param sn_options - 세션 협상 결과
  * @private
- * @see Session._dhDaemonListener
+ * @see Session._smListener
  */
 exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (sessionWorker, end_point, session_desc, sn_options) {
     sessionWorker.postMessage({
@@ -443,7 +442,7 @@ exports.SessionManager.prototype._sessionTransmitNegotiationResult = function (s
  * @param sessionWorker - 변경된 Pub 데이터맵이 동기화 수준에 해당하는 세션 모듈 객체
  * @param commit_number - VC 모듈에서 최근 커밋한 커밋 번호
  * @private
- * @see Session._dhDaemonListener
+ * @see Session._smListener
  */
 exports.SessionManager.prototype._sessionUpdatePubAsset = function (sessionWorker, commit_number) {
     sessionWorker.postMessage({

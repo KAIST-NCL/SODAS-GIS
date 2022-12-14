@@ -12,8 +12,8 @@ class ctrlConsumer extends Consumer{
 
     /**
      * ctrlConsumer
-     * 타겟이 되는 kafka 정보를 받아들여 주어진 조건을 만족하는 kafka로부터
-     * 'send.datahub' 토픽의 정보를 지속적으로 listening하는 ctrlConsumer 객체 생성
+     * 타겟이 되는 kafka 정보를 받아들여 주어진 조건을 만족하는 kafka 로부터
+     * 'send.datahub' 토픽의 정보를 지속적으로 listening 하는 ctrlConsumer 객체 생성
      * @param {string} kafkaHost - kafka Host 정보
      * @param {dictionary} options - options for kafka
      * @param {DHDaemon} dhDaemon - dhDaemon object
@@ -31,8 +31,8 @@ class ctrlConsumer extends Consumer{
      * ctrlConsumer 의 onMessage 함수
      * 해당 토픽으로 들어오는 메시지를 이벤트와 메시지로 파싱한 후 이벤트 종류에 따른 처리를 위해 ``ctrlConsumer.eventSwitch`` 로 전달
      * @method
-     * @throws {error} 메시지가 send.dataHub의 규약을 따르지 않는 경우 에러 반환
-     * @returns {eventSwitch(event, msg)} eventSwitch
+     * @throws {error} 메시지가 send.dataHub 의 규약을 따르지 않는 경우 에러 반환
+     * @returns {eventSwitch(event,msg)} eventSwitch
      * @see ctrlConsumer.eventSwitch
      */
     onMessage = function(){
@@ -53,7 +53,7 @@ class ctrlConsumer extends Consumer{
     };
 
     /**
-     * send.datahub로 들어오는 메시지의 event 형태에 따른 대응
+     * send.datahub 로 들어오는 메시지의 event 형태에 따른 대응
      * <p> ``START`` : reference model 동기화 시작 ``DHDaemon._rmSyncInit`` </p>
      * <p> ``STOP`` : DIS 동작 종료 (not yet implemented) </p>
      * <p> ``UPDATE`` : 관심 허브 정보 등록 ``DHDaemon._dhSearchUpdateInterestTopic`` , ``DHDaemon._smUpdateInterestTopic`` </p>
