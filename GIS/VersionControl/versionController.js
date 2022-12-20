@@ -3,7 +3,7 @@ const debug = require('debug')('sodas:versionController');
 const fs= require('fs');
 
 /**
- * VersionController
+ * VersionController, gitDB에 레퍼런스 모델 및 딕셔너리의 수정사항을 기록하고 관리하는 모듈
  * @constructor
  * @param {string} RMgitDir - referenceModel, dictionary 를 저장할 gitDB 의 최상위 경로
  */
@@ -18,7 +18,7 @@ class VC {
     }
 
     /**
-     * pubvc gitDB 초기화 함수.
+     * pubvc gitDB 초기화 함수
      * @method
      */
     async init(){
@@ -73,11 +73,13 @@ class publishVC extends VC{
     }
 
     /**
-     * gitDB의 변동사항을 git에 add하고 commit하는 함수
+     * gitDB의 변동사항을 git에 add하고 commit한 다음 :ref:`rmSessionManager에 commit 번호를 전달하는 함수
      * @method
      * @param {string} filepath - 파일 경로
      * @param {string} message - commit message
      * @param {vcModule} vm - vcModule 객체
+     * @see vcModule.reportCommit
+     * @see Git.commit
      */
     async commit(filepath, message, vm){
         // Flag=1 means not be able to commit, 0 means be able to commit

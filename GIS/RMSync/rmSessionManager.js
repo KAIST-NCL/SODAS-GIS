@@ -343,6 +343,7 @@ exports.RMSessionManager.prototype.delayed_updateHandler = function() {
 }
 
 /**
+ * rmSessionManager의 내부 변수를 JSON으로 저장하는 함수
  * @method
  * @private
  */
@@ -352,6 +353,7 @@ exports.RMSessionManager.prototype.__saveDict = function(content) {
 }
 
 /**
+ * JSON으로 저장된 rmSessionManager의 내부 변수를 불러오는 함수
  * @method
  * @private
  */
@@ -360,9 +362,10 @@ exports.RMSessionManager.prototype.__readDict = function() {
 }
 
 /**
+ * DIS에 Publish한 후 마지막 Publish 대상인 commit 번호를 저장하는 함수
  * @method
  * @private
- * @param {string} lastCommit - pubvb gitDB 에 마지막으로 commit 된 commit 번호
+ * @param {string} lastCommit - pubvc gitDB 에 마지막으로 commit 된 commit 번호
  */
 exports.RMSessionManager.prototype._save_last_commit = function(lastCommit) {
     var lc = (typeof lastCommit  === 'undefined') ? "" : lastCommit;

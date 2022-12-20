@@ -19,7 +19,7 @@ const debug = require('debug')('sodas:session');
 
 
 /**
- * RMSession
+ * RMSession은 DIS와 연동하여 레퍼런스 모델 및 딕셔너리를 전달하는 모듈이다
  * @constructor
  */
 exports.RMSession = function() {
@@ -78,12 +78,13 @@ exports.RMSession.prototype._smListener = function (message) {
     }
 }
 
-/// Publish to the counter DH RMSync Session
-// git_patch: string. Git diff Extraction result
 /**
  * 연동된 DIS 에게 referenceModel 관련 git Patch 를 전달하는 함수
  * @method
- * @param git_patch - git Patch
+ * @param {dictionary(patch, operation, commitNumbers)} git_patch - git Patch
+ * @param {string} git_patch:patch - git Diff 추출 결과물
+ * @param {string} git_patch:operation - ``CREATE``혹은 ``UPDATE``
+ * @param {Array} git_patch:commitNumbers - git Diff 추출에 사용된 커밋 번호 2개
  */
 exports.RMSession.prototype.publish = function(git_patch) {
     // first check verification
@@ -161,6 +162,7 @@ exports.RMSession.prototype.extractGitDiff= async function(firstCommit, lastComm
 
 // Data Storing
 /**
+ * rmSession의 내부 변수를 JSON으로 저장하는 함수
  * @method
  * @private
  * @param {string} content
@@ -171,6 +173,7 @@ exports.RMSession.prototype.__save_dict = function(content) {
 }
 
 /**
+ * JSON으로 저장된 rmSession 내부 변수를 불러오는 함수
  * @method
  * @private
  */

@@ -105,6 +105,7 @@ exports.vcModule.prototype.editFile = async function(option, filepath, type, con
 };
 
 /**
+ * GitDB 사용 시 Mutex를 잠그는 함수
  * @method
  */
 exports.vcModule.prototype.lockMutex = function (self) {
@@ -112,6 +113,7 @@ exports.vcModule.prototype.lockMutex = function (self) {
 };
 
 /**
+ * GitDB 사용 완료 후 Mutex 잠금을 해제하는 함수
  * @method
  */
 exports.vcModule.prototype.unlockMutex = function (self) {

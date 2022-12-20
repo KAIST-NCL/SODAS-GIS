@@ -31,9 +31,14 @@ class vcConsumer extends Consumer{
     }
     /**
      * 지정된 메시지 수신 시, 메시지 파싱 후 파일 생성 및 업데이트
+     * ``send.referenceModel`` 또는 ``send.dictionary`` 로 들어오는 모든 이벤트를 vcModule로 파싱하여 전달
      * @method
-     * @param {dictionary} message - Kafka 메시지 {topic: "", value: {}}
+     * @param {dictionary(topic,value)} message - Kafka 메시지
+     * @param {string} message:topic - Kafka 토픽 ``send.referenceModel`` 또는 ``send.dictionary``
+     * @param {dictionary} message:value - Kafka 내용물
      * @param {vcConsumer} self - vcConsumer 객체
+     * @see vcModule.editFile
+     * @see vcModule.commit
      */
     handler(message, self){
         try {
