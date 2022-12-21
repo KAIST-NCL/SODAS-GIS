@@ -24,6 +24,11 @@ const readline = require('readline');
 const debug = require('debug')('sodas:lib:ref-parser\t\t|');
 
 // ------------------------------------------ 외부 동작 함수 ------------------------------------------ //
+/**
+ * Reference Model을 파싱하여 폴더구조를 생성하기 위한 모듈
+ * @param {string} root - ref_parser를 호출하는 모듈의 gitDB root 경로
+ * @param {string} refRootdir - reference model이 저장되어 있는 최상위 폴더 경로
+ */
 exports.ref_parser = function(root, refRootdir) {
     this.root = root; //gitDB의 root 디렉토리
     this.refRootdir = refRootdir + '/gitDB'; // ref 파일들이 저장된 최상위 폴더
@@ -34,7 +39,10 @@ exports.ref_parser = function(root, refRootdir) {
     });
 }
 
-// 새로운 파일 입력
+/**
+ * 신규 Reference Model이 추가되었을 때 이를 ref_parser에 반영하기 위한 함수
+ * @param {Array} ReferenceModel 
+ */
 exports.ref_parser.prototype.addReferenceModel = function(ReferenceModel) {
     // ReferenceModel은 reference model 정보가 들은 배열이다
     // 우선, 분류를 한 뒤 정렬한다
@@ -75,7 +83,11 @@ exports.ref_parser.prototype.addReferenceModel = function(ReferenceModel) {
     })
 }
 
-// Related -> filepath 변환 기능
+/**
+ * related 정보가 들어왔을 때 이를 해당하는 폴더 경로로 변환하기 위한 함수
+ * @param {dictionary} related
+ * @returns - 해당 폴더 경로
+ */
 exports.ref_parser.prototype.related_to_filepath = function(related) {
     // related의 경우에는 [{operation: , id: , type: }]의 구조를 갖는다
     // 효율적인 iteration을 위해서 중간 결과물로 {domain: ,group: ,taxonomy: ,category:[]}을 둔다
@@ -158,12 +170,21 @@ exports.ref_parser.prototype.related_to_filepath = function(related) {
     return filePath;
 }
 
-// 해당 경로에 폴더를 생성하는 함수
+/**
+ * 원하는 위치에 폴더를 생성하는 함수
+ * @private
+ * @param {string} target - 폴더 경로
+ */
 exports.ref_parser.prototype._folder_create = function(target) {
     !fs.existsSync(target) && fs.mkdirSync(target, {recursive: true});
 }
 
-// 입력된 위치까지의 폴더 경로 반환하는 함수
+/**
+ * 주어진 타입과 id에 해당하는 폴더/파일 경로를 검색하는 함수
+ * @param {string} type - domain / group /  taxonomy / category / asset
+ * @param {string} id - 식별자
+ * @returns - 해당하는 폴더 / 파일 경로
+ */
 exports.ref_parser.prototype.search_filepath = function(type, id) {
     if (!Object.values(typeName).includes(type)) {
         debug("Wrong Type Given: " + type + ", " + id);
@@ -185,7 +206,10 @@ exports.ref_parser.prototype.search_filepath = function(type, id) {
     return filePath;
 }
 
-// 이미 자료가 다 담긴 폴더의 주소를 주면 하위 폴더 정보 읽어들여서 스스로 테스트하는 함수
+/**
+ * ref_parser 동작 확인 함수
+ * @param {*} folderPath 
+ */
 exports.ref_parser.prototype.test = function(folderPath) {
     // 반드시 folderPath는 03-domain, 04-tenant-group, 05-taxonomy, 06-taxonomy-version을 갖고 있어야한다.
     const folder_list = [refFolder.domain, refFolder.group, refFolder.taxonomy, refFolder.taxonomyVersion];
@@ -228,7 +252,12 @@ exports.ref_parser.prototype.test = function(folderPath) {
 }
 
 // ------------------------------------------ 내부 동작 함수 ------------------------------------------ //
-// 동기 방식 json 읽기
+/**
+ * JSON 파일을 읽어와 Dictionary로 반환하는 함수
+ * @private
+ * @param {string} filepath - JSON 파일 경로
+ * @returns - dictionary 반환
+ */
 function readJsonToDict(filepath) {
     const jsonFile = fs.readFileSync(filepath, 'utf8');
     const msg_ = JSON.parse(jsonFile);
@@ -236,7 +265,11 @@ function readJsonToDict(filepath) {
     return dict;
 }
 
-// 새로운 도메인 생성 시
+/**
+ * Domain에 해당하는 파일 파싱 함수
+ * @param {ref_parser} parser 
+ * @param {string} filepath 
+ */
 function domainParser(parser, filepath) {
     const dict = readJsonToDict(filepath);
     // 읽어올 내용은 id 하나 뿐이다
@@ -248,7 +281,12 @@ function domainParser(parser, filepath) {
     parser._folder_create(parser.root + '/' + parser.search_filepath(typeName.domain, domainId));
 }
 
-// group, taxonomy, category 추가 시
+/**
+ * Group에 해당하는 파일 파싱 함수
+ * @param {ref_parser} parser 
+ * @param {string} filepath 
+ * @returns - 에러 종류 반환
+ */
 function groupParser(parser, filepath) {
     const dict = readJsonToDict(filepath);
     // 읽어올 내용은 id, domainId 두개이다
@@ -268,6 +306,12 @@ function groupParser(parser, filepath) {
     return errorType.NO_ERROR;
 }
 
+/**
+ * Taxonomy에 해당하는 파일 파싱 함수
+ * @param {ref_parser} parser 
+ * @param {string} filepath 
+ * @returns - 에러 종류 반환
+ */
 function taxonomyParser(parser, filepath) {
     const dict = readJsonToDict(filepath);
     // 읽어올 내용은 id, tenantGroupId이다
@@ -287,6 +331,12 @@ function taxonomyParser(parser, filepath) {
     return errorType.NO_ERROR;
 }
 
+/**
+ * TaxonomyVersion에 해당하는 파일 파싱 함수
+ * @param {ref_parser} parser 
+ * @param {string} filepath 
+ * @returns - 에러 종류 반환
+ */
 function taxonomyVersionParser(parser, filepath) {
     const dict = readJsonToDict(filepath);
     // 읽어올 내용은 id,taxonomyId, previousVersionId, categories
@@ -313,6 +363,13 @@ function taxonomyVersionParser(parser, filepath) {
     return errorType.NO_ERROR;
 }
 
+/**
+ * TaxonomyVersion 내의 category 항목 파싱 함수
+ * @param {ref_parser} parser 
+ * @param {string} taxonomyId - 해당 category가 속하는 Taxonomy의 ID
+ * @param {dictionary} category - 해당 category 정보가 담긴 dictionary
+ * @returns - 에러 종류 반환
+ */
 function categoryParser(parser, taxonomyId, category) {
     // 읽어들일 내용: id, parentId
     const categoryId = category.id;
@@ -352,13 +409,22 @@ function categoryParser(parser, taxonomyId, category) {
     }
 }
 
-// taxonomyVersion의 modified 시간 구하는 함수
+/**
+ * 해당 파일의 최종 수정 시간을 확인하는 함수
+ * @param {string} filepath 
+ * @returns - 최종 수정 시간 반환
+ */
 function getModifiedTime(filepath) {
     const content = readJsonToDict(filepath);
     return new Date(content.modified);
 }
 
-// 입력된 파일 목록 Sorting
+/**
+ * 파일 목록을 종류 별로 나누고 수정 시간에 따라 정렬하는 함수
+ * @param {ref_parser} parser 
+ * @param {Array} filepathList 
+ * @returns - 정렬된 파일 배열
+ */
 function sortFileList(parser, filepathList) {
     // 파일 목록을 보고 domain, tenantGroup, taxonomy, taxonomyVersion 별로 나눈다
     // 각각 분류 내에서 파일 수정 시간에 따라 순서를 정렬한다

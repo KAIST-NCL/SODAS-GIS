@@ -4,11 +4,20 @@ const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:lib:git\t\t|');
 const tools = require('./tools')
 
+/**
+ * Git
+ * @constructor
+ * @param {string} gitDIR_ - 관리할 gitDB 경로
+ */
 class Git {
     constructor(gitDIR_){
         this.gitDIR_ = gitDIR_;
     }
 
+    /**
+     * gitDB를 git init하고 1회 commit한 다음 최초 commit 번호를 반환하는 함수
+     * @returns - 최초 commit 번호
+     */
     async init(){
         // callback, argDict는 optional.
         !fs.existsSync(this.gitDIR_) && tools.mkdirSyncRecursive(this.gitDIR_);
@@ -26,12 +35,22 @@ class Git {
         }
     }
 
+    /**
+     * 최초 commit을 진행하는 함수
+     * @returns - 최초 commit 번호
+     */
     _first_commit(){
         execSync('cd '+ this.gitDIR_ + '&& touch init.txt');
         var commnum = this.commit('./init.txt', 'initial commit');
         return commnum;
     }
 
+    /**
+     * git commit을 진행하는 함수
+     * @param {string} filepath - commit 대상 경로
+     * @param {string} message - commit message
+     * @returns - commit 번호
+     */
     commit(filepath, message){
         execSync('cd ' + this.gitDIR_ + ' && git add ' + filepath);
         var stdout = execSync('cd ' + this.gitDIR_ + ' && git commit -m "' + message + '" && git rev-parse HEAD');
@@ -41,13 +60,20 @@ class Git {
         return comm;
     }
 
+    /**
+     * git diff를 추출하는 함수
+     * @param {string} comID1 - 시작 커밋 번호
+     * @param {string} comID2 - 종료 커밋 번호
+     * @param {string} diff_dir - diff 추출할 경로
+     */
     diff(comID1, comID2, diff_dir){
         execSync('cd ' + this.gitDIR_ + ' && git diff '+comID1+' '+' '+comID2+' -- '+ diff_dir + ' >>  ../' + comID2 + '.patch', { encoding: 'utf8', maxBuffer: 50 * 1024 * 1024 });
     }
 
-    // 인자로 반드시 patch 파일의 이름, 패치할 대상을 넣는다.
-    // 오버로딩 1. patch 파일의 이름만 들어온 경우 전체 패치를 진행한다.
-    // 오버로딩 2. patch 파일 이름과 대상으 들어온 경우 해당 대상만 패치한다.
+    /**
+     * git diff 추출물을 patch로서 적용하는 함수
+     * @param {string} patch_name - git diff 추출물의 경로
+     */
     apply(patch_name) {
         // 적용 가능 여부 체크하고 싶을 시엔
         // var result = execSync('cd' + this.gitDIR_ + ' && git apply -3 --whitespace=fix --check ' + patch_name).toString()
@@ -63,22 +89,40 @@ class Git {
         }
     }
 
+    /**
+     * 최초 commit 번호를 구하는 함수
+     * @param {string} dir - 최초 commit 번호를 조회할 gitDB 경로
+     * @returns - 최초 commit 번호
+     */
     getInitCommit(dir){
         const stdout  = execSync('cd ' + dir + ' && git rev-list --max-parents=0 HEAD');
         let initCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");
         return initCommitID;
     }
 
+    /**
+     * 현재 마지막 commit 번호를 구하는 함수
+     * @returns - 현재 마지막 commit 번호
+     */
     getCurCommit(){
         const stdout = execSync('cd ' + this.gitDIR_ + ' && git log -1 | grep ^commit | cut -d " " -f 2');
         this.currentCommitID = stdout.toString().replace(/(\r\n|\n|\r)/gm, "");
         return this.currentCommitID;
     }
 
+    /**
+     * 들어온 content를 파일로 작성하여 저장하는 함수
+     * @param {string} filepath 
+     * @param {string} content 
+     */
     editFile(filepath, content) {
         fs.writeFileSync(filepath, content);
     }
 
+    /**
+     * 지정된 파일을 삭제하는 함수
+     * @param {string} filepath 
+     */
     deleteFile(filepath) {
         fs.existsSync(filepath) && fs.unlink(filepath, function (err) {
             if (err) {

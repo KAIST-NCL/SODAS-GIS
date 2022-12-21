@@ -108,8 +108,9 @@ exports.Session.prototype._smListener = function (message) {
     }
 }
 
-/// Initiate Session
+
 /**
+ * gRPC 모듈 활성화 함수
  * @method
  * @private
  */
@@ -120,16 +121,12 @@ exports.Session.prototype._init = function(self) {
     });
 }
 
-/// [4]: hanldes the msg from Session Manager
-// message: dict. data part of thread call "UPDATE_PUB_ASSET"
 /**
+ * git Diff를 Publish하기 전에 내부 변수를 업데이트, 저장하고 publish 조건이 충족되었는 지 확인하는 함수
  * @method
  * @private
  */
 exports.Session.prototype.prePublish = function(self, message) {
-    // save the things in message in a file as log
-    // change log: Now only the commit number is needed
-    // ToDo: Rather than calling this function whenever receiving the thread call from SM, call this function just like the vcModule calls commit function
     var content = self.__read_dict();
     content.stored = content.stored + 1;
     content.commitNumber.push(message.commitNumber);
@@ -141,10 +138,13 @@ exports.Session.prototype.prePublish = function(self, message) {
     }
 }
 
-/// If the count / sync time reaches some point, extract the git diff and publish it to other session
+
 /**
+ * 만약 sync_count에 도달하면 count를 초기화하고 diff를 추출한다
  * @method
  * @private
+ * @see Session._reset_count
+ * @see Session.extractGitDiff
  */
 exports.Session.prototype.onMaxCount = async function(self) {
     self.countMsg = 0;
@@ -154,14 +154,17 @@ exports.Session.prototype.onMaxCount = async function(self) {
     self._reset_count(topublish.commitNumber[topublish.commitNumber.length - 1]);
     // git diff extraction
     self.extractGitDiff(self, topublish)
-
 }
 
-/// To extract git diff using two git commit numbers
-// topublish: dict. Result of reading log file
 /**
+ * git Diff를 추출하는 함수
  * @method
  * @private
+ * @param {Session} self
+ * @param {dictionary(previousLastCommit, commitNumber)} topublish - diff 추출에 필요한 정보가 담긴 함수
+ * @param {string} topublish:previousLastCommit - 이전 publish 때 사용한 마지막 commit 번호
+ * @param {Array} topublish:commitNumber - 이전 publish 이후 들어온 commit 번호의 배열
+ * @see Session.Publish
  */
 exports.Session.prototype.extractGitDiff = async function(self, topublish) {
     // mutex 적용
@@ -186,9 +189,8 @@ exports.Session.prototype.extractGitDiff = async function(self, topublish) {
     }
 }
 
-/// Reset count after publish
-// last_commit: string. commit # of last git commit
 /**
+ * sync_count를 초기화하는 함수
  * @method
  * @private
  */
@@ -204,16 +206,14 @@ exports.Session.prototype._reset_count = function(last_commit) {
     this.__save_dict(content);
 }
 
-/// [5]: Publish to the counter Session
-// git_patch: string. Git diff Extraction result
 /**
+ * 추출한 git Diff를 상대 session에게 publish하는 함수
  * @method
  * @private
+ * @param {string} git_patch - git Diff 추출물
  */
 exports.Session.prototype.Publish = function(git_patch) {
     debug("[LOG-Session:" + ss.id + "]: Publish");
-    // Change Log -> Now, does not send the related and filepath information through the gRPC. Subscriber extracts that information from git diff file
-
     // Make the message body to send
     var toSend = {'transID': new Date() + Math.random().toString(10).slice(2,3),
                   'gitPatch': git_patch,
@@ -231,11 +231,15 @@ exports.Session.prototype.Publish = function(git_patch) {
     });
 }
 
-/// (1): Subscribe from the other session
-// Change Log -> seperated from the constructor as an function
 /**
+ * 상대 Session으로부터 gRPC를 통해 git Diff 내용을 받아와 적용하고 Kafka로 해당 내용을 외부에 전달하는 함수
  * @method
  * @private
+ * @param {Session} self
+ * @param {dictionary} call - Kafka로 전달받은 내용
+ * @param callback - Kafka response를 처리하는 콜백 함수
+ * @see Session.gitPatch
+ * @see Session.kafkaProducer
  */
 exports.Session.prototype.Subscribe = function(self, call, callback) {
     debug("[LOG-Session:" + self.id + "]: gRPC Received: from " + call.request.receiverId);
@@ -252,10 +256,13 @@ exports.Session.prototype.Subscribe = function(self, call, callback) {
     }
 }
 
-// (2): Apply the git patch received through gRPC
 /**
+ * 상대 Session으로부터 전달받은 git Diff를 자신의 gitDB에 적용하는 함수
  * @method
  * @private
+ * @param {string} git_patch - git Diff 추출물
+ * @param {session} self
+ * @returns - 1인 경우 에러, 0인 경우 정상 동작
  */
 exports.Session.prototype.gitPatch = function(git_patch, self) {
     // save git patch as a temporal file
@@ -277,10 +284,12 @@ exports.Session.prototype.gitPatch = function(git_patch, self) {
     return 0;
 }
 
-// (3): Producer: send.asset Message creation and Sending it
 /**
+ * 외부에 Kafka 메시지를 발행하는 함수
  * @method
  * @private
+ * @param {string} git_patch - git Diff 추출물
+ * @param {session} self
  */
 exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     // Change Log -> previous argument was {related, filepath} as json_string format. Now git diff
@@ -314,16 +323,18 @@ exports.Session.prototype.kafkaProducer = function(git_pacth, self) {
     debug("[LOG-Session:" + self.id + "]: Kafka producer completed ");
 }
 
-// Data Storing
 /**
+ * session 내 변수를 파일로 저장하는 함수
  * @method
  * @private
+ * @param {dictionary} content
  */
 exports.Session.prototype.__save_dict = function(content) {
     const contentJSON = JSON.stringify(content);
     fs.writeFileSync(this.msgStorepath, contentJSON);
 }
 /**
+ * JSON으로 저장된 session 내부 변수를 불러오는 함수
  * @method
  * @private
  */
@@ -332,8 +343,11 @@ exports.Session.prototype.__read_dict = function() {
 }
 
 /**
+ * Session 동작 함수
+ * sync_count 혹은 sync_time 도달 시 Publish하도록 한다
  * @method
  * @private
+ * @param {Session} self
  */
 exports.Session.prototype.run = function(self) {
     now = new Date().getTime();

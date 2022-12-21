@@ -1,12 +1,24 @@
 const { Consumer } = require('../Lib/EventHandler/consumer/consumer');
 const debug = require('debug')('sodas:vcConsumer\t|');
 
+/**
+ * send.referenceModel 과 send.dictionary 를 수신하여 처리하는 Kafka Consumer 객체
+ * @constructor
+ * @param {string} kafkaHost - kafka Host 정보
+ * @param {dictionary} options - options for kafka
+ * @param {vcModule} VC - vcModule 객체
+ */
 class vcConsumer extends Consumer{
     constructor(kafkaHost, options, VC) {
         const topics = [ {topic:'send.asset', partitions:0} ];
         super(kafkaHost, topics, options); 
         this.VC = VC; 
     }
+
+    /**
+     * Kafka Consumer handler 등록을 통한 Kafka Consumer 를 구동하는 함수.
+     * @method
+     */
     run(){
         debug('[RUNNING] kafka consumer for VC is running');
         const that = this;
@@ -14,6 +26,18 @@ class vcConsumer extends Consumer{
             that.handler(message, that);
         });
     }
+
+    /**
+     * 지정된 메시지 수신 시, 메시지 파싱 후 파일 생성 및 업데이트
+     * ``send.asset`` 으로 들어오는 모든 이벤트를 vcModule로 파싱하여 전달
+     * @method
+     * @param {dictionary(topic,value)} message - Kafka 메시지
+     * @param {string} message:topic - Kafka 토픽 ``asset``
+     * @param {dictionary} message:value - Kafka 내용물
+     * @param {vcConsumer} self - vcConsumer 객체
+     * @see vcModule.editFile
+     * @see vcModule.commit
+     */
     handler(message, self){
         try {
             debug('[LOG] Kafka Message Received');

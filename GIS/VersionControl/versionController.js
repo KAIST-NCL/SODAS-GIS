@@ -63,7 +63,7 @@ class VC {
 }
 
 /**
- * vcModuel 에서 관리하는 gitDB 와 연동된 VC 상속 클래스
+ * vcModule 에서 관리하는 gitDB 와 연동된 VC 상속 클래스
  * @constructor
  * @param {string} RMgitDir - referenceModel, dictionary를 저장할 gitDB의 최상위 경로
  */

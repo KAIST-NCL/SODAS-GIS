@@ -165,7 +165,7 @@ exports.RMSession.prototype.extractGitDiff= async function(firstCommit, lastComm
  * rmSession의 내부 변수를 JSON으로 저장하는 함수
  * @method
  * @private
- * @param {string} content
+ * @param {dictionary} content
  */
 exports.RMSession.prototype.__save_dict = function(content) {
     const contentJSON = JSON.stringify(content);

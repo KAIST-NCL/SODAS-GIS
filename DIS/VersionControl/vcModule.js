@@ -7,7 +7,10 @@ const diff_parser = require(__dirname+'/../Lib/diff_parser');
 const execSync = require('child_process').execSync;
 const debug = require('debug')('sodas:vcModule\t|');
 
-/// Constructor
+/**
+ * VersionControl 프로세스를 관리하는 모듈
+ * @constructor
+ */
 exports.vcModule = function(){
     ////////////////////////////////////////////////////////////////////////////////////////////////
     debug("[LOG] vcModule created");
@@ -46,6 +49,10 @@ exports.vcModule = function(){
     });
 };
 
+/**
+ * `publishVC` 모듈의 초기화 함수를 호출함으로써, pubvc gitDB 의 초기 commit 을 수행함.
+ * @method
+ */
 exports.vcModule.prototype.init = async function(){
     var self = this;
     this.unlockMutex(self);
@@ -59,11 +66,22 @@ exports.vcModule.prototype.init = async function(){
         .catch((e) => {debug(e)});
 };
 
+/**
+ * `vcConsumer` 모듈의 실행 함수를 호출함으로써, Kafka Consumer 를 구동함.
+ * @method
+ */
 exports.vcModule.prototype.run = function(){
     this.consumer.run();
 
 };
 
+/**
+ * `vcConsumer` 에서 전달된 내용을 기반으로 `versionController` 의 git commit 함수 호출
+ * @method
+ * @param {vcModule} self - vcModule 객체
+ * @param {dictionary} message - `send.asset` 메시지
+ * @see publishVC.commit
+ */
 exports.vcModule.prototype.commit = async function(self, message) {
     var fp = message;
     // used for pooling method
@@ -71,6 +89,13 @@ exports.vcModule.prototype.commit = async function(self, message) {
     await self.vc.commit(fp, message, self);
 };
 
+/**
+ * `versionController` 에서 git commit 후 전달한 commitNumber 를 `SessionManager` 에게 전달
+ * @method
+ * @param {vcModule} self - vcModule 객체
+ * @param {string} commitNumber - git commit 번호
+ * @see SessionManager._vcListener
+ */
 exports.vcModule.prototype.reportCommit = function(self, commitNumber){
     const stdout = execSync('cd ' + self.vc.vcRoot + ' && git show ' + commitNumber);
     filepath_list = diff_parser.parse_git_patch(stdout.toString());
@@ -85,6 +110,13 @@ exports.vcModule.prototype.reportCommit = function(self, commitNumber){
     this.smPort.postMessage(msg);
 };
 
+/**
+ * kafka로 전달받은 asset 내용을 파일로 저장/수정/삭제하는 함수
+ * @method
+ * @param {string} option - 처리 방법: 저장/수정/삭제
+ * @param {string} filepath - 파일 경로
+ * @param {string} content - 저장할 내용
+ */
 exports.vcModule.prototype.editFile = async function(option, filepath, content) {
     var fp = this.vc.vcRoot + '/' + filepath;
     switch (option) {
@@ -100,10 +132,18 @@ exports.vcModule.prototype.editFile = async function(option, filepath, content) 
     }
 };
 
+/**
+ * GitDB 사용 시 Mutex를 잠그는 함수
+ * @method
+ */
 exports.vcModule.prototype.lockMutex = function (self) {
     self.flag[0] = 1;
 };
 
+/**
+ * GitDB 사용 완료 후 Mutex 잠금을 해제하는 함수
+ * @method
+ */
 exports.vcModule.prototype.unlockMutex = function (self) {
     self.flag[0] = 0;
 };

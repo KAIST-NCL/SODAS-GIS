@@ -50,7 +50,7 @@ exports.vcModule.prototype.run = function(){
  * `vcConsumer` 에서 전달된 내용을 기반으로 `versionController` 의 git commit 함수 호출
  * @method
  * @param {vcModule} self - vcModule 객체
- * @param {dictionary} message - send.asset 메시지
+ * @param {dictionary} message - `send.referenceModel` 혹은 `send.dictionary` 메시지
  * @see publishVC.commit
  */
 exports.vcModule.prototype.commit = async function(self, message) {
