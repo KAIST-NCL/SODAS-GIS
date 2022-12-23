@@ -124,8 +124,10 @@ DIS 는 관심 키워드가 일치하는 데이터 허브들과의 데이터맵 
        | :ref:`session`
      - 데이터 허브 상호운용 시스템 데몬에 의해 실행되는 스레드로, 시스템 데몬으로부터 동기화 옵션을 전달받아 관리하며, DHSearch 모듈에서 탐색한 관심 토픽의 데이터맵을 소유한 다른 데이터 허브와의 데이터맵 동기화를 위한 세션 연동 기능을 수행하며, VersionControl 모듈과 연동하여 다른 데이터 허브와의 세션을 통한 데이터맵 전송 기능을 수행
 
-   * - :ref:`VersionControlModule`
-     - | :ref:`versionControl`
+   * - :ref:`VersionControl`
+     - | :ref:`VCModule`
+     - | :ref:`VCConsumer`
+     - | :ref:`VersionController`
      - 데이터 허브 시스템에서 발생한 데이터맵 변화 이벤트에 따른 증분 데이터 기반 데이터맵 버전 관리 기능을 수행
 
 

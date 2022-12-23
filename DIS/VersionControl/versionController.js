@@ -3,7 +3,7 @@ const { ref_parser } = require('../Lib/ref_parser');
 const debug = require('debug')('sodas:versionController|');
 
 /**
- * VersionController, gitDB에 asset의 수정사항을 기록하고 관리하는 모듈
+ * versionController
  * @constructor
  * @param {string} gitDir - asset을 저장할 gitDB 의 최상위 경로
  * @param {string} refRootdir - 분류 구조를 참조하기 위한 reference model이 저장된 경로
