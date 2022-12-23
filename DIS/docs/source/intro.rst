@@ -126,8 +126,8 @@ DIS 는 관심 키워드가 일치하는 데이터 허브들과의 데이터맵 
 
    * - :ref:`VersionControl`
      - | :ref:`VCModule`
-     - | :ref:`VCConsumer`
-     - | :ref:`VersionController`
+       | :ref:`VCConsumer`
+       | :ref:`VersionController`
      - 데이터 허브 시스템에서 발생한 데이터맵 변화 이벤트에 따른 증분 데이터 기반 데이터맵 버전 관리 기능을 수행
 
 
