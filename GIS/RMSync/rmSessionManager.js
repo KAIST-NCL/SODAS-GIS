@@ -86,7 +86,7 @@ exports.RMSessionManager.prototype._gsDaemonListener = function(message) {
 }
 
 /**
- * :ref:`versionControl` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
+ * :ref:`VCModule` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
  * @private
  * @param {dictionary(event,data)} message - 스레드 메시지
@@ -120,7 +120,7 @@ exports.RMSessionManager.prototype._vcListener = function (message){
 }
 
 /**
- * :ref:`versionControl` 에서 ``UPDATE_REFERENCE_MODEL`` 이벤트 스레드 메시지를 받은 뒤,
+ * :ref:`VCModule` 에서 ``UPDATE_REFERENCE_MODEL`` 이벤트 스레드 메시지를 받은 뒤,
  * SODAS+ DIS RMSync 모듈과 연동된 :ref:`rmSession` 으로
  * referenceModel/dictionary pubvc gitDB 에 commit 및 diff 추출을 통해 생성한 gitPatch file 을 ``UPDATE_REFERENCE_MODEL`` 이벤트 스레드 메시지로 전달함.
  * @method
@@ -304,7 +304,7 @@ exports.RMSessionManager.prototype.extractGitDiff = async function(toPublish) {
 }
 
 /**
- * :ref:`versionControl` 에서 ``UPDATE_REFERENCE_MODEL`` 이벤트 스레드 메시지를 받은 뒤,
+ * :ref:`VCModule` 에서 ``UPDATE_REFERENCE_MODEL`` 이벤트 스레드 메시지를 받은 뒤,
  * 새로운 referenceModel/dictionary file 정보가 pubvc gitDB 에 업데이트 될 경우,
  * 해당 내용을 기록/관리하고 연동된 DIS 에게 전달하는 함수
  * @method

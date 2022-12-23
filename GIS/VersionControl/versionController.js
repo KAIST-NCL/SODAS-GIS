@@ -79,7 +79,6 @@ class publishVC extends VC{
      * @param {string} message - commit message
      * @param {vcModule} vm - vcModule 객체
      * @see vcModule.reportCommit
-     * @see Git.commit
      */
     async commit(filepath, message, vm){
         // Flag=1 means not be able to commit, 0 means be able to commit

@@ -57,7 +57,7 @@ exports.GSDaemon.prototype.init = async function(){
  * @method
  * @see bootstrapServer
  * @see rmSessionManager
- * @see versionControl
+ * @see VCModule
  * @see ctrlConsumer.onMessage
  */
 exports.GSDaemon.prototype.run = function(){
@@ -130,7 +130,7 @@ exports.GSDaemon.prototype._rmSessionManagerListener = function(message){
 };
 
 /**
- * :ref:`versionControl` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
+ * :ref:`VCModule` 에서 전달되는 스레드 메시지를 수신하는 이벤트 리스너.
  * @method
  * @private
  * @param {dictionary(event,data)} message - 스레드 메시지
