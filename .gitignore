@@ -17,3 +17,7 @@ TestTools/Producer/reference_producer/taxonomyVersion02-01_KAIST.json
 TestTools/referenceModels_example/taxonomyVersion/taxonomyVersion01-01.json
 TestTools/Producer/reference_producer/taxonomyVersion02-02_KAIST.json
 TestTools/referenceModels_example/taxonomyVersion/taxonomyVersion01-01.json
+DIS/docs/_build/
+DIS/docs/build/
+GIS/docs/_build/
+GIS/docs/build/
