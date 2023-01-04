@@ -1,3 +1,0 @@
-requirements_file: docs/requirement.txt
-build:
-  image: latest
